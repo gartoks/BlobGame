@@ -5,7 +5,7 @@ This was hacked together in a few hours over a couple of days. Don't expect the 
 ## Credits
 
  ### Artwork
-- [Ixzil](Discord): Designed the artwork for the good looking blob sprites.
+- Ixzil (Discord): Designed the artwork for the good looking blob sprites.
 
 ## License
 This project is licensed under the GNU GPLv3 License - see the [LICENSE.md](LICENSE.md) file for details.
