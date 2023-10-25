@@ -1,5 +1,6 @@
-﻿
+﻿// Entry point.
+
 using BlobGame;
 
-RaylibApp.Initialize();
-RaylibApp.Start();
+Application.Initialize();
+Application.Start();

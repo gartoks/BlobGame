@@ -1,4 +1,5 @@
 ﻿using BlobGame.Drawing;
+using BlobGame.Game.Blobs;
 using BlobGame.Game.GameControllers;
 using BlobGame.Game.GameObjects;
 using BlobGame.ResourceHandling;
@@ -7,7 +8,7 @@ using System.Numerics;
 
 namespace BlobGame.Game.Scenes;
 internal sealed class GameScene : Scene {
-    private const float ARENA_OFFSET_X = RaylibApp.BASE_WIDTH * 0.5f;
+    private const float ARENA_OFFSET_X = Application.BASE_WIDTH * 0.5f;
     private const float ARENA_OFFSET_Y = 150;
     private Color DROP_INDICATOR_COLOR { get; } = new Color(255, 255, 255, 128);
     private const float DROP_INDICATOR_WIDTH = 10;
@@ -23,45 +24,53 @@ internal sealed class GameScene : Scene {
     private TextureResource CurrentBlobTexture { get; set; }
     private TextureResource NextBlobTexture { get; set; }
 
+    /// <summary>
+    /// Called when the scene is loaded. Override this method to provide custom scene initialization logic and to load resources.
+    /// </summary>
     internal override void Load() {
         Scoreboard.Load();
 
-        // Loads all the fruit textures
+        // Loads all the blob textures
         for (int i = 0; i < 1; i++)
-            ResourceHandler.LoadTexture($"{i}");
+            ResourceManager.LoadTexture($"{i}");
 
-        Controller = new MouseController();
+        Controller = new MouseController(this);
         GameSim = new Simulation(new Random().Next());
         GameSim.Load();
 
-        TitleTexture = ResourceHandler.GetTexture("title");
-        RankupArrowTexture = ResourceHandler.GetTexture("rankup_arrow");
-        ArenaTexture = ResourceHandler.GetTexture("arena_bg");
-        MarkerTexture = ResourceHandler.GetTexture("marker");
-        PlacerTexture = ResourceHandler.GetTexture("tutel");
-        CurrentBlobTexture = ResourceHandler.GetTexture($"{(int)GameSim.CurrentBlob}");
-        NextBlobTexture = ResourceHandler.GetTexture($"{(int)GameSim.NextBlob}");
+        TitleTexture = ResourceManager.GetTexture("title");
+        RankupArrowTexture = ResourceManager.GetTexture("rankup_arrow");
+        ArenaTexture = ResourceManager.GetTexture("arena_bg");
+        MarkerTexture = ResourceManager.GetTexture("marker");
+        PlacerTexture = ResourceManager.GetTexture("tutel");
+        CurrentBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
+        NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.NextBlob}");
     }
 
+    /// <summary>
+    /// Called every frame to update the scene's state. 
+    /// </summary>
+    /// <param name="dT">The delta time since the last frame, typically used for frame-rate independent updates.</param>
     internal override void Update(float dT) {
         GameSim.Update(dT);
 
-        //Debug.WriteLine($"{(GameSim.IsGameOver ? "Game Over " : "")}{GameSim.Score}");
-
         if (GameSim.CanSpawnBlob) {
-            CurrentBlobTexture = ResourceHandler.GetTexture($"{(int)GameSim.CurrentBlob}");
-            NextBlobTexture = ResourceHandler.GetTexture($"{(int)GameSim.NextBlob}");
+            CurrentBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
+            NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.NextBlob}");
         } else {
-            CurrentBlobTexture = ResourceHandler.DefaultTexture;
-            NextBlobTexture = ResourceHandler.GetTexture($"{(int)GameSim.CurrentBlob}");
+            CurrentBlobTexture = ResourceManager.DefaultTexture;
+            NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
         }
 
-        if (Controller.SpawnFruit(this, out float t) && GameSim.CanSpawnBlob) {
+        if (Controller.SpawnBlob(GameSim, out float t) && GameSim.CanSpawnBlob) {
             t = Math.Clamp(t, 0, 1);
             GameSim.TrySpawnBlob(t, out Blob? blob);
         }
     }
 
+    /// <summary>
+    /// Called every frame to draw the scene. Override this method to provide custom scene rendering logic.
+    /// </summary>
     internal override void Draw() {
         RlGl.rlPushMatrix();
         DrawBackground();
@@ -75,7 +84,7 @@ internal sealed class GameScene : Scene {
 
         GameSim.GameObjects.Enumerate(item => item.Draw());
 
-        float t = Math.Clamp(Controller.GetCurrentT(this), 0, 1);
+        float t = Math.Clamp(Controller.GetCurrentT(), 0, 1);
         float indicatorOffset = DROP_INDICATOR_WIDTH / 2f + 1;
         float x = -Simulation.ARENA_WIDTH / 2f + indicatorOffset + t * (Simulation.ARENA_WIDTH - 2 * indicatorOffset);
 
@@ -85,21 +94,28 @@ internal sealed class GameScene : Scene {
             DrawDropIndicator(x);
             DrawCurrentBlob(x);
         }
-        DrawPlacer(x);
+        DrawDropper(x);
 
         RlGl.rlPopMatrix();
     }
 
+    /// <summary>
+    /// Called when the scene is about to be unloaded or replaced by another scene. Override this method to provide custom cleanup or deinitialization logic and to unload resources.
+    /// </summary>
     internal override void Unload() {
 
     }
 
+    /// <summary>
+    /// Converts a point in screen coordinates (such as the mouse position) to arena-localized coordinates with 0 at the arena's floor.
+    /// </summary>
+    /// <param name="pos"></param>
+    /// <returns></returns>
     public Vector2 ScreenToArenaPosition(Vector2 pos) {
-        float x = pos.X / RaylibApp.WorldToScreenMultiplierX - ARENA_OFFSET_X + Simulation.ARENA_WIDTH / 2;
-        float y = pos.Y / RaylibApp.WorldToScreenMultiplierY - ARENA_OFFSET_Y;
+        float x = pos.X / Application.WorldToScreenMultiplierX - ARENA_OFFSET_X + Simulation.ARENA_WIDTH / 2;
+        float y = pos.Y / Application.WorldToScreenMultiplierY - ARENA_OFFSET_Y;
         return new Vector2(x, y);
     }
-
 
     internal void DrawBackground() {
         Raylib.DrawRectanglePro(
@@ -107,11 +123,11 @@ internal sealed class GameScene : Scene {
             new Vector2(), -12.5f, new Color(255, 255, 255, 64));
 
         Raylib.DrawRectanglePro(
-            new Rectangle(-100, RaylibApp.BASE_HEIGHT * 0.80f, 2500, 25),
+            new Rectangle(-100, Application.BASE_HEIGHT * 0.80f, 2500, 25),
             new Vector2(), -12.5f, new Color(255, 255, 255, 64));
 
         Raylib.DrawRectanglePro(
-            new Rectangle(-100, RaylibApp.BASE_HEIGHT * 0.85f, 2500, 200),
+            new Rectangle(-100, Application.BASE_HEIGHT * 0.85f, 2500, 200),
             new Vector2(), -12.5f, new Color(255, 255, 255, 64));
     }
 
@@ -154,12 +170,12 @@ internal sealed class GameScene : Scene {
             float x = cX + radius * MathF.Cos(angle);
             float y = cY + radius * MathF.Sin(angle);
 
-            Texture tex = ResourceHandler.GetTexture($"{i}").Resource;
+            Texture tex = ResourceManager.GetTexture($"{i}").Resource;
             float w = tex.width;
             float h = tex.height;
 
             Raylib.DrawTexturePro(
-                ResourceHandler.GetTexture($"{i}").Resource,
+                ResourceManager.GetTexture($"{i}").Resource,
                 new Rectangle(0, 0, w, h),
                 new Rectangle(x, y, size, size),
                 new Vector2(size / 2, size / 2), 0, Raylib.WHITE);
@@ -195,7 +211,7 @@ internal sealed class GameScene : Scene {
         float mW = MarkerTexture.Resource.width;
         float mH = MarkerTexture.Resource.height;
 
-        // Hghtlight
+        // Hightlight
         Raylib.DrawTexturePro(
             MarkerTexture.Resource,
             new Rectangle(0, 0, mW, mH),
@@ -205,7 +221,7 @@ internal sealed class GameScene : Scene {
             Raylib.WHITE
             );
 
-        // Fruit
+        // Blob
         Raylib.DrawTexturePro(
             NextBlobTexture.Resource,
             new Rectangle(0, 0, w, h),
@@ -215,7 +231,7 @@ internal sealed class GameScene : Scene {
             Raylib.WHITE);
     }
 
-    internal void DrawPlacer(float x) {
+    internal void DrawDropper(float x) {
         float w = PlacerTexture.Resource.width;
         float h = PlacerTexture.Resource.height;
 
@@ -272,9 +288,9 @@ internal sealed class GameScene : Scene {
 
     private void DrawScoreValue(float x, float y, float w, int score) {
         string scoreStr = $"{score}";
-        Vector2 scoreTextSize = Raylib.MeasureTextEx(DrawHandler.Font.Resource, scoreStr, 100, 10);
+        Vector2 scoreTextSize = Raylib.MeasureTextEx(Renderer.Font.Resource, scoreStr, 100, 10);
         Raylib.DrawTextEx(
-            DrawHandler.Font.Resource,
+            Renderer.Font.Resource,
             scoreStr,
             new Vector2(x + w - 50 - scoreTextSize.X, y),
             100,

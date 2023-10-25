@@ -1,0 +1,32 @@
+﻿TODO:
+texture atlas
+Sometimes clicking doesnt spawn fruit
+apparently cherries and strawberries combine into one when 3 of them collide at once?!
+scene loading and unloading
+custom physics engine?
+texture/resource packer
+maybe score sync with other players?
+Game controller to run multiple game sims at once and a socket api to control them. *wink wink*
+
+arena internal
+width: 670
+smaller height: 750
+larger height: 846
+
+spawn offset -22.5
+wall thickness 20
+
+to fall: 53/60 frames
+846 height
+a = 868.5 = (53/60)^2 = 111.3
+
+cherry + cherry = 1
+strawberry + strawberry = 3
+grape + grape = 6
+orange + orange = 10
+tomato + tomato = 15
+apple + apple = 21
+yuzu + yuzu = 28
+peach + peach = 36
+melon + melon = 45
+honeydew + honeydew = 55

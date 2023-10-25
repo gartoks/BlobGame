@@ -1,24 +1,36 @@
 ﻿using Raylib_CsLo;
-using System.Drawing;
-using System.Numerics;
-using Color = Raylib_CsLo.Color;
-using Rectangle = Raylib_CsLo.Rectangle;
 
 namespace BlobGame.ResourceHandling;
 
 //public interface ITextureResource {
 //    internal string Key { get; }
-//    internal void DrawScreen(RectangleF destinationRect, Color? tint = null, Vector2? origin = null, float rotation = 0);
-//    internal void DrawWorld(RectangleF destinationRect, Color? tint = null, Vector2? origin = null, float rotation = 0);
 //}
 
+/// <summary>
+/// Game resource for textures.
+/// </summary>
 public class TextureResource {
+    /// <summary>
+    /// The key of the resource.
+    /// </summary>
     public string Key { get; }
 
+    /// <summary>
+    /// A fallback resource to use if the resource could not be loaded or is still loading.
+    /// </summary>
     private Texture Fallback { get; }
+    /// <summary>
+    /// Function to retrieve the resource from the resource manager. Used to check if the resource has been loaded.
+    /// </summary>
     private Func<string, Texture?> ResourceRetriever { get; }
 
+    /// <summary>
+    /// The raylib resource. Is null if the resource has not been loaded yet.
+    /// </summary>
     private Texture? _Reource { get; set; }
+    /// <summary>
+    /// The raylib resource. Returns the fallback if the resource has not been loaded (yet).
+    /// </summary>
     public Texture Resource {
         get {
             if (_Reource == null)
@@ -28,33 +40,17 @@ public class TextureResource {
         }
     }
 
+    /// <summary>
+    /// Constructor for a new texture resource.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <param name="fallback"></param>
+    /// <param name="resourceRetriever"></param>
     internal TextureResource(string key, Texture fallback, Func<string, Texture?> resourceRetriever) {
         Key = key;
 
         ResourceRetriever = resourceRetriever;
         Fallback = fallback;
         _Reource = resourceRetriever(key);
-    }
-
-    /*internal void DrawScreen(RectangleF destinationRect, Color? tint = null, Vector2? origin = null, float rotation = 0) {
-        if (tint == null)
-            tint = Raylib.WHITE;
-
-        if (origin == null)
-            origin = Vector2.Zero;
-
-        Rectangle sourceRect = new Rectangle(0, 0, Resource.width, Resource.height);
-        Raylib.DrawTexturePro(Resource, sourceRect, destinationRect.ToRaylib(), origin.Value, RayMath.RAD2DEG * rotation, tint.Value);
-    }*/
-
-    internal void DrawWorld(RectangleF destinationRect, Color? tint, Vector2? origin, float rotation) {
-        if (tint == null)
-            tint = Raylib.WHITE;
-
-        if (origin == null)
-            origin = Vector2.Zero;
-
-        Rectangle sourceRect = new Rectangle(0, 0, Resource.width, Resource.height);
-        Raylib.DrawTexturePro(Resource, sourceRect, new Rectangle(destinationRect.Left, destinationRect.Bottom, destinationRect.Width, -destinationRect.Height), origin.Value, RayMath.RAD2DEG * rotation, tint.Value);
     }
 }

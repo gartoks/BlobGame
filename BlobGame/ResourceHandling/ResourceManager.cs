@@ -4,24 +4,63 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace BlobGame.ResourceHandling;
-internal static class ResourceHandler {
+/// <summary>
+/// Class for managing the game's resources. Handles loading and caching of resources.
+/// </summary>
+internal static class ResourceManager {
+    /// <summary>
+    /// Time in milliseconds to wait for a resource to be needed to be loaded before continuing the frame.
+    /// </summary>
     private const int RESOURCE_LOADING_TIMEOUT = 0;
+    /// <summary>
+    /// Thread-safe queue of resources to be loaded.
+    /// </summary>
     private static BlockingCollection<(string key, Type type)> ResourceLoadingQueue { get; }
 
+    /// <summary>
+    /// Font resources.
+    /// </summary>
     private static ConcurrentDictionary<string, Font> Fonts { get; }
+    /// <summary>
+    /// Texture resources.
+    /// </summary>
     private static ConcurrentDictionary<string, Texture> Textures { get; }
+    /// <summary>
+    /// Sound resources.
+    /// </summary>
     private static ConcurrentDictionary<string, Sound> Sounds { get; }
 
-    private static Texture _DefaultTexture { get; set; }
+    /// <summary>
+    /// Default raylib font.
+    /// </summary>
+    private static Font _DefaultFont { get; set; }
+    /// <summary>
+    /// Default fallback font resource.
+    /// </summary>
     public static FontResource DefaultFont { get; private set; }
 
-    private static Font _DefaultFont { get; set; }
+    /// <summary>
+    /// Default raylib texture.
+    /// </summary>
+    private static Texture _DefaultTexture { get; set; }
+    /// <summary>
+    /// Default fallback texture resource.
+    /// </summary>
     public static TextureResource DefaultTexture { get; private set; }
 
+    /// <summary>
+    /// Default raylib sound.
+    /// </summary>
     private static Sound _DefaultSound { get; set; }
+    /// <summary>
+    /// Default fallback sound resource.
+    /// </summary>
     public static SoundResource DefaultSound { get; private set; }
 
-    static ResourceHandler() {
+    /// <summary>
+    /// Static constructor to initialize the resource loading queue and other required properties.
+    /// </summary>
+    static ResourceManager() {
         ResourceLoadingQueue = new BlockingCollection<(string key, Type type)>();
 
         Fonts = new ConcurrentDictionary<string, Font>();
@@ -29,9 +68,15 @@ internal static class ResourceHandler {
         Sounds = new ConcurrentDictionary<string, Sound>();
     }
 
+    /// <summary>
+    /// Used to initialize the resource manager. Currently does nothing.
+    /// </summary>
     internal static void Initialize() {
     }
 
+    /// <summary>
+    /// Loads default resources.
+    /// </summary>
     internal static void Load() {
         _DefaultFont = Raylib.GetFontDefault();
         Image image = Raylib.GenImageColor(1, 1, Raylib.BLANK);
@@ -42,12 +87,20 @@ internal static class ResourceHandler {
         DefaultSound = new SoundResource("default", _DefaultSound, TryGetSound);
     }
 
+    /// <summary>
+    /// Called every frame. Checks the resource loading queue and loads resources if needed.
+    /// </summary>
     internal static void Update() {
         while (ResourceLoadingQueue.TryTake(out (string key, Type type) resource, RESOURCE_LOADING_TIMEOUT)) {
             LoadResource(resource.key, resource.type);
         }
     }
 
+    /// <summary>
+    /// Loads a resource from the given key and type.
+    /// </summary>
+    /// <param name="key">The key of the resource.</param>
+    /// <param name="type">The type of the raylib resource type</param>
     private static void LoadResource(string key, Type type) {
         if (type == typeof(Font)) {
             if (Fonts.ContainsKey(key))
@@ -99,16 +152,30 @@ internal static class ResourceHandler {
         }
     }
 
+    /// <summary>
+    /// Queues a font for loading from the given key.
+    /// </summary>
+    /// <param name="key"></param>
     public static void LoadFont(string key) {
         if (!Fonts.ContainsKey(key) && !ResourceLoadingQueue.Any(r => r.key == key))
             ResourceLoadingQueue.Add((key, typeof(Font)));
     }
 
+    /// <summary>
+    /// Gets a font resource from the given key. Queues it for loading if needed.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
     public static FontResource GetFont(string key) {
         LoadFont(key);
         return new FontResource(key, _DefaultFont, TryGetFont);
     }
 
+    /// <summary>
+    /// Tries to get a raylib font from the given key. Returns null if it doesn't exist.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
     private static Font? TryGetFont(string key) {
         if (Fonts.TryGetValue(key, out Font font))
             return font;
@@ -116,17 +183,30 @@ internal static class ResourceHandler {
         return null;
     }
 
-
+    /// <summary>
+    /// Queues a texture for loading from the given key.
+    /// </summary>
+    /// <param name="key"></param>
     public static void LoadTexture(string key) {
         if (!Textures.ContainsKey(key))
             ResourceLoadingQueue.Add((key, typeof(Texture)));
     }
 
+    /// <summary>
+    /// Gets a texture resource from the given key. Queues it for loading if needed.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
     public static TextureResource GetTexture(string key) {
         LoadTexture(key);
         return new TextureResource(key, _DefaultTexture, TryGetTexture);
     }
 
+    /// <summary>
+    /// Tries to get a raylib texture from the given key. Returns null if it doesn't exist.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
     private static Texture? TryGetTexture(string key) {
         if (Textures.TryGetValue(key, out Texture texture))
             return texture;
@@ -134,16 +214,30 @@ internal static class ResourceHandler {
         return null;
     }
 
+    /// <summary>
+    /// Queues a sound for loading from the given key.
+    /// </summary>
+    /// <param name="key"></param>
     public static void LoadSound(string key) {
         if (!Sounds.ContainsKey(key))
             ResourceLoadingQueue.Add((key, typeof(Sound)));
     }
 
+    /// <summary>
+    /// Gets a sound resource from the given key. Queues it for loading if needed.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
     public static SoundResource GetSound(string key) {
         LoadSound(key);
         return new SoundResource(key, _DefaultSound, TryGetSound);
     }
 
+    /// <summary>
+    /// Tries to get a raylib sound from the given key. Returns null if it doesn't exist.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
     private static Sound? TryGetSound(string key) {
         if (Sounds.TryGetValue(key, out Sound sound))
             return sound;

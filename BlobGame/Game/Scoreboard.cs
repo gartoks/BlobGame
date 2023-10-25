@@ -2,18 +2,36 @@
 using System.Text;
 
 namespace BlobGame.Game;
+/// <summary>
+/// Static class to keep track of the game's scores. Also handles saving and loading of the scores to the disk.
+/// </summary>
 internal static class Scoreboard {
-
+    /// <summary>
+    /// The highest score ever achieved.
+    /// </summary>
     public static int GlobalHighscore { get; private set; }
 
+    /// <summary>
+    /// The highest scores achieved today. The first element is the highest score, the second element is the second highest score and so on.
+    /// Currently lists the top 3 scores.
+    /// </summary>
     private static int[] _DailyHighscores { get; }
+    /// <summary>
+    /// A read-only version of the daily highscores. Used for access outside of this class.
+    /// </summary>
     public static IReadOnlyList<int> DailyHighscores => _DailyHighscores;
 
+    /// <summary>
+    /// Static constructor to initialize the score values.
+    /// </summary>
     static Scoreboard() {
         GlobalHighscore = 0;
         _DailyHighscores = new int[3];
     }
 
+    /// <summary>
+    /// Loads and parses the scoreboard from the disk. If the file does not exist or is corrupted, the scoreboard is not loaded and scores are initialized to zero.
+    /// </summary>
     internal static void Load() {
         string file = Files.GetSaveFilePath("highscores.txt");
 
@@ -52,6 +70,11 @@ internal static class Scoreboard {
         }
     }
 
+    /// <summary>
+    /// Adds a score to the score board. This method determines if the score is a new global highscore or a new daily highscore.
+    /// Also saves the score board to the disk.
+    /// </summary>
+    /// <param name="score"></param>
     internal static void AddScore(int score) {
         if (score > GlobalHighscore)
             GlobalHighscore = score;
@@ -66,6 +89,9 @@ internal static class Scoreboard {
         Save();
     }
 
+    /// <summary>
+    /// Saves the scores to the disk.
+    /// </summary>
     private static void Save() {
         string file = Files.GetSaveFilePath("highscores.txt");
 

@@ -4,25 +4,44 @@ using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.GameControllers;
-internal class MouseController : IGameController {
 
-    public float GetCurrentT(GameScene scene) {
-        Vector2 mPos = scene.ScreenToArenaPosition(Raylib.GetMousePosition());
+internal class MouseController : IGameController {
+    /// <summary>
+    /// Represents the game scene associated with this controller.
+    /// </summary>
+    private GameScene Scene { get; }
+
+    public MouseController(GameScene scene) {
+        Scene = scene;
+    }
+
+    /// <summary>
+    /// Retrieves the current value of t, which represents the position of the dropper above the arena.
+    /// </summary>
+    /// <returns>The current value of t.</returns>
+    public float GetCurrentT() {
+        Vector2 mPos = Scene.ScreenToArenaPosition(Raylib.GetMousePosition());
         float t = mPos.X / Simulation.ARENA_WIDTH;
         return t;
     }
 
-    public bool SpawnFruit(GameScene scene, out float t) {
+    /// <summary>
+    /// Attempts to spawn a blob in the provided game simulation.
+    /// </summary>
+    /// <param name="simulation">The game simulation in which to spawn the blob.</param>
+    /// <param name="t">The t value at which the blob is spawned, which represents the position of the dropper above the arena..</param>
+    /// <returns>True if blob spawning was attempted, otherwise false.</returns>
+    public bool SpawnBlob(ISimulation simulation, out float t) {
         t = -1;
 
-        if (!scene.GameSim.CanSpawnBlob)
+        if (!simulation.CanSpawnBlob)
             return false;
 
-        if (!InputHandler.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT))
+        if (!Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT))
             return false;
 
 
-        t = GetCurrentT(scene);
+        t = GetCurrentT();
         return true;
     }
 

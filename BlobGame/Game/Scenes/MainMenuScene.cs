@@ -1,4 +1,7 @@
 ﻿namespace BlobGame.Game.Scenes;
+/// <summary>
+/// Scene for the main menu. First scene loaded when the game starts.
+/// </summary>
 internal sealed class MainMenuScene : Scene {
 
     internal override void Load() {
