@@ -1,12 +1,16 @@
 ﻿using BlobGame.ResourceHandling;
 using Raylib_CsLo;
 using System.Diagnostics;
+using System.Numerics;
 
 namespace BlobGame.Drawing;
 /// <summary>
 /// Class for settup up and controlling the drawing of the game.
 /// </summary>
 internal static class Renderer {
+    public static Color LIGHT_PINK { get; } = new Color(255, 209, 238, 255);
+    public static Color DARK_PINK { get; } = new Color(255, 168, 223, 255);
+
     /// <summary>
     /// The color to clear the screen with.
     /// </summary>
@@ -62,7 +66,8 @@ internal static class Renderer {
 
         //Raylib.BeginMode2D(cam);
         RlGl.rlScalef(Application.WorldToScreenMultiplierX, Application.WorldToScreenMultiplierY, 1);
-        Game.Game.Draw();
+        DrawBackground();
+        Game.GameManager.Draw();
         //Raylib.EndMode2D();
 
         RlGl.rlPopMatrix();
@@ -75,5 +80,19 @@ internal static class Renderer {
         }
 
         Raylib.EndDrawing();
+    }
+
+    private static void DrawBackground() {
+        Raylib.DrawRectanglePro(
+            new Rectangle(-100, 287.5f, 2500, 100),
+            new Vector2(), -12.5f, new Color(255, 255, 255, 64));
+
+        Raylib.DrawRectanglePro(
+            new Rectangle(-100, Application.BASE_HEIGHT * 0.80f, 2500, 25),
+            new Vector2(), -12.5f, new Color(255, 255, 255, 64));
+
+        Raylib.DrawRectanglePro(
+            new Rectangle(-100, Application.BASE_HEIGHT * 0.85f, 2500, 200),
+            new Vector2(), -12.5f, new Color(255, 255, 255, 64));
     }
 }

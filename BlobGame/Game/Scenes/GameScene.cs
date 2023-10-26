@@ -13,7 +13,7 @@ internal sealed class GameScene : Scene {
     private Color DROP_INDICATOR_COLOR { get; } = new Color(255, 255, 255, 128);
     private const float DROP_INDICATOR_WIDTH = 10;
 
-    internal IGameController Controller { get; private set; }
+    internal IGameController Controller { get; }
     internal Simulation GameSim { get; private set; }
 
     private TextureResource TitleTexture { get; set; }
@@ -25,6 +25,15 @@ internal sealed class GameScene : Scene {
     private TextureResource NextBlobTexture { get; set; }
 
     /// <summary>
+    /// Creates a new game scene.
+    /// </summary>
+    public GameScene() {
+        Controller = new MouseController(this);
+        GameSim = new Simulation(new Random().Next());
+    }
+
+
+    /// <summary>
     /// Called when the scene is loaded. Override this method to provide custom scene initialization logic and to load resources.
     /// </summary>
     internal override void Load() {
@@ -34,8 +43,6 @@ internal sealed class GameScene : Scene {
         for (int i = 0; i < 1; i++)
             ResourceManager.LoadTexture($"{i}");
 
-        Controller = new MouseController(this);
-        GameSim = new Simulation(new Random().Next());
         GameSim.Load();
 
         TitleTexture = ResourceManager.GetTexture("title");
@@ -73,7 +80,6 @@ internal sealed class GameScene : Scene {
     /// </summary>
     internal override void Draw() {
         RlGl.rlPushMatrix();
-        DrawBackground();
         DrawScoreboard();
         DrawRankupChart();
 
@@ -103,7 +109,7 @@ internal sealed class GameScene : Scene {
     /// Called when the scene is about to be unloaded or replaced by another scene. Override this method to provide custom cleanup or deinitialization logic and to unload resources.
     /// </summary>
     internal override void Unload() {
-
+        // TODO unload NOT NEEDED resources
     }
 
     /// <summary>
@@ -115,20 +121,6 @@ internal sealed class GameScene : Scene {
         float x = pos.X / Application.WorldToScreenMultiplierX - ARENA_OFFSET_X + Simulation.ARENA_WIDTH / 2;
         float y = pos.Y / Application.WorldToScreenMultiplierY - ARENA_OFFSET_Y;
         return new Vector2(x, y);
-    }
-
-    internal void DrawBackground() {
-        Raylib.DrawRectanglePro(
-            new Rectangle(-100, 287.5f, 2500, 100),
-            new Vector2(), -12.5f, new Color(255, 255, 255, 64));
-
-        Raylib.DrawRectanglePro(
-            new Rectangle(-100, Application.BASE_HEIGHT * 0.80f, 2500, 25),
-            new Vector2(), -12.5f, new Color(255, 255, 255, 64));
-
-        Raylib.DrawRectanglePro(
-            new Rectangle(-100, Application.BASE_HEIGHT * 0.85f, 2500, 200),
-            new Vector2(), -12.5f, new Color(255, 255, 255, 64));
     }
 
     internal void DrawTitle() {

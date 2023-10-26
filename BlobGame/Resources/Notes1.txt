@@ -5,7 +5,7 @@ apparently cherries and strawberries combine into one when 3 of them collide at 
 scene loading and unloading
 custom physics engine?
 texture/resource packer
-maybe score sync with other players?
+maybe score sync with other players? export as base94 string?
 Game controller to run multiple game sims at once and a socket api to control them. *wink wink*
 
 arena internal

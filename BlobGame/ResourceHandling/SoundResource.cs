@@ -2,7 +2,7 @@
 
 namespace BlobGame.ResourceHandling;
 
-]/// <summary>
+/// <summary>
 /// Game resource for sounds.
 /// </summary>
 public class SoundResource {

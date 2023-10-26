@@ -75,7 +75,7 @@ internal static class Application {
         Input.Initialize();
         Renderer.Initialize();
         //GUIHandler.Initialize();
-        Game.Game.Initialize();
+        Game.GameManager.Initialize();
     }
 
     /// <summary>
@@ -89,26 +89,28 @@ internal static class Application {
 
         Raylib.InitWindow(BASE_WIDTH, BASE_HEIGHT, NAME);
         Raylib.SetTargetFPS(FPS);
+        Raylib.SetExitKey(KeyboardKey.KEY_NULL);
 
         ResourceManager.Load();
         Input.Load();
         Renderer.Load();
         //GUIHandler.Load();
-        Game.Game.Load();
+        Game.GameManager.Load();
 
         GameThread.Start();
 
-        while (!Raylib.WindowShouldClose()) {
+        while (IsRunning) {
             ResourceManager.Update();
             Input.Update();
             Renderer.Draw();
         }
 
-        IsRunning = false;
-
         GameThread.Join();
-
         Raylib.CloseWindow();
+    }
+
+    internal static void Exit() {
+        IsRunning = false;
     }
 
     /// <summary>
@@ -121,13 +123,15 @@ internal static class Application {
         while (IsRunning) {
             sw.Restart();
 
-            Game.Game.Update(deltaTime);
+            Game.GameManager.Update(deltaTime);
 
             sw.Stop();
             int sleepTime = (int)Math.Max(0, 1000 / UPS - sw.ElapsedMilliseconds);
             deltaTime = MathF.Max(BASE_DELTA_TIME, sw.ElapsedMilliseconds / 1000f);
             Thread.Sleep(sleepTime);
         }
+
+        Game.GameManager.Unload();
     }
 
     [DllImport("kernel32.dll")]

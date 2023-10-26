@@ -4,11 +4,12 @@ namespace BlobGame.Game;
 /// <summary>
 /// Static class to control the main game. Handles the game's scenes.
 /// </summary>
-public static class Game {
+public static class GameManager {
     /// <summary>
     /// The currently active scene.
     /// </summary>
     private static Scene Scene { get; set; }
+    private static bool WasSceneLoaded { get; set; }
 
     /// <summary>
     /// Initializes the game. Creates the initially loaded scene.
@@ -16,14 +17,15 @@ public static class Game {
     internal static void Initialize() {
         //InputHandler.RegisterHotkey("w", KeyboardKey.KEY_W);
 
-        Scene = new GameScene();
+        Scene = new MainMenuScene();
+        WasSceneLoaded = false;
+        //Scene = new GameScene();
     }
 
     /// <summary>
     /// Loads the game. Loads the initial scene.
     /// </summary>
     internal static void Load() {
-        Scene.Load();
     }
 
     /// <summary>
@@ -31,13 +33,33 @@ public static class Game {
     /// </summary>
     /// <param name="dT"></param>
     internal static void Update(float dT) {
-        Scene.Update(dT);
+        if (!WasSceneLoaded) {
+            Scene.Load();
+            WasSceneLoaded = true;
+        } else
+            Scene.Update(dT);
     }
 
     /// <summary>
     /// Draws the game. Is executed every frame.
     /// </summary>
-    public static void Draw() {
+    internal static void Draw() {
+        if (!WasSceneLoaded)
+            return;
+
         Scene.Draw();
+    }
+
+    /// <summary>
+    /// Unloads the game's resources.
+    /// </summary>
+    internal static void Unload() {
+        Scene.Unload();
+    }
+
+    internal static void SetScene(Scene scene) {
+        Scene.Unload();
+        WasSceneLoaded = false;
+        Scene = scene;
     }
 }
