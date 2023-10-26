@@ -1,9 +1,9 @@
 ﻿using BlobGame.App;
 using BlobGame.Drawing;
+using BlobGame.Game.Util;
 using BlobGame.ResourceHandling;
 using Raylib_CsLo;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace BlobGame;
 /// <summary>
@@ -57,6 +57,11 @@ internal static class Application {
     public static bool IsRunning { get; private set; }
 
     /// <summary>
+    /// Property to access the game's settings.
+    /// </summary>
+    public static Settings Settings { get; }
+
+    /// <summary>
     /// Static constructor. Initializes the game state, creates threads and hides the console window.
     /// </summary>
     static Application() {
@@ -65,6 +70,8 @@ internal static class Application {
 
         nint handle = GetConsoleWindow();
         ShowWindow(handle, SW_HIDE);
+
+        Settings = new Settings();
     }
 
     /// <summary>
@@ -91,6 +98,7 @@ internal static class Application {
         Raylib.SetTargetFPS(FPS);
         Raylib.SetExitKey(KeyboardKey.KEY_NULL);
 
+        Settings.Load();
         ResourceManager.Load();
         Input.Load();
         Renderer.Load();
@@ -142,10 +150,10 @@ internal static class Application {
     static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 #else
     // Linux (and macOS probably) don't open a console window by default
-    static IntPtr GetConsoleWindow(){
+    static IntPtr GetConsoleWindow() {
         return 0;
     }
-    static bool ShowWindow(IntPtr hWnd, int nCmdShow){
+    static bool ShowWindow(IntPtr hWnd, int nCmdShow) {
         return false;
     }
 #endif

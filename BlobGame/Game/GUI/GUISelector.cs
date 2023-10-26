@@ -16,11 +16,11 @@ internal class GUISelector {
     private int SelectedIndex { get; set; }
     public SelectionElement SelectedElement => Elements[SelectedIndex];
 
-    public GUISelector(Vector2 pos, Vector2 size, SelectionElement[] elements, Vector2? pivot = null)
-        : this(pos.X, pos.Y, size.X, size.Y, elements, pivot) {
+    public GUISelector(Vector2 pos, Vector2 size, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null)
+        : this(pos.X, pos.Y, size.X, size.Y, elements, selectedIndex, pivot) {
     }
 
-    public GUISelector(float x, float y, float w, float h, SelectionElement[] elements, Vector2? pivot = null) {
+    public GUISelector(float x, float y, float w, float h, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null) {
         if (pivot != null) {
             x += -w * pivot.Value.X;
             y += -h * pivot.Value.Y;
@@ -35,7 +35,7 @@ internal class GUISelector {
         DecreaseButton = new GUITextButton(x, y, buttonSize, buttonSize, "<", new Vector2(0, 0));
         IncreaseButton = new GUITextButton(x + w, y, buttonSize, buttonSize, ">", new Vector2(1, 0));
 
-        SelectedIndex = 0;
+        SelectedIndex = selectedIndex;
     }
 
 

@@ -9,7 +9,7 @@ internal static class Files {
     /// <summary>
     /// Gets the directory where saved files are stored.
     /// </summary>
-    private static string SaveDirectory { get; } = "Saves";
+    private static string ConfigDirectory { get; } = "Config";
 
     /// <summary>
     /// Gets the directory where resource files are stored.
@@ -21,13 +21,13 @@ internal static class Files {
     /// </summary>
     /// <param name="fileName">The name of the save file.</param>
     /// <returns>The full path to the save file.</returns>
-    public static string GetSaveFilePath(string fileName) {
+    public static string GetConfigFilePath(string fileName) {
         // Check if the save directory exists, and create it if it doesn't
-        if (!Directory.Exists(SaveDirectory))
-            Directory.CreateDirectory(SaveDirectory);
+        if (!Directory.Exists(ConfigDirectory))
+            Directory.CreateDirectory(ConfigDirectory);
 
         // Return the full path to the save file within the save directory
-        return Path.Combine(SaveDirectory, fileName);
+        return Path.Combine(ConfigDirectory, fileName);
     }
 
     /// <summary>

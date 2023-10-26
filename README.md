@@ -1,6 +1,5 @@
 # BlobGame
- A small fanmade game inspired by SUIKA.
-This was hacked together in a few hours over a couple of days. Don't expect the cleanest of code (for now).
+ A small Melba Toast fan game inspired by SUIKA.
 
 ## Credits
 
@@ -8,18 +7,19 @@ This was hacked together in a few hours over a couple of days. Don't expect the 
 - Ixzil (Discord): Designed the artwork for the good looking blob sprites.
 
 ### Code
-Robotino (Discord): Linux support
+- Robotino (Discord): Linux support
 
 ## License
 This project is licensed under the GNU GPLv3 License - see the [LICENSE.md](LICENSE.md) file for details.
 
 ## Contact / Contributing
-If you have questions, please reach out at gartoks on Discord.
+If you have questions, please reach out to gartoks on Discord.
 
 ## Changelog
 
 ## Known Bugs
 - Sometimes clicking doesn't spawn the fruit.
+- Monitor switching is currently disabled.
 
 ## TODO:
 - Pack sprites into a texture atlas.

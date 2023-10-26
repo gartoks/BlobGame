@@ -139,6 +139,9 @@
     <None Update="Resources\Textures\cloth_L_00079.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Resources\Textures\dropper.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Resources\Textures\EmojiOne.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

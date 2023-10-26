@@ -10,7 +10,6 @@ namespace BlobGame.Game.Scenes;
 internal sealed class GameScene : Scene {
     private const float ARENA_OFFSET_X = Application.BASE_WIDTH * 0.5f;
     private const float ARENA_OFFSET_Y = 150;
-    private Color DROP_INDICATOR_COLOR { get; } = new Color(255, 255, 255, 128);
     private const float DROP_INDICATOR_WIDTH = 10;
 
     internal IGameController Controller { get; }
@@ -20,7 +19,7 @@ internal sealed class GameScene : Scene {
     private TextureResource RankupArrowTexture { get; set; }
     private TextureResource ArenaTexture { get; set; }
     private TextureResource MarkerTexture { get; set; }
-    private TextureResource PlacerTexture { get; set; }
+    private TextureResource DropperTexture { get; set; }
     private TextureResource CurrentBlobTexture { get; set; }
     private TextureResource NextBlobTexture { get; set; }
 
@@ -37,8 +36,6 @@ internal sealed class GameScene : Scene {
     /// Called when the scene is loaded. Override this method to provide custom scene initialization logic and to load resources.
     /// </summary>
     internal override void Load() {
-        Scoreboard.Load();
-
         // Loads all the blob textures
         for (int i = 0; i < 1; i++)
             ResourceManager.LoadTexture($"{i}");
@@ -49,7 +46,7 @@ internal sealed class GameScene : Scene {
         RankupArrowTexture = ResourceManager.GetTexture("rankup_arrow");
         ArenaTexture = ResourceManager.GetTexture("arena_bg");
         MarkerTexture = ResourceManager.GetTexture("marker");
-        PlacerTexture = ResourceManager.GetTexture("tutel");
+        DropperTexture = ResourceManager.GetTexture("dropper");
         CurrentBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
         NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.NextBlob}");
     }
@@ -210,7 +207,7 @@ internal sealed class GameScene : Scene {
             new Rectangle(Simulation.ARENA_WIDTH * 0.75f, 0, mW, mH),
             new Vector2(mW / 2, mH / 2),
             0,
-            Raylib.WHITE
+            Renderer.MELBA_LIGHT_PINK
             );
 
         // Blob
@@ -221,16 +218,25 @@ internal sealed class GameScene : Scene {
             new Vector2(w / 2, h / 2),
             0,
             Raylib.WHITE);
+
+        Vector2 textPos = new Vector2(Simulation.ARENA_WIDTH * 0.75f, -310);
+        Raylib.DrawTextPro(
+            Renderer.Font.Resource,
+            "NEXT",
+            textPos,
+            textPos / 2f,
+            -25.5f,
+            80, 5, Renderer.MELBA_DARK_PINK);
     }
 
     internal void DrawDropper(float x) {
-        float w = PlacerTexture.Resource.width;
-        float h = PlacerTexture.Resource.height;
+        float w = DropperTexture.Resource.width;
+        float h = DropperTexture.Resource.height;
 
         Raylib.DrawTexturePro(
-            PlacerTexture.Resource,
+            DropperTexture.Resource,
             new Rectangle(0, 0, w, h),
-            new Rectangle(x, Simulation.ARENA_SPAWN_Y_OFFSET - 0.75f * h, 1.5f * w, 1.5f * h),
+            new Rectangle(x, Simulation.ARENA_SPAWN_Y_OFFSET - 0.65f * h, 1.5f * w, 1.5f * h),
             new Vector2(w * 0.33f, h / 2),
             0,
             Raylib.WHITE);
@@ -241,7 +247,7 @@ internal sealed class GameScene : Scene {
             new Rectangle(x, 0, DROP_INDICATOR_WIDTH, Simulation.ARENA_HEIGHT),
             new Vector2(DROP_INDICATOR_WIDTH / 2f, 0),
             0,
-            DROP_INDICATOR_COLOR);
+            Renderer.MELBA_LIGHT_YELLOW);
     }
 
     internal void DrawCurrentBlob(float x) {
@@ -272,9 +278,9 @@ internal sealed class GameScene : Scene {
 
         Raylib.DrawLineEx(new Vector2(x, y + 125), new Vector2(x + w, y + 125), 8, Raylib.WHITE);
 
-        DrawScoreValue(x, y + 15, w, Scoreboard.GlobalHighscore);
-        for (int i = 0; i < Scoreboard.DailyHighscores.Count; i++) {
-            DrawScoreValue(x, y + 160 + 130 * i, w, Scoreboard.DailyHighscores[i]);
+        DrawScoreValue(x, y + 15, w, GameManager.Scoreboard.GlobalHighscore);
+        for (int i = 0; i < GameManager.Scoreboard.DailyHighscores.Count; i++) {
+            DrawScoreValue(x, y + 160 + 130 * i, w, GameManager.Scoreboard.DailyHighscores[i]);
         }
     }
 
@@ -287,6 +293,6 @@ internal sealed class GameScene : Scene {
             new Vector2(x + w - 50 - scoreTextSize.X, y),
             100,
             10,
-            Raylib.WHITE);
+            Renderer.MELBA_DARK_PINK);
     }
 }
