@@ -1,4 +1,5 @@
 ﻿using BlobGame.ResourceHandling;
+using BlobGame.Util;
 using Raylib_CsLo;
 using System.Diagnostics;
 using System.Numerics;
@@ -10,6 +11,10 @@ namespace BlobGame.Drawing;
 internal static class Renderer {
     public static Color LIGHT_PINK { get; } = new Color(255, 209, 238, 255);
     public static Color DARK_PINK { get; } = new Color(255, 168, 223, 255);
+    public static Color MELBA_LIGHT_YELLOW { get; } = new Color(255, 242, 214, 255);
+    public static Color MELBA_DARK_YELLOW { get; } = new Color(255, 238, 177, 255);
+    public static Color MELBA_LIGHT_PINK { get; } = new Color(255, 196, 223, 255);
+    public static Color MELBA_DARK_PINK { get; } = new Color(244, 125, 195, 255);
 
     /// <summary>
     /// The color to clear the screen with.
@@ -30,7 +35,8 @@ internal static class Renderer {
     /// Static constructor to initialize clear color and required properties.
     /// </summary>
     static Renderer() {
-        ClearColor = new Color(234, 122, 147, 255);
+        ClearColor = MELBA_LIGHT_YELLOW;
+        //ClearColor = new Color(234, 122, 147, 255);
 
         UpdateStopwatch = new Stopwatch();
     }
@@ -83,16 +89,20 @@ internal static class Renderer {
     }
 
     private static void DrawBackground() {
+        const float ANGLE = -12.5f;
+        Color elementColor = MELBA_LIGHT_PINK.ChangeAlpha(64);
+        //Color elementColor = new Color(255, 255, 255, 64);
+
         Raylib.DrawRectanglePro(
             new Rectangle(-100, 287.5f, 2500, 100),
-            new Vector2(), -12.5f, new Color(255, 255, 255, 64));
+            new Vector2(), ANGLE, elementColor);
 
         Raylib.DrawRectanglePro(
             new Rectangle(-100, Application.BASE_HEIGHT * 0.80f, 2500, 25),
-            new Vector2(), -12.5f, new Color(255, 255, 255, 64));
+            new Vector2(), ANGLE, elementColor);
 
         Raylib.DrawRectanglePro(
             new Rectangle(-100, Application.BASE_HEIGHT * 0.85f, 2500, 200),
-            new Vector2(), -12.5f, new Color(255, 255, 255, 64));
+            new Vector2(), ANGLE, elementColor);
     }
 }

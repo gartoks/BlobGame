@@ -17,15 +17,14 @@ public static class GameManager {
     internal static void Initialize() {
         //InputHandler.RegisterHotkey("w", KeyboardKey.KEY_W);
 
-        Scene = new MainMenuScene();
         WasSceneLoaded = false;
-        //Scene = new GameScene();
     }
 
     /// <summary>
     /// Loads the game. Loads the initial scene.
     /// </summary>
     internal static void Load() {
+        Scene = new MainMenuScene();
     }
 
     /// <summary>

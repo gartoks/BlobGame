@@ -25,6 +25,9 @@ If you have questions, please reach out at gartoks on Discord.
 - Add a main menu
 - Add a custom physics engine (maybe)
 - Resource unloading on scene switch (might not be necessary, since the files are so small and there aren't that many)
+- Feature: holding a blob
+- Feature: shoving the arena
+- Feature: alternate startup mode to run multiple game sims and interaction with sockets
 
 ## Acknowledgments
-Inspired by SUIKA for the game, and Neuro-Sama for the theme.
+Inspired by SUIKA for the game, and Melba Toast for the theme.

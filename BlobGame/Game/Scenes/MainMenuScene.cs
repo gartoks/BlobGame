@@ -1,10 +1,40 @@
 ﻿using BlobGame.Game.GUI;
+using System.Numerics;
 
 namespace BlobGame.Game.Scenes;
 /// <summary>
 /// Scene for the main menu. First scene loaded when the game starts.
 /// </summary>
 internal sealed class MainMenuScene : Scene {
+
+    private GUITextButton PlayButton { get; }
+    private GUITextButton SettingsButton { get; }
+    private GUITextButton CreditsButton { get; }
+    private GUITextButton QuitButton { get; }
+
+    public MainMenuScene() {
+        PlayButton = new GUITextButton(
+            Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.45f,
+            Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
+            "Play",
+            new Vector2(0.5f, 0.5f));
+        SettingsButton = new GUITextButton(
+            Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.6f,
+            Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
+            "Settings",
+            new Vector2(0.5f, 0.5f));
+        CreditsButton = new GUITextButton(
+            Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.75f,
+            Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
+            "Credits",
+            new Vector2(0.5f, 0.5f));
+        QuitButton = new GUITextButton(
+            Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.9f,
+            Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
+            "Quit",
+            new Vector2(0.5f, 0.5f));
+
+    }
 
     internal override void Load() {
     }
@@ -13,59 +43,16 @@ internal sealed class MainMenuScene : Scene {
     }
 
     internal override void Draw() {
-        DrawPlayButton();
-        DrawSettingsButton();
-        DrawCreditsButton();
-        DrawQuitButton();
+        if (PlayButton.Draw())
+            GameManager.SetScene(new GameScene());
+        if (SettingsButton.Draw())
+            GameManager.SetScene(new SettingsScene());
+        if (CreditsButton.Draw())
+            GameManager.SetScene(new CreditsScene());
+        if (QuitButton.Draw())
+            Application.Exit();
     }
 
     internal override void Unload() {
-    }
-
-    private void DrawPlayButton() {
-        float x = Application.BASE_WIDTH / 2f;
-        float y = Application.BASE_HEIGHT * 0.45f;
-        float w = Application.BASE_WIDTH / 4f;
-        float h = Application.BASE_HEIGHT / 8f;
-        bool pressed = GUITextButton.Draw(x, y, w, h, "Play");
-
-        if (pressed)
-            GameManager.SetScene(new GameScene());
-    }
-
-    private void DrawSettingsButton() {
-        float w = Application.BASE_WIDTH / 4f;
-        float h = Application.BASE_HEIGHT / 8f;
-
-        float x = Application.BASE_WIDTH / 2f;
-        float y = Application.BASE_HEIGHT * 0.6f;
-        bool pressed = GUITextButton.Draw(x, y, w, h, "Settings");
-
-        if (pressed)
-            GameManager.SetScene(new SettingsScene());
-    }
-
-    private void DrawCreditsButton() {
-        float w = Application.BASE_WIDTH / 4f;
-        float h = Application.BASE_HEIGHT / 8f;
-
-        float x = Application.BASE_WIDTH / 2f;
-        float y = Application.BASE_HEIGHT * 0.75f;
-        bool pressed = GUITextButton.Draw(x, y, w, h, "Credits");
-
-        if (pressed)
-            GameManager.SetScene(new CreditsScene());
-    }
-
-    private void DrawQuitButton() {
-        float w = Application.BASE_WIDTH / 4f;
-        float h = Application.BASE_HEIGHT / 8f;
-
-        float x = Application.BASE_WIDTH / 2f;
-        float y = Application.BASE_HEIGHT * 0.9f;
-        bool pressed = GUITextButton.Draw(x, y, w, h, "Quit");
-
-        if (pressed)
-            Application.Exit();
     }
 }
