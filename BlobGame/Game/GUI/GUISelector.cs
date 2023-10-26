@@ -2,13 +2,14 @@
 using Raylib_CsLo;
 using System.Numerics;
 
-namespace BlobGame.Game.GUI;
+namespace BlobGame.Game.Gui;
 internal class GUISelector {
     private IReadOnlyList<SelectionElement> Elements { get; }
 
     private int FontSize { get; }
     private Rectangle Bounds { get; }
 
+    private GUIPanel Panel { get; }
     private GUITextButton DecreaseButton { get; }
     private GUITextButton IncreaseButton { get; }
 
@@ -30,6 +31,7 @@ internal class GUISelector {
         FontSize = (int)(buttonSize * 0.7f);
         Bounds = new Rectangle(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h);
 
+        Panel = new GUIPanel(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h, Renderer.MELBA_LIGHT_PINK, new Vector2(0, 0));
         DecreaseButton = new GUITextButton(x, y, buttonSize, buttonSize, "<", new Vector2(0, 0));
         IncreaseButton = new GUITextButton(x + w, y, buttonSize, buttonSize, ">", new Vector2(1, 0));
 
@@ -49,8 +51,7 @@ internal class GUISelector {
         else if (increaseClicked)
             SelectedIndex = (SelectedIndex + 1) % Elements.Count;
 
-        Raylib.DrawRectangleRounded(Bounds, 0.15f, 10, Renderer.MELBA_LIGHT_PINK);
-        Raylib.DrawRectangleRoundedLines(Bounds, 0.15f, 10, 8, Raylib.WHITE);
+        Panel.Draw();
         Raylib.DrawText(SelectedElement.Text, textPosX, textPosY, FontSize, Raylib.WHITE);
 
 

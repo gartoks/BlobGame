@@ -45,7 +45,7 @@ internal sealed class GameScene : Scene {
 
         GameSim.Load();
 
-        TitleTexture = ResourceManager.GetTexture("title");
+        TitleTexture = ResourceManager.GetTexture("title_logo");
         RankupArrowTexture = ResourceManager.GetTexture("rankup_arrow");
         ArenaTexture = ResourceManager.GetTexture("arena_bg");
         MarkerTexture = ResourceManager.GetTexture("marker");
@@ -130,7 +130,7 @@ internal sealed class GameScene : Scene {
         Raylib.DrawTexturePro(
             TitleTexture.Resource,
             new Rectangle(0, 0, w, h),
-            new Rectangle(-970, -35, w * 1.15f, h * 1.15f),
+            new Rectangle(-970, -35, w * 0.7f, h * 0.7f),
             new Vector2(0, 0),
             -12.5f,
             Raylib.WHITE);

@@ -51,10 +51,9 @@ internal static class Renderer {
     /// Loads global resources.
     /// </summary>
     internal static void Load() {
-        Font = ResourceManager.DefaultFont;
+        Font = ResourceManager.GetFont("NewBread");
     }
 
-    static float Time = 0;
     /// <summary>
     /// Main drawing method. Called every frame. Tracks delta time and calls the game's draw method. Also scales all drawing operations to the game's resolution.
     /// </summary>
@@ -70,15 +69,12 @@ internal static class Renderer {
 
         RlGl.rlPushMatrix();
 
-        //Raylib.BeginMode2D(cam);
         RlGl.rlScalef(Application.WorldToScreenMultiplierX, Application.WorldToScreenMultiplierY, 1);
         DrawBackground();
+
         Game.GameManager.Draw();
-        //Raylib.EndMode2D();
 
         RlGl.rlPopMatrix();
-
-        //GUIHandler.Draw();
 
         if (Application.DRAW_DEBUG) {
             int fps = Raylib.GetFPS();

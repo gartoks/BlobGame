@@ -1,4 +1,4 @@
-﻿using BlobGame.Game.GUI;
+﻿using BlobGame.Game.Gui;
 
 namespace BlobGame.Game.Scenes;
 internal class CreditsScene : Scene {

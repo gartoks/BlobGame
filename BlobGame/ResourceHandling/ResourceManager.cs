@@ -108,7 +108,8 @@ internal static class ResourceManager {
 
             string path = Files.GetResourceFilePath("Fonts", $"{key}.ttf");
 
-            Font font = Raylib.LoadFont(path);
+            Font tmpFont = Raylib.LoadFont(path);
+            Font font = Raylib.LoadFontEx(path, 200, tmpFont.glyphCount);
 
             if (font.texture.id == 0) {
                 Debug.WriteLine($"Failed to load font {key} from {path}");

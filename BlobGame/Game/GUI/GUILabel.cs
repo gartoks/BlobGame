@@ -1,8 +1,8 @@
-﻿using BlobGame.ResourceHandling;
+﻿using BlobGame.Drawing;
 using Raylib_CsLo;
 using System.Numerics;
 
-namespace BlobGame.Game.GUI;
+namespace BlobGame.Game.Gui;
 internal sealed class GUILabel {
     private string Text { get; }
     private int FontSize { get; }
@@ -20,13 +20,13 @@ internal sealed class GUILabel {
         }
 
         Text = text;
-        FontSize = (int)(h * 0.7f);
-        Vector2 textSize = Raylib.MeasureTextEx(ResourceManager.DefaultFont.Resource, text, FontSize, FontSize / 16f);
-        TextPosition = new Vector2(x + w / 2 - textSize.X / 2f, y + h / 2 - FontSize / 2);
+        FontSize = (int)(h * 0.6f);
+        Vector2 textSize = Raylib.MeasureTextEx(Renderer.Font.Resource, text, FontSize, FontSize / 16f);
+        TextPosition = new Vector2(x + w / 2 - textSize.X / 1.75f, y + h / 2 - FontSize / 2);
     }
 
     internal void Draw() {
-        Raylib.DrawTextEx(ResourceManager.DefaultFont.Resource, Text, TextPosition, FontSize, FontSize / 16f, Raylib.WHITE);
+        Raylib.DrawTextEx(Renderer.Font.Resource, Text, TextPosition, FontSize, FontSize / 16f, Raylib.WHITE);
     }
 
 }
