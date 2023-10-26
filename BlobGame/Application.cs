@@ -1,5 +1,6 @@
 ﻿using BlobGame.App;
 using BlobGame.Drawing;
+using BlobGame.Game;
 using BlobGame.ResourceHandling;
 using Raylib_CsLo;
 using System.Diagnostics;
@@ -103,6 +104,10 @@ internal static class Application {
             ResourceManager.Update();
             Input.Update();
             Renderer.Draw();
+
+            if (Raylib.WindowShouldClose()){
+                IsRunning = false;
+            }
         }
 
         GameThread.Join();
