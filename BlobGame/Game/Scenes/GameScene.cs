@@ -2,6 +2,7 @@
 using BlobGame.Game.Blobs;
 using BlobGame.Game.GameControllers;
 using BlobGame.Game.GameObjects;
+using BlobGame.Game.Gui;
 using BlobGame.ResourceHandling;
 using Raylib_CsLo;
 using System.Numerics;
@@ -24,12 +25,39 @@ internal sealed class GameScene : Scene {
     private TextureResource CurrentBlobTexture { get; set; }
     private TextureResource NextBlobTexture { get; set; }
 
+    private GUIPanel GameOverPanel { get; }
+    private GUILabel GameOverLabel { get; }
+    private GUITextButton RetryButton { get; }
+    private GUITextButton ToMainMenuButton { get; }
+    private float LastDropIndicatorX { get; set; }
+
     /// <summary>
     /// Creates a new game scene.
     /// </summary>
     public GameScene() {
         Controller = new MouseController(this);
         GameSim = new Simulation(new Random().Next());
+
+        RetryButton = new GUITextButton(
+            Application.BASE_WIDTH * 0.37f, Application.BASE_HEIGHT * 0.6f,
+            Application.BASE_WIDTH * 0.2f, 100,
+            "Retry",
+            new Vector2(0.5f, 0.5f));
+        ToMainMenuButton = new GUITextButton(
+            Application.BASE_WIDTH * 0.62f, Application.BASE_HEIGHT * 0.6f,
+            Application.BASE_WIDTH * 0.2f, 100,
+            "To Menu",
+            new Vector2(0.5f, 0.5f));
+        GameOverPanel = new GUIPanel(
+            new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT / 2f),
+            new Vector2(1100, 500),
+            Renderer.MELBA_LIGHT_PINK,
+            new Vector2(0.5f, 0.5f));
+        GameOverLabel = new GUILabel(
+            new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.35f),
+            new Vector2(1100, 120),
+            "Game over",
+            new Vector2(0.5f, 0.5f));
     }
 
 
@@ -94,6 +122,11 @@ internal sealed class GameScene : Scene {
         float indicatorOffset = DROP_INDICATOR_WIDTH / 2f + 1;
         float x = -Simulation.ARENA_WIDTH / 2f + indicatorOffset + t * (Simulation.ARENA_WIDTH - 2 * indicatorOffset);
 
+        if (GameSim.IsGameOver)
+            x = LastDropIndicatorX;
+        else
+            LastDropIndicatorX = x;
+
         DrawNextBlob();
 
         if (GameSim.CanSpawnBlob) {
@@ -103,6 +136,9 @@ internal sealed class GameScene : Scene {
         DrawDropper(x);
 
         RlGl.rlPopMatrix();
+
+        if (GameSim.IsGameOver)
+            DrawGameOverScreen();
     }
 
     /// <summary>
@@ -288,5 +324,22 @@ internal sealed class GameScene : Scene {
             100,
             10,
             Raylib.WHITE);
+    }
+
+    private void DrawGameOverScreen(){
+        GameOverPanel.Draw();
+        GameOverLabel.Draw();
+
+        var ScoreLabel = new GUILabel(
+            new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.45f),
+            new Vector2(1100, 90),
+            $"Score: {GameSim.Score}",
+            new Vector2(0.5f, 0.5f));
+        ScoreLabel.Draw();
+
+        if (RetryButton.Draw())
+            GameManager.SetScene(new GameScene());
+        if (ToMainMenuButton.Draw())
+            GameManager.SetScene(new MainMenuScene());
     }
 }
