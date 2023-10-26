@@ -2,11 +2,12 @@
 texture atlas
 Sometimes clicking doesnt spawn fruit
 apparently cherries and strawberries combine into one when 3 of them collide at once?!
-scene loading and unloading
+scene unloading
 custom physics engine?
 texture/resource packer
 maybe score sync with other players? export as base94 string?
 Game controller to run multiple game sims at once and a socket api to control them. *wink wink*
+jam jar too big
 
 arena internal
 width: 670

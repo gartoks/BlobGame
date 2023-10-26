@@ -32,13 +32,24 @@ internal static class Renderer {
     internal static FontResource Font { get; private set; }
 
     /// <summary>
+    /// Keeps trakc of the time since the game started.
+    /// </summary>
+    internal static float Time { get; private set; }
+
+    /// <summary>
+    /// Tubmler to draw cute little strawberries in the background.
+    /// </summary>
+    private static StrawberryBackgroundTumbler Tumbler { get; }
+
+    /// <summary>
     /// Static constructor to initialize clear color and required properties.
     /// </summary>
     static Renderer() {
         ClearColor = MELBA_LIGHT_YELLOW;
-        //ClearColor = new Color(234, 122, 147, 255);
 
         UpdateStopwatch = new Stopwatch();
+        Time = 0;
+        Tumbler = new StrawberryBackgroundTumbler(80);
     }
 
     /// <summary>
@@ -52,6 +63,7 @@ internal static class Renderer {
     /// </summary>
     internal static void Load() {
         Font = ResourceManager.GetFont("NewBread");
+        Tumbler.Load();
     }
 
     /// <summary>
@@ -71,6 +83,8 @@ internal static class Renderer {
 
         RlGl.rlScalef(Application.WorldToScreenMultiplierX, Application.WorldToScreenMultiplierY, 1);
         DrawBackground();
+        Tumbler.Draw();
+
 
         Game.GameManager.Draw();
 
