@@ -33,29 +33,38 @@ internal static class ResourceManager {
     /// <summary>
     /// Default raylib font.
     /// </summary>
-    private static Font _DefaultFont { get; set; }
+    private static Font _FallbackFont { get; set; }
     /// <summary>
     /// Default fallback font resource.
     /// </summary>
-    public static FontResource DefaultFont { get; private set; }
+    public static FontResource FallbackFont { get; private set; }
 
     /// <summary>
     /// Default raylib texture.
     /// </summary>
-    private static Texture _DefaultTexture { get; set; }
+    private static Texture _FallbackTexture { get; set; }
     /// <summary>
     /// Default fallback texture resource.
     /// </summary>
-    public static TextureResource DefaultTexture { get; private set; }
+    public static TextureResource FallbackTexture { get; private set; }
 
     /// <summary>
     /// Default raylib sound.
     /// </summary>
-    private static Sound _DefaultSound { get; set; }
+    private static Sound _FallbackSound { get; set; }
     /// <summary>
     /// Default fallback sound resource.
     /// </summary>
-    public static SoundResource DefaultSound { get; private set; }
+    public static SoundResource FallbackSound { get; private set; }
+
+    /// <summary>
+    /// Base theme.
+    /// </summary>
+    private static Theme _DefaultTheme { get; }
+    /// <summary>
+    /// Additional theme.
+    /// </summary>
+    public static Theme MainTheme { get; private set; }
 
     /// <summary>
     /// Static constructor to initialize the resource loading queue and other required properties.
@@ -66,6 +75,17 @@ internal static class ResourceManager {
         Fonts = new ConcurrentDictionary<string, Font>();
         Textures = new ConcurrentDictionary<string, Texture>();
         Sounds = new ConcurrentDictionary<string, Sound>();
+        
+        _DefaultTheme = new Theme(Files.GetResourceFilePath("Themes", "default.theme"));
+        MainTheme = _DefaultTheme;
+    }
+
+    private static void ClearCache(){
+        while (ResourceLoadingQueue.TryTake(out _));
+
+        Fonts.Clear();
+        Textures.Clear();
+        Sounds.Clear();
     }
 
     /// <summary>
@@ -78,13 +98,13 @@ internal static class ResourceManager {
     /// Loads default resources.
     /// </summary>
     internal static void Load() {
-        _DefaultFont = Raylib.GetFontDefault();
+        _FallbackFont = Raylib.GetFontDefault();
         Image image = Raylib.GenImageColor(1, 1, Raylib.BLANK);
-        _DefaultTexture = Raylib.LoadTextureFromImage(image);
+        _FallbackTexture = Raylib.LoadTextureFromImage(image);
 
-        DefaultFont = new FontResource("default", _DefaultFont, TryGetFont);
-        DefaultTexture = new TextureResource("default", _DefaultTexture, TryGetTexture);
-        DefaultSound = new SoundResource("default", _DefaultSound, TryGetSound);
+        FallbackFont = new FontResource("fallback", _FallbackFont, TryGetFont);
+        FallbackTexture = new TextureResource("fallback", _FallbackTexture, TryGetTexture);
+        FallbackSound = new SoundResource("fallback", _FallbackSound, TryGetSound);
     }
 
     /// <summary>
@@ -106,47 +126,37 @@ internal static class ResourceManager {
             if (Fonts.ContainsKey(key))
                 return;
 
-            string path = Files.GetResourceFilePath("Fonts", $"{key}.ttf");
-
-            Font tmpFont = Raylib.LoadFont(path);
-            Font font = Raylib.LoadFontEx(path, 200, tmpFont.glyphCount);
-
-            if (font.texture.id == 0) {
-                Debug.WriteLine($"Failed to load font {key} from {path}");
+            Font? font = MainTheme.LoadFont(key) ?? _DefaultTheme.LoadFont(key);
+            if (font == null){
+                Debug.WriteLine($"The default theme doesn't contain a font for {key}");
                 return;
             }
 
-            if (!Fonts.TryAdd(key, font))
+            if (!Fonts.TryAdd(key, font.Value))
                 Debug.WriteLine($"Failed to add font {key} to dictionary");
         } else if (type == typeof(Texture)) {
             if (Textures.ContainsKey(key))
                 return;
 
-            string path = Files.GetResourceFilePath("Textures", $"{key}.png");
-
-            Texture texture = Raylib.LoadTexture(path);
-
-            if (texture.id == 0) {
-                Debug.WriteLine($"Failed to load texture {key} from {path}");
+            Texture? texture = MainTheme.LoadTexture(key) ?? _DefaultTheme.LoadTexture(key);
+            if (texture == null){
+                Debug.WriteLine($"The default theme doesn't contain a texture for {key}");
                 return;
             }
 
-            if (!Textures.TryAdd(key, texture))
+            if (!Textures.TryAdd(key, texture.Value))
                 Debug.WriteLine($"Failed to add texture {key} to dictionary");
         } else if (type == typeof(Sound)) {
             if (Sounds.ContainsKey(key))
                 return;
 
-            string path = Files.GetResourceFilePath("Sounds", $"{key}.wav");
-
-            Sound sound = Raylib.LoadSound(path);
-
-            /*if (sound. == 0) {
-                Debug.WriteLine($"Failed to load sound {key} from {path}");
+            Sound? sound = MainTheme.LoadSound(key) ?? _DefaultTheme.LoadSound(key);
+            if (sound == null){
+                Debug.WriteLine($"The default theme doesn't contain a sound for {key}");
                 return;
-            }*/
+            }
 
-            if (!Sounds.TryAdd(key, sound))
+            if (!Sounds.TryAdd(key, sound.Value))
                 Debug.WriteLine($"Failed to add sound {key} to dictionary");
         } else {
             Debug.WriteLine($"Resource type {type} is not supported");
@@ -169,7 +179,7 @@ internal static class ResourceManager {
     /// <returns></returns>
     public static FontResource GetFont(string key) {
         LoadFont(key);
-        return new FontResource(key, _DefaultFont, TryGetFont);
+        return new FontResource(key, _FallbackFont, TryGetFont);
     }
 
     /// <summary>
@@ -200,7 +210,7 @@ internal static class ResourceManager {
     /// <returns></returns>
     public static TextureResource GetTexture(string key) {
         LoadTexture(key);
-        return new TextureResource(key, _DefaultTexture, TryGetTexture);
+        return new TextureResource(key, _FallbackTexture, TryGetTexture);
     }
 
     /// <summary>
@@ -231,7 +241,7 @@ internal static class ResourceManager {
     /// <returns></returns>
     public static SoundResource GetSound(string key) {
         LoadSound(key);
-        return new SoundResource(key, _DefaultSound, TryGetSound);
+        return new SoundResource(key, _FallbackSound, TryGetSound);
     }
 
     /// <summary>
@@ -244,6 +254,36 @@ internal static class ResourceManager {
             return sound;
 
         return null;
+    }
+    
+    /// <summary>
+    /// Tries to get a color to the given key.
+    /// </summary>
+    /// <param name="key"></param>
+    public static Color GetColor(string key){
+        Color? color = MainTheme.GetColor(key) ?? _DefaultTheme.GetColor(key);
+        if (color == null){
+            Debug.WriteLine($"The default theme doesn't contain a color for {key}");
+            return Raylib.RED;
+        }
+
+        return (Color)color;
+    }
+
+    /// <summary>
+    /// Sets the main theme to the one named
+    /// </summary>
+    /// <param name="name"></param>
+    public static void SetTheme(string name){
+        string filename = Files.GetResourceFilePath("Themes", name + ".theme");
+
+        if (!File.Exists(filename)){
+            Debug.WriteLine($"ERROR: Theme named '{name}' doesn't exist. Using Fallback.");
+            return;
+        }
+        MainTheme = new Theme(filename);
+        // force everything to reload
+        ClearCache();
     }
 
 }

@@ -42,7 +42,7 @@ internal sealed class MainMenuScene : Scene {
             Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.05f,
             1,
             //Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.2f,
-            ResourceManager.DefaultTexture,
+            ResourceManager.FallbackTexture,
             new Vector2(0.5f, 0));
     }
 

@@ -13,7 +13,7 @@ internal sealed class StrawberryBackgroundTumbler {
     private TumblerData[] Tumblers { get; }
 
     public StrawberryBackgroundTumbler(int numTumblers) {
-        Textures = Enumerable.Range(0, 2).Select(i => ResourceManager.DefaultTexture).ToArray();
+        Textures = Enumerable.Range(0, 2).Select(i => ResourceManager.FallbackTexture).ToArray();
 
         // Spawn tumblers off screen in a circle around the center of the screen.
         // target a point in a circle around the center of the screen.
