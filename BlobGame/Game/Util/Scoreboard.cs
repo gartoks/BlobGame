@@ -39,7 +39,7 @@ public sealed class Scoreboard {
         if (!File.Exists(file))
             return;
 
-        dynamic? scoreData = JsonSerializer.Deserialize<dynamic>(file);
+        ExpandoObject? scoreData = JsonSerializer.Deserialize<ExpandoObject>(File.ReadAllText(file));
 
         if (scoreData == null)
             return;

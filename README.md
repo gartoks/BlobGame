@@ -23,7 +23,6 @@ If you have questions, please reach out to gartoks on Discord.
 
 ## TODO:
 - Pack sprites into a texture atlas.
-- Pack resources into a combined resource file.
 - The smallest two Blobs allow for three Blobs to be combined into one if the simultaneously collide.
 - Fully implement menus
 - Add a custom physics engine (maybe)
