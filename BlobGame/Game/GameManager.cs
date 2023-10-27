@@ -1,4 +1,5 @@
 ﻿using BlobGame.Game.Scenes;
+using BlobGame.Game.Util;
 
 namespace BlobGame.Game;
 /// <summary>
@@ -9,6 +10,9 @@ public static class GameManager {
     /// The currently active scene.
     /// </summary>
     private static Scene Scene { get; set; }
+    /// <summary>
+    /// Flag indicating if the scene was loaded after setting a new scene.
+    /// </summary>
     private static bool WasSceneLoaded { get; set; }
 
     /// <summary>
@@ -20,10 +24,17 @@ public static class GameManager {
         WasSceneLoaded = false;
     }
 
+    public static Scoreboard Scoreboard { get; }
+
+    static GameManager() {
+        Scoreboard = new Scoreboard();
+    }
+
     /// <summary>
     /// Loads the game. Loads the initial scene.
     /// </summary>
     internal static void Load() {
+        Scoreboard.Load();
         Scene = new MainMenuScene();
     }
 
@@ -32,6 +43,7 @@ public static class GameManager {
     /// </summary>
     /// <param name="dT"></param>
     internal static void Update(float dT) {
+        // The scene is loaded in the update method to ensure scene drawing doesn't access unloaded resources.
         if (!WasSceneLoaded) {
             Scene.Load();
             WasSceneLoaded = true;

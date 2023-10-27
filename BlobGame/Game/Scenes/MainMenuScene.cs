@@ -8,7 +8,6 @@ namespace BlobGame.Game.Scenes;
 /// Scene for the main menu. First scene loaded when the game starts.
 /// </summary>
 internal sealed class MainMenuScene : Scene {
-
     private TextureResource TitleTexture { get; set; }
 
     private GUIImage TitleImage { get; }
