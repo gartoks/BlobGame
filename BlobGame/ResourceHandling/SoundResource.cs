@@ -5,7 +5,7 @@ namespace BlobGame.ResourceHandling;
 /// <summary>
 /// Game resource for sounds.
 /// </summary>
-public class SoundResource {
+internal sealed class SoundResource {
     /// <summary>
     /// The key of the resource.
     /// </summary>

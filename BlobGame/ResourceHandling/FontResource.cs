@@ -4,7 +4,7 @@ namespace BlobGame.ResourceHandling;
 /// <summary>
 /// Game resource for fonts.
 /// </summary>
-public sealed class FontResource {
+internal sealed class FontResource {
     /// <summary>
     /// The key of the resource.
     /// </summary>

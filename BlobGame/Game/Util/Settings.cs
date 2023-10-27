@@ -55,6 +55,19 @@ internal sealed class Settings {
     }
 
     /// <summary>
+    /// Sets the state of the tutorial. If true, the tutorial will be shown when starting a new game.
+    /// </summary>
+    private bool _IsTutorialEnabled { get; set; }
+    public bool IsTutorialEnabled {
+        get => _IsTutorialEnabled;
+        set {
+            _IsTutorialEnabled = value;
+            Save();
+        }
+    }
+
+
+    /// <summary>
     /// Sets the resolution to the given width and height. Only works if the screen mode is not borderless.
     /// </summary>
     /// <param name="w"></param>
@@ -182,6 +195,7 @@ internal sealed class Settings {
         settingsData.ResolutionH = Raylib.GetScreenHeight();
         settingsData.MusicVolume = _MusicVolume;
         settingsData.SoundVolume = _SoundVolume;
+        settingsData.IsTutorialEnabled = _IsTutorialEnabled;
 
         File.WriteAllText(file, JsonSerializer.Serialize(settingsData));
     }
@@ -195,6 +209,7 @@ internal sealed class Settings {
         eScreenMode screenMode = eScreenMode.Windowed;
         int musicVolume = 100;
         int soundVolume = 100;
+        bool isTutorialEnabled = true;
 
         string file = Files.GetConfigFilePath("settings.json");
         if (File.Exists(file)) {
@@ -208,6 +223,7 @@ internal sealed class Settings {
                 resolution = (settingsData.ResolutionW, settingsData.ResolutionH);
                 musicVolume = settingsData.MusicVolume;
                 soundVolume = settingsData.SoundVolume;
+                isTutorialEnabled = settingsData.IsTutorialEnabled;
             }
         }
 
@@ -216,10 +232,12 @@ internal sealed class Settings {
         SetMonitor(monitor);
         _MusicVolume = musicVolume;
         _SoundVolume = soundVolume;
+        IsTutorialEnabled = isTutorialEnabled;
         Save();
     }
 
     private record SettingsData(
         string ScreenMode, int Monitor, int ResolutionW, int ResolutionH,
-        int MusicVolume, int SoundVolume);
+        int MusicVolume = 100, int SoundVolume = 100,
+        bool IsTutorialEnabled = true);
 }

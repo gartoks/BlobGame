@@ -5,22 +5,22 @@ using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;
-internal sealed class GUITextButton {
-    private GUIPanel Panel { get; }
+internal sealed class GuiTextButton {
+    private GuiPanel Panel { get; }
     private GuiLabel Label { get; }
     private Rectangle Bounds { get; }
 
-    public GUITextButton(Vector2 pos, Vector2 size, string text, Vector2? pivot = null)
+    public GuiTextButton(Vector2 pos, Vector2 size, string text, Vector2? pivot = null)
         : this(pos.X, pos.Y, size.X, size.Y, text, pivot) {
     }
 
-    public GUITextButton(float x, float y, float w, float h, string text, Vector2? pivot = null) {
+    public GuiTextButton(float x, float y, float w, float h, string text, Vector2? pivot = null) {
         if (pivot != null) {
             x += -w * pivot.Value.X;
             y += -h * pivot.Value.Y;
         }
 
-        Panel = new GUIPanel(x, y, w, h, Renderer.MELBA_LIGHT_PINK, new Vector2(0, 0));
+        Panel = new GuiPanel(x, y, w, h, Renderer.MELBA_LIGHT_PINK, new Vector2(0, 0));
         Label = new GuiLabel(x, y, w, h, text, new Vector2(0, 0));
 
         Bounds = new Rectangle(x, y, w, h);

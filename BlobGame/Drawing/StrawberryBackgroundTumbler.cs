@@ -51,14 +51,17 @@ internal sealed class StrawberryBackgroundTumbler {
     }
 
     internal void Draw(float dT) {
+        Vector2 center = new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT / 2f);
         foreach (TumblerData tumbler in Tumblers) {
             float sW = Textures[tumbler.TextureIndex].Resource.width;
             float sH = Textures[tumbler.TextureIndex].Resource.height;
 
             tumbler.Position += tumbler.Velocity * dT;
             Vector2 dP = tumbler.Position - tumbler.StartPosition;
+            Vector2 dCP = tumbler.Position - center;
 
-            if (dP.LengthSquared() > Application.BASE_HEIGHT * Application.BASE_HEIGHT)
+            if (dP.LengthSquared() > Application.BASE_HEIGHT * Application.BASE_HEIGHT &&
+                dCP.LengthSquared() > Application.BASE_HEIGHT * Application.BASE_HEIGHT)
                 tumbler.Position = tumbler.StartPosition;
 
             Raylib.DrawTexturePro(

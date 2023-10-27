@@ -11,28 +11,28 @@ internal sealed class MainMenuScene : Scene {
     private TextureResource TitleTexture { get; set; }
 
     private GUIImage TitleImage { get; }
-    private GUITextButton PlayButton { get; }
-    private GUITextButton SettingsButton { get; }
-    private GUITextButton CreditsButton { get; }
-    private GUITextButton QuitButton { get; }
+    private GuiTextButton PlayButton { get; }
+    private GuiTextButton SettingsButton { get; }
+    private GuiTextButton CreditsButton { get; }
+    private GuiTextButton QuitButton { get; }
 
     public MainMenuScene() {
-        PlayButton = new GUITextButton(
+        PlayButton = new GuiTextButton(
             Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.45f,
             Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
             "Play",
             new Vector2(0.5f, 0.5f));
-        SettingsButton = new GUITextButton(
+        SettingsButton = new GuiTextButton(
             Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.6f,
             Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
             "Settings",
             new Vector2(0.5f, 0.5f));
-        CreditsButton = new GUITextButton(
+        CreditsButton = new GuiTextButton(
             Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.75f,
             Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
             "Credits",
             new Vector2(0.5f, 0.5f));
-        QuitButton = new GUITextButton(
+        QuitButton = new GuiTextButton(
             Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.9f,
             Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
             "Quit",

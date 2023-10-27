@@ -39,11 +39,6 @@ public sealed class Scoreboard {
         if (!File.Exists(file))
             return;
 
-        dynamic? scoreData = JsonSerializer.Deserialize<dynamic>(file);
-
-        if (scoreData == null)
-            return;
-
         string[] lines = File.ReadAllLines(file);
         if (lines.Length != 5)
             return;
@@ -92,6 +87,18 @@ public sealed class Scoreboard {
 
                 score = lastScore;
             }
+        }
+
+        Save();
+    }
+
+    /// <summary>
+    /// Resets all scores and the highscore.
+    /// </summary>
+    public void Reset() {
+        GlobalHighscore = 0;
+        for (int i = 0; i < _DailyHighscores.Length; i++) {
+            _DailyHighscores[i] = 0;
         }
 
         Save();

@@ -49,7 +49,7 @@ internal static class Renderer {
 
         UpdateStopwatch = new Stopwatch();
         Time = 0;
-        Tumbler = new StrawberryBackgroundTumbler(80);
+        Tumbler = new StrawberryBackgroundTumbler(60);
     }
 
     /// <summary>

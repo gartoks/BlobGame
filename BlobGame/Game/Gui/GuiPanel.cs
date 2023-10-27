@@ -2,16 +2,16 @@
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;
-internal sealed class GUIPanel {
+internal sealed class GuiPanel {
     public Color Color { get; set; }
 
     private Rectangle Bounds { get; }
 
-    public GUIPanel(Vector2 pos, Vector2 size, Color color, Vector2? pivot = null)
+    public GuiPanel(Vector2 pos, Vector2 size, Color color, Vector2? pivot = null)
         : this(pos.X, pos.Y, size.X, size.Y, color, pivot) {
     }
 
-    public GUIPanel(float x, float y, float w, float h, Color color, Vector2? pivot = null) {
+    public GuiPanel(float x, float y, float w, float h, Color color, Vector2? pivot = null) {
         if (pivot != null) {
             x += -w * pivot.Value.X;
             y += -h * pivot.Value.Y;

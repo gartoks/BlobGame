@@ -7,8 +7,8 @@ custom physics engine?
 texture/resource packer
 maybe score sync with other players? export as base94 string?
 Game controller to run multiple game sims at once and a socket api to control them. *wink wink*
-jam jar too big
 random rotations on spawn
+z order changes wrongly when blobs are combined
 
 arena internal
 width: 670

@@ -4,6 +4,7 @@ using BlobGame.Game.GameControllers;
 using BlobGame.Game.GameObjects;
 using BlobGame.Game.Gui;
 using BlobGame.ResourceHandling;
+using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
 
@@ -24,10 +25,10 @@ internal sealed class GameScene : Scene {
     private TextureResource CurrentBlobTexture { get; set; }
     private TextureResource NextBlobTexture { get; set; }
 
-    private GUIPanel GameOverPanel { get; }
-    private GUILabel GameOverLabel { get; }
-    private GUITextButton RetryButton { get; }
-    private GUITextButton ToMainMenuButton { get; }
+    private GuiPanel GameOverPanel { get; }
+    private GuiLabel GameOverLabel { get; }
+    private GuiTextButton RetryButton { get; }
+    private GuiTextButton ToMainMenuButton { get; }
     private float LastDropIndicatorX { get; set; }
 
     /// <summary>
@@ -37,22 +38,22 @@ internal sealed class GameScene : Scene {
         Controller = new MouseController(this);
         GameSim = new Simulation(new Random().Next());
 
-        RetryButton = new GUITextButton(
+        RetryButton = new GuiTextButton(
             Application.BASE_WIDTH * 0.37f, Application.BASE_HEIGHT * 0.6f,
             Application.BASE_WIDTH * 0.2f, 100,
             "Retry",
             new Vector2(0.5f, 0.5f));
-        ToMainMenuButton = new GUITextButton(
+        ToMainMenuButton = new GuiTextButton(
             Application.BASE_WIDTH * 0.62f, Application.BASE_HEIGHT * 0.6f,
             Application.BASE_WIDTH * 0.2f, 100,
             "To Menu",
             new Vector2(0.5f, 0.5f));
-        GameOverPanel = new GUIPanel(
+        GameOverPanel = new GuiPanel(
             new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT / 2f),
             new Vector2(1100, 500),
             Renderer.MELBA_LIGHT_PINK,
             new Vector2(0.5f, 0.5f));
-        GameOverLabel = new GUILabel(
+        GameOverLabel = new GuiLabel(
             new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.35f),
             new Vector2(1100, 120),
             "Game over",
@@ -284,7 +285,7 @@ internal sealed class GameScene : Scene {
             new Rectangle(x, 0, DROP_INDICATOR_WIDTH, Simulation.ARENA_HEIGHT),
             new Vector2(DROP_INDICATOR_WIDTH / 2f, 0),
             0,
-            Renderer.MELBA_LIGHT_YELLOW);
+            Renderer.MELBA_LIGHT_YELLOW.ChangeAlpha(128));
     }
 
     internal void DrawCurrentBlob(float x) {
@@ -333,14 +334,15 @@ internal sealed class GameScene : Scene {
             Renderer.MELBA_DARK_PINK);
     }
 
-    private void DrawGameOverScreen(){
+    private void DrawGameOverScreen() {
         GameOverPanel.Draw();
         GameOverLabel.Draw();
 
-        var ScoreLabel = new GUILabel(
+        bool isNewHighscore = GameSim.Score > GameManager.Scoreboard.GlobalHighscore;
+        GuiLabel ScoreLabel = new GuiLabel(
             new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.45f),
             new Vector2(1100, 90),
-            $"Score: {GameSim.Score}",
+            $"{(isNewHighscore ? "New Highscore!\n" : "")}Score: {GameSim.Score}",
             new Vector2(0.5f, 0.5f));
         ScoreLabel.Draw();
 

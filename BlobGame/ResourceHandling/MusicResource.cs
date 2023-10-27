@@ -2,14 +2,10 @@
 
 namespace BlobGame.ResourceHandling;
 
-//public interface ITextureResource {
-//    internal string Key { get; }
-//}
-
 /// <summary>
-/// Game resource for textures.
+/// Game resource for music.
 /// </summary>
-internal sealed class TextureResource {
+internal sealed class MusicResource {
     /// <summary>
     /// The key of the resource.
     /// </summary>
@@ -18,20 +14,20 @@ internal sealed class TextureResource {
     /// <summary>
     /// A fallback resource to use if the resource could not be loaded or is still loading.
     /// </summary>
-    private Texture Fallback { get; }
+    private Music Fallback { get; }
     /// <summary>
     /// Function to retrieve the resource from the resource manager. Used to check if the resource has been loaded.
     /// </summary>
-    private Func<string, Texture?> ResourceRetriever { get; }
+    private Func<string, Music?> ResourceRetriever { get; }
 
     /// <summary>
     /// The raylib resource. Is null if the resource has not been loaded yet.
     /// </summary>
-    private Texture? _Reource { get; set; }
+    private Music? _Reource { get; set; }
     /// <summary>
     /// The raylib resource. Returns the fallback if the resource has not been loaded (yet).
     /// </summary>
-    public Texture Resource {
+    public Music Resource {
         get {
             if (_Reource == null)
                 _Reource = ResourceRetriever(Key);
@@ -41,12 +37,12 @@ internal sealed class TextureResource {
     }
 
     /// <summary>
-    /// Constructor for a new texture resource.
+    /// Constructor for a new music resource.
     /// </summary>
     /// <param name="key"></param>
     /// <param name="fallback"></param>
     /// <param name="resourceRetriever"></param>
-    internal TextureResource(string key, Texture fallback, Func<string, Texture?> resourceRetriever) {
+    internal MusicResource(string key, Music fallback, Func<string, Music?> resourceRetriever) {
         Key = key;
 
         ResourceRetriever = resourceRetriever;

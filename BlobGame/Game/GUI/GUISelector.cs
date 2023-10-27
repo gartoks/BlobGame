@@ -9,9 +9,9 @@ internal class GuiSelector {
     private int FontSize { get; }
     private Rectangle Bounds { get; }
 
-    private GUIPanel Panel { get; }
-    private GUITextButton DecreaseButton { get; }
-    private GUITextButton IncreaseButton { get; }
+    private GuiPanel Panel { get; }
+    private GuiTextButton DecreaseButton { get; }
+    private GuiTextButton IncreaseButton { get; }
 
     private int SelectedIndex { get; set; }
     public SelectionElement SelectedElement => Elements[SelectedIndex];
@@ -31,9 +31,9 @@ internal class GuiSelector {
         FontSize = (int)(buttonSize * 0.7f);
         Bounds = new Rectangle(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h);
 
-        Panel = new GUIPanel(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h, Renderer.MELBA_LIGHT_PINK, new Vector2(0, 0));
-        DecreaseButton = new GUITextButton(x, y, buttonSize, buttonSize, "<", new Vector2(0, 0));
-        IncreaseButton = new GUITextButton(x + w, y, buttonSize, buttonSize, ">", new Vector2(1, 0));
+        Panel = new GuiPanel(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h, Renderer.MELBA_LIGHT_PINK, new Vector2(0, 0));
+        DecreaseButton = new GuiTextButton(x, y, buttonSize, buttonSize, "<", new Vector2(0, 0));
+        IncreaseButton = new GuiTextButton(x + w, y, buttonSize, buttonSize, ">", new Vector2(1, 0));
 
         SelectedIndex = selectedIndex;
     }
@@ -52,8 +52,7 @@ internal class GuiSelector {
             SelectedIndex = (SelectedIndex + 1) % Elements.Count;
 
         Panel.Draw();
-        Raylib.DrawText(SelectedElement.Text, textPosX, textPosY, FontSize, Raylib.WHITE);
-
+        Raylib.DrawTextEx(Renderer.Font.Resource, SelectedElement.Text, new Vector2(textPosX, textPosY), FontSize, FontSize / 16f, Raylib.WHITE);
 
         return decreaseClicked || increaseClicked;
     }

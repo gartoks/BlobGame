@@ -9,10 +9,10 @@ using static BlobGame.Game.Util.Settings;
 
 namespace BlobGame.Game.Scenes;
 internal class SettingsScene : Scene {
-    private GUIPanel BackgroundPanel { get; }
+    private GuiPanel BackgroundPanel { get; }
 
-    private GUITextButton BackButton { get; }
-    private GUITextButton ApplyButton { get; }
+    private GuiTextButton BackButton { get; }
+    private GuiTextButton ApplyButton { get; }
 
     private GuiLabel ScreenModeLabel { get; }
     private GuiSelector ScreenModeSelector { get; }
@@ -29,23 +29,27 @@ internal class SettingsScene : Scene {
     private GuiLabel SoundVolumeLabel { get; }
     private GuiSelector SoundVolumeSelector { get; }
 
+    private GuiTextButton ResetScoreButton { get; }
+    private GuiTextButton ResetTutorialButton { get; }
+
+
     internal override void Load() {
     }
 
     public SettingsScene() {
-        BackgroundPanel = new GUIPanel(
+        BackgroundPanel = new GuiPanel(
             Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.05f,
             Application.BASE_WIDTH * 0.9f, Application.BASE_HEIGHT * 0.8f,
             Renderer.MELBA_LIGHT_PINK,
             new Vector2(0, 0));
 
-        BackButton = new GUITextButton(
+        BackButton = new GuiTextButton(
             Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.95f,
             Application.BASE_WIDTH / 8f, Application.BASE_HEIGHT / 16f,
             "Back",
             new Vector2(0, 1));
 
-        ApplyButton = new GUITextButton(
+        ApplyButton = new GuiTextButton(
             Application.BASE_WIDTH * 0.95f, Application.BASE_HEIGHT * 0.95f,
             Application.BASE_WIDTH / 8f, Application.BASE_HEIGHT / 16f,
             "Apply",
@@ -91,6 +95,18 @@ internal class SettingsScene : Scene {
         SoundVolumeLabel = soundVolumeLabel;
         SoundVolumeSelector = soundVolumeSelector;
         xOffset += 0.1f;
+
+        ResetScoreButton = new GuiTextButton(
+            new Vector2(Application.BASE_WIDTH * 0.1f, Application.BASE_HEIGHT * 0.8f),
+            new Vector2(Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 16f),
+            "Reset Score",
+            new Vector2(0, 1));
+
+        ResetTutorialButton = new GuiTextButton(
+            new Vector2(Application.BASE_WIDTH * 0.85f, Application.BASE_HEIGHT * 0.8f),
+            new Vector2(Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 16f),
+            "Reset Tutorial",
+            new Vector2(1, 1));
     }
 
     internal override void Draw() {
@@ -115,6 +131,11 @@ internal class SettingsScene : Scene {
         ResolutionSelector.Draw();
         MusicVolumeSelector.Draw();
         SoundVolumeSelector.Draw();
+
+        if (ResetScoreButton.Draw())
+            GameManager.Scoreboard.Reset();
+        if (ResetTutorialButton.Draw())
+            Application.Settings.IsTutorialEnabled = true;
     }
 
     private void ApplySettings() {

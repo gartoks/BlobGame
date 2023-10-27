@@ -2,10 +2,10 @@
 
 namespace BlobGame.Game.Scenes;
 internal class CreditsScene : Scene {
-    private GUITextButton BackButton { get; }
+    private GuiTextButton BackButton { get; }
 
     public CreditsScene() {
-        BackButton = new GUITextButton(
+        BackButton = new GuiTextButton(
             100, Application.BASE_HEIGHT - 150,
             Application.BASE_WIDTH / 8f, Application.BASE_HEIGHT / 16f,
             "Back");

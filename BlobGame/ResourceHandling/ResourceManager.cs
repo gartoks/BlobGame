@@ -29,6 +29,10 @@ internal static class ResourceManager {
     /// Sound resources.
     /// </summary>
     private static ConcurrentDictionary<string, Sound> Sounds { get; }
+    /// <summary>
+    /// Sound resources.
+    /// </summary>
+    private static ConcurrentDictionary<string, Music> Music { get; }
 
     /// <summary>
     /// Default raylib font.
@@ -58,6 +62,15 @@ internal static class ResourceManager {
     public static SoundResource DefaultSound { get; private set; }
 
     /// <summary>
+    /// Default raylib music.
+    /// </summary>
+    private static Music _DefaultMusic { get; set; }
+    /// <summary>
+    /// Default fallback music resource.
+    /// </summary>
+    public static MusicResource DefaultMusic { get; private set; }
+
+    /// <summary>
     /// Static constructor to initialize the resource loading queue and other required properties.
     /// </summary>
     static ResourceManager() {
@@ -66,6 +79,7 @@ internal static class ResourceManager {
         Fonts = new ConcurrentDictionary<string, Font>();
         Textures = new ConcurrentDictionary<string, Texture>();
         Sounds = new ConcurrentDictionary<string, Sound>();
+        Music = new ConcurrentDictionary<string, Music>();
     }
 
     /// <summary>
@@ -81,10 +95,13 @@ internal static class ResourceManager {
         _DefaultFont = Raylib.GetFontDefault();
         Image image = Raylib.GenImageColor(1, 1, Raylib.BLANK);
         _DefaultTexture = Raylib.LoadTextureFromImage(image);
+        _DefaultSound = new Sound();
+        _DefaultMusic = new Music();
 
         DefaultFont = new FontResource("default", _DefaultFont, TryGetFont);
         DefaultTexture = new TextureResource("default", _DefaultTexture, TryGetTexture);
         DefaultSound = new SoundResource("default", _DefaultSound, TryGetSound);
+        DefaultMusic = new MusicResource("default", _DefaultMusic, TryGetMusic);
     }
 
     /// <summary>
@@ -148,6 +165,21 @@ internal static class ResourceManager {
 
             if (!Sounds.TryAdd(key, sound))
                 Debug.WriteLine($"Failed to add sound {key} to dictionary");
+        } else if (type == typeof(Music)) {
+            if (Music.ContainsKey(key))
+                return;
+
+            string path = Files.GetResourceFilePath("Music", $"{key}.wav");
+
+            Music music = Raylib.LoadMusicStream(path);
+
+            /*if (sound. == 0) {
+                Debug.WriteLine($"Failed to load sound {key} from {path}");
+                return;
+            }*/
+
+            if (!Music.TryAdd(key, music))
+                Debug.WriteLine($"Failed to add music {key} to dictionary");
         } else {
             Debug.WriteLine($"Resource type {type} is not supported");
         }
@@ -242,6 +274,37 @@ internal static class ResourceManager {
     private static Sound? TryGetSound(string key) {
         if (Sounds.TryGetValue(key, out Sound sound))
             return sound;
+
+        return null;
+    }
+
+    /// <summary>
+    /// Queues a Music for loading from the given key.
+    /// </summary>
+    /// <param name="key"></param>
+    public static void LoadMusic(string key) {
+        if (!Music.ContainsKey(key))
+            ResourceLoadingQueue.Add((key, typeof(Music)));
+    }
+
+    /// <summary>
+    /// Gets a Music resource from the given key. Queues it for loading if needed.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    public static MusicResource GetMusic(string key) {
+        LoadMusic(key);
+        return new MusicResource(key, _DefaultMusic, TryGetMusic);
+    }
+
+    /// <summary>
+    /// Tries to get a raylib Music from the given key. Returns null if it doesn't exist.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    private static Music? TryGetMusic(string key) {
+        if (Music.TryGetValue(key, out Music music))
+            return music;
 
         return null;
     }
