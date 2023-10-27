@@ -89,13 +89,13 @@ internal static class ResourceManager {
         Textures = new ConcurrentDictionary<string, Texture>();
         Sounds = new ConcurrentDictionary<string, Sound>();
         Music = new ConcurrentDictionary<string, Music>();
-        
+
         _DefaultTheme = new Theme(Files.GetResourceFilePath("Themes", "default.theme"));
         MainTheme = _DefaultTheme;
     }
 
-    private static void ClearCache(){
-        while (ResourceLoadingQueue.TryTake(out _));
+    private static void ClearCache() {
+        while (ResourceLoadingQueue.TryTake(out _)) ;
 
         Fonts.Clear();
         Textures.Clear();
@@ -121,7 +121,7 @@ internal static class ResourceManager {
         FallbackFont = new FontResource("fallback", _FallbackFont, TryGetFont);
         FallbackTexture = new TextureResource("fallback", _FallbackTexture, TryGetTexture);
         FallbackSound = new SoundResource("fallback", _FallbackSound, TryGetSound);
-        FallbackMusic = new MusicResource("fallback", _DefaultMusic, TryGetMusic);
+        FallbackMusic = new MusicResource("fallback", _FallbackMusic, TryGetMusic);
     }
 
     /// <summary>
@@ -144,7 +144,7 @@ internal static class ResourceManager {
                 return;
 
             Font? font = MainTheme.LoadFont(key) ?? _DefaultTheme.LoadFont(key);
-            if (font == null){
+            if (font == null) {
                 Debug.WriteLine($"The default theme doesn't contain a font for {key}");
                 return;
             }
@@ -156,7 +156,7 @@ internal static class ResourceManager {
                 return;
 
             Texture? texture = MainTheme.LoadTexture(key) ?? _DefaultTheme.LoadTexture(key);
-            if (texture == null){
+            if (texture == null) {
                 Debug.WriteLine($"The default theme doesn't contain a texture for {key}");
                 return;
             }
@@ -168,7 +168,7 @@ internal static class ResourceManager {
                 return;
 
             Sound? sound = MainTheme.LoadSound(key) ?? _DefaultTheme.LoadSound(key);
-            if (sound == null){
+            if (sound == null) {
                 Debug.WriteLine($"The default theme doesn't contain a sound for {key}");
                 return;
             }
@@ -179,16 +179,13 @@ internal static class ResourceManager {
             if (Music.ContainsKey(key))
                 return;
 
-            string path = Files.GetResourceFilePath("Music", $"{key}.wav");
-
-            Music music = Raylib.LoadMusicStream(path);
-
-            /*if (sound. == 0) {
-                Debug.WriteLine($"Failed to load sound {key} from {path}");
+            Music? music = MainTheme.LoadMusic(key) ?? _DefaultTheme.LoadMusic(key);
+            if (music == null) {
+                Debug.WriteLine($"The default theme doesn't contain a music for {key}");
                 return;
-            }*/
+            }
 
-            if (!Music.TryAdd(key, music))
+            if (!Music.TryAdd(key, music.Value))
                 Debug.WriteLine($"Failed to add music {key} to dictionary");
         } else {
             Debug.WriteLine($"Resource type {type} is not supported");
@@ -287,14 +284,14 @@ internal static class ResourceManager {
 
         return null;
     }
-    
+
     /// <summary>
     /// Tries to get a color to the given key.
     /// </summary>
     /// <param name="key"></param>
-    public static Color GetColor(string key){
+    public static Color GetColor(string key) {
         Color? color = MainTheme.GetColor(key) ?? _DefaultTheme.GetColor(key);
-        if (color == null){
+        if (color == null) {
             Debug.WriteLine($"The default theme doesn't contain a color for {key}");
             return Raylib.RED;
         }
@@ -306,10 +303,10 @@ internal static class ResourceManager {
     /// Sets the main theme to the one named
     /// </summary>
     /// <param name="name"></param>
-    public static void SetTheme(string name){
+    public static void SetTheme(string name) {
         string filename = Files.GetResourceFilePath("Themes", name + ".theme");
 
-        if (!File.Exists(filename)){
+        if (!File.Exists(filename)) {
             Debug.WriteLine($"ERROR: Theme named '{name}' doesn't exist. Using Fallback.");
             return;
         }
@@ -334,7 +331,7 @@ internal static class ResourceManager {
     /// <returns></returns>
     public static MusicResource GetMusic(string key) {
         LoadMusic(key);
-        return new MusicResource(key, _DefaultMusic, TryGetMusic);
+        return new MusicResource(key, _FallbackMusic, TryGetMusic);
     }
 
     /// <summary>

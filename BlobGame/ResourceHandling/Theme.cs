@@ -1,7 +1,7 @@
+using Raylib_CsLo;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Text.Json;
-using Raylib_CsLo;
 
 namespace BlobGame.ResourceHandling;
 /// <summary>
@@ -20,24 +20,24 @@ internal class Theme {
     /// <summary>
     /// Constructor to load a theme from disk.
     /// </summary>
-    public Theme(string path){
+    public Theme(string path) {
         Assets = new ZipArchive(new FileStream(path, FileMode.Open));
 
         Colors = new Dictionary<string, Color>();
 
         ZipArchiveEntry? colorEntry = Assets.GetEntry("colors.json");
-        if (colorEntry == null){
+        if (colorEntry == null) {
             Debug.WriteLine($"Theme {path} doesn't contain colors.");
             return;
         }
 
         StreamReader colorStreamReader = new StreamReader(colorEntry.Open());
         Dictionary<string, int[]>? colorsInWrongFormat = JsonSerializer.Deserialize<Dictionary<string, int[]>>(colorStreamReader.ReadToEnd());
-        if (colorsInWrongFormat == null){
+        if (colorsInWrongFormat == null) {
             Debug.WriteLine($"colors.json in theme {path} has a wrong format.");
             return;
         }
-        
+
         Colors = colorsInWrongFormat
             .ToDictionary(pair => pair.Key, pair => new Color((byte)pair.Value[0], (byte)pair.Value[1], (byte)pair.Value[2], (byte)pair.Value[3]));
     }
@@ -51,21 +51,21 @@ internal class Theme {
         string path = $"Fonts/{key}.ttf";
         ZipArchiveEntry? zippedFont = Assets.GetEntry(path);
 
-        if (zippedFont == null){
+        if (zippedFont == null) {
             Debug.WriteLine($"Font {key} doesn't exist in this theme");
             return null;
         }
 
         Stream fontStream = zippedFont.Open();
         byte[] fontData;
-        using (MemoryStream ms = new MemoryStream()){
+        using (MemoryStream ms = new MemoryStream()) {
             fontStream.CopyTo(ms);
             fontData = ms.ToArray();
         }
-             
+
         Font font;
-        unsafe{
-            fixed(byte* fontPtr = fontData){
+        unsafe {
+            fixed (byte* fontPtr = fontData) {
                 font = Raylib.LoadFontFromMemory("ttf", fontPtr, fontData.Length, 200, null, 0);
             }
         }
@@ -85,21 +85,21 @@ internal class Theme {
         string path = $"Textures/{key}.png";
         ZipArchiveEntry? zippedTexture = Assets.GetEntry(path);
 
-        if (zippedTexture == null){
+        if (zippedTexture == null) {
             Debug.WriteLine($"Texture {key} doesn't exist in this theme");
             return null;
         }
 
         Stream textureStream = zippedTexture.Open();
         byte[] textureData;
-        using (MemoryStream ms = new MemoryStream()){
+        using (MemoryStream ms = new MemoryStream()) {
             textureStream.CopyTo(ms);
             textureData = ms.ToArray();
         }
-             
+
         Texture texture;
-        unsafe{
-            fixed(byte* texturePtr = textureData){
+        unsafe {
+            fixed (byte* texturePtr = textureData) {
                 texture = Raylib.LoadTextureFromImage(Raylib.LoadImageFromMemory(".png", texturePtr, textureData.Length));
             }
         }
@@ -116,24 +116,24 @@ internal class Theme {
     /// </summary>
     /// <param name="key"></param>
     public Sound? LoadSound(string key) {
-        string path = $"Sounds/{key}.png";
+        string path = $"Sounds/{key}.wav";
         ZipArchiveEntry? zippedSound = Assets.GetEntry(path);
 
-        if (zippedSound == null){
+        if (zippedSound == null) {
             Debug.WriteLine($"Sound {key} doesn't exist in this theme");
             return null;
         }
 
         Stream soundStream = zippedSound.Open();
         byte[] soundData;
-        using (MemoryStream ms = new MemoryStream()){
+        using (MemoryStream ms = new MemoryStream()) {
             soundStream.CopyTo(ms);
             soundData = ms.ToArray();
         }
-             
+
         Sound sound;
-        unsafe{
-            fixed(byte* soundPtr = soundData){
+        unsafe {
+            fixed (byte* soundPtr = soundData) {
                 sound = Raylib.LoadSoundFromWave(Raylib.LoadWaveFromMemory("wav", soundPtr, soundData.Length));
             }
         }
@@ -142,11 +142,41 @@ internal class Theme {
     }
 
     /// <summary>
+    /// Tries to load a music from the zip archive.
+    /// </summary>
+    /// <param name="key"></param>
+    public Music? LoadMusic(string key) {
+        string path = $"Music/{key}.wav";
+        ZipArchiveEntry? zippedSound = Assets.GetEntry(path);
+
+        if (zippedSound == null) {
+            Debug.WriteLine($"Music {key} doesn't exist in this theme");
+            return null;
+        }
+
+        Stream musicStream = zippedSound.Open();
+        byte[] musicData;
+        using (MemoryStream ms = new MemoryStream()) {
+            musicStream.CopyTo(ms);
+            musicData = ms.ToArray();
+        }
+
+        Music music;
+        unsafe {
+            fixed (byte* soundPtr = musicData) {
+                music = Raylib.LoadMusicStreamFromMemory("wav", soundPtr, musicData.Length);
+            }
+        }
+
+        return music;
+    }
+
+    /// <summary>
     /// Tries to get a color to the given key.
     /// </summary>
     /// <param name="key"></param>
-    public Color? GetColor(string key){
-        if (!Colors.ContainsKey(key)){
+    public Color? GetColor(string key) {
+        if (!Colors.ContainsKey(key)) {
             return null;
         }
 

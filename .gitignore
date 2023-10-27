@@ -3,11 +3,8 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
-BlobGame/Resources/Textures/References
-BlobGame/Resources/
-BlobGame/Saves/
-BlobGame/Config/
-
+BlobGame/Resources/References/*
+BlobGame/Resources/Themes/default/*
 
 # User-specific files
 *.rsuser

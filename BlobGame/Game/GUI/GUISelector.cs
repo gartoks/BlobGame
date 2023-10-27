@@ -1,4 +1,5 @@
-﻿using BlobGame.ResourceHandling;
+﻿using BlobGame.Drawing;
+using BlobGame.ResourceHandling;
 using Raylib_CsLo;
 using System.Numerics;
 
@@ -31,9 +32,9 @@ internal class GuiSelector {
         FontSize = (int)(buttonSize * 0.7f);
         Bounds = new Rectangle(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h);
 
-        Panel = new GUIPanel(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h, ResourceManager.GetColor("light_accent"), new Vector2(0, 0));
-        DecreaseButton = new GUITextButton(x, y, buttonSize, buttonSize, "<", new Vector2(0, 0));
-        IncreaseButton = new GUITextButton(x + w, y, buttonSize, buttonSize, ">", new Vector2(1, 0));
+        Panel = new GuiPanel(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h, ResourceManager.GetColor("light_accent"), new Vector2(0, 0));
+        DecreaseButton = new GuiTextButton(x, y, buttonSize, buttonSize, "<", new Vector2(0, 0));
+        IncreaseButton = new GuiTextButton(x + w, y, buttonSize, buttonSize, ">", new Vector2(1, 0));
 
         SelectedIndex = selectedIndex;
     }

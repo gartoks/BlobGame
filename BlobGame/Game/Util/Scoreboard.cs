@@ -39,40 +39,22 @@ public sealed class Scoreboard {
         if (!File.Exists(file))
             return;
 
-        ExpandoObject? scoreData = JsonSerializer.Deserialize<ExpandoObject>(File.ReadAllText(file));
+        ExpandoObject? tmp = JsonSerializer.Deserialize<ExpandoObject>(File.ReadAllText(file));
 
-        if (scoreData == null)
+        if (tmp == null)
             return;
 
-        string[] lines = File.ReadAllLines(file);
-        if (lines.Length != 5)
-            return;
+        dynamic scoreData = tmp;
 
-        if (!int.TryParse(lines[0], out int globalHighscore))
-            return;
-
-        if (!DateTime.TryParse(lines[1], out DateTime date))
-            return;
-
-        if (!int.TryParse(lines[2], out int dailyScoreFirst))
-            return;
-
-        if (!int.TryParse(lines[3], out int dailyScoreSecond))
-            return;
-
-        if (!int.TryParse(lines[4], out int dailyScoreThird))
-            return;
+        int globalHighscore = scoreData.GlobalHighscore;
+        DateTime date = scoreData.Date;
+        int[] dailyHighscores = scoreData.DailyHighscores;
 
         GlobalHighscore = globalHighscore;
 
-        if (date.Date != DateTime.Today) {
-            _DailyHighscores[0] = 0;
-            _DailyHighscores[1] = 0;
-            _DailyHighscores[2] = 0;
-        } else {
-            _DailyHighscores[0] = dailyScoreFirst;
-            _DailyHighscores[1] = dailyScoreSecond;
-            _DailyHighscores[2] = dailyScoreThird;
+        bool isDateValid = date.Date == DateTime.Today;
+        for (int i = 0; i < _DailyHighscores.Length; i++) {
+            _DailyHighscores[i] = isDateValid ? dailyHighscores[i] : 0;
         }
     }
 

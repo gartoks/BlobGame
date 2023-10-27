@@ -69,8 +69,11 @@ internal sealed class Settings {
 
     /// The current theme.
     /// </summary>
-    public string ThemeName { get; private set; };
+    public string ThemeName { get; private set; }
 
+    /// <summary>
+    /// Default Constructor.
+    /// </summary>
     public Settings() {
         ThemeName = "default";
     }
@@ -145,7 +148,7 @@ internal sealed class Settings {
         Save();
     }
 
-    public void SetTheme(string name){
+    public void SetTheme(string name) {
         ResourceManager.SetTheme(name);
         ThemeName = name;
         Save();
@@ -188,7 +191,7 @@ internal sealed class Settings {
     /// <summary>
     /// Gets the name of the theme the game is currently using.
     /// </summary>
-    public string GetCurrentThemeName(){
+    public string GetCurrentThemeName() {
         return ThemeName;
     }
 

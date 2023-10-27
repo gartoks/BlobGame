@@ -20,7 +20,7 @@ internal sealed class GuiTextButton {
             y += -h * pivot.Value.Y;
         }
 
-        Panel = new GUIPanel(x, y, w, h, ResourceManager.GetColor("light_accent"), new Vector2(0, 0));
+        Panel = new GuiPanel(x, y, w, h, ResourceManager.GetColor("light_accent"), new Vector2(0, 0));
         Label = new GuiLabel(x, y, w, h, text, new Vector2(0, 0));
 
         Bounds = new Rectangle(x, y, w, h);
