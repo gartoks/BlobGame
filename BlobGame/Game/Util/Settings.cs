@@ -31,6 +31,30 @@ internal sealed class Settings {
     public eScreenMode ScreenMode { get; private set; }
 
     /// <summary>
+    /// The music volume from 0 to 100. It is internally stored as 0 to 100 because easier comparison when adjusting settings.
+    /// </summary>
+    private int _MusicVolume { get; set; }
+    public int MusicVolume {
+        get => _MusicVolume;
+        set {
+            _MusicVolume = Math.Clamp(value, 0, 100);
+            Save();
+        }
+    }
+
+    /// <summary>
+    /// The sound volume from 0 to 100. It is internally stored as 0 to 100 because easier comparison when adjusting settings.
+    /// </summary>
+    private int _SoundVolume { get; set; }
+    public int SoundVolume {
+        get => _SoundVolume;
+        set {
+            _SoundVolume = Math.Clamp(value, 0, 100);
+            Save();
+        }
+    }
+
+    /// <summary>
     /// Sets the resolution to the given width and height. Only works if the screen mode is not borderless.
     /// </summary>
     /// <param name="w"></param>
@@ -156,6 +180,8 @@ internal sealed class Settings {
         settingsData.Monitor = Raylib.GetCurrentMonitor();
         settingsData.ResolutionW = Raylib.GetScreenWidth();
         settingsData.ResolutionH = Raylib.GetScreenHeight();
+        settingsData.MusicVolume = _MusicVolume;
+        settingsData.SoundVolume = _SoundVolume;
 
         File.WriteAllText(file, JsonSerializer.Serialize(settingsData));
     }
@@ -167,6 +193,8 @@ internal sealed class Settings {
         int monitor = Raylib.GetCurrentMonitor();
         (int w, int h) resolution = AVAILABLE_RESOLUTIONS[0];
         eScreenMode screenMode = eScreenMode.Windowed;
+        int musicVolume = 100;
+        int soundVolume = 100;
 
         string file = Files.GetConfigFilePath("settings.json");
         if (File.Exists(file)) {
@@ -178,14 +206,20 @@ internal sealed class Settings {
 
                 monitor = settingsData.Monitor;
                 resolution = (settingsData.ResolutionW, settingsData.ResolutionH);
+                musicVolume = settingsData.MusicVolume;
+                soundVolume = settingsData.SoundVolume;
             }
-
         }
 
         SetScreenMode(screenMode);
         SetResolution(resolution.w, resolution.h);
         SetMonitor(monitor);
+        _MusicVolume = musicVolume;
+        _SoundVolume = soundVolume;
+        Save();
     }
 
-    private record SettingsData(string ScreenMode, int Monitor, int ResolutionW, int ResolutionH);
+    private record SettingsData(
+        string ScreenMode, int Monitor, int ResolutionW, int ResolutionH,
+        int MusicVolume, int SoundVolume);
 }

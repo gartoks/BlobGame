@@ -3,7 +3,7 @@ using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;
-internal class GUISelector {
+internal class GuiSelector {
     private IReadOnlyList<SelectionElement> Elements { get; }
 
     private int FontSize { get; }
@@ -16,11 +16,11 @@ internal class GUISelector {
     private int SelectedIndex { get; set; }
     public SelectionElement SelectedElement => Elements[SelectedIndex];
 
-    public GUISelector(Vector2 pos, Vector2 size, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null)
+    public GuiSelector(Vector2 pos, Vector2 size, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null)
         : this(pos.X, pos.Y, size.X, size.Y, elements, selectedIndex, pivot) {
     }
 
-    public GUISelector(float x, float y, float w, float h, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null) {
+    public GuiSelector(float x, float y, float w, float h, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null) {
         if (pivot != null) {
             x += -w * pivot.Value.X;
             y += -h * pivot.Value.Y;

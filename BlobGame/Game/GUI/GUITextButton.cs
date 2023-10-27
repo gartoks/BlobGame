@@ -7,7 +7,7 @@ using System.Numerics;
 namespace BlobGame.Game.Gui;
 internal sealed class GUITextButton {
     private GUIPanel Panel { get; }
-    private GUILabel Label { get; }
+    private GuiLabel Label { get; }
     private Rectangle Bounds { get; }
 
     public GUITextButton(Vector2 pos, Vector2 size, string text, Vector2? pivot = null)
@@ -21,7 +21,7 @@ internal sealed class GUITextButton {
         }
 
         Panel = new GUIPanel(x, y, w, h, Renderer.MELBA_LIGHT_PINK, new Vector2(0, 0));
-        Label = new GUILabel(x, y, w, h, text, new Vector2(0, 0));
+        Label = new GuiLabel(x, y, w, h, text, new Vector2(0, 0));
 
         Bounds = new Rectangle(x, y, w, h);
     }

@@ -3,17 +3,17 @@ using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;
-internal sealed class GUILabel {
+internal sealed class GuiLabel {
     private string Text { get; }
     private int FontSize { get; }
 
     private Vector2 TextPosition { get; }
 
-    public GUILabel(Vector2 pos, Vector2 size, string text, Vector2? pivot = null)
+    public GuiLabel(Vector2 pos, Vector2 size, string text, Vector2? pivot = null)
         : this(pos.X, pos.Y, size.X, size.Y, text, pivot) {
     }
 
-    public GUILabel(float x, float y, float w, float h, string text, Vector2? pivot = null) {
+    public GuiLabel(float x, float y, float w, float h, string text, Vector2? pivot = null) {
         if (pivot != null) {
             x += -w * pivot.Value.X;
             y += -h * pivot.Value.Y;

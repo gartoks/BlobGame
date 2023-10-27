@@ -83,7 +83,7 @@ internal static class Renderer {
 
         RlGl.rlScalef(Application.WorldToScreenMultiplierX, Application.WorldToScreenMultiplierY, 1);
         DrawBackground();
-        Tumbler.Draw();
+        Tumbler.Draw(dT);
 
 
         Game.GameManager.Draw();
