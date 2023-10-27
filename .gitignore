@@ -5,6 +5,9 @@
 
 BlobGame/Resources/Textures/References
 BlobGame/Resources/
+BlobGame/Saves/
+BlobGame/Config/
+
 
 # User-specific files
 *.rsuser
