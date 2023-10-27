@@ -9,17 +9,6 @@ namespace BlobGame.Drawing;
 /// Class for settup up and controlling the drawing of the game.
 /// </summary>
 internal static class Renderer {
-    public static Color LIGHT_PINK { get; } = new Color(255, 209, 238, 255);
-    public static Color DARK_PINK { get; } = new Color(255, 168, 223, 255);
-    public static Color MELBA_LIGHT_YELLOW { get; } = new Color(255, 242, 214, 255);
-    public static Color MELBA_DARK_YELLOW { get; } = new Color(255, 238, 177, 255);
-    public static Color MELBA_LIGHT_PINK { get; } = new Color(255, 196, 223, 255);
-    public static Color MELBA_DARK_PINK { get; } = new Color(244, 125, 195, 255);
-
-    /// <summary>
-    /// The color to clear the screen with.
-    /// </summary>
-    public static Color ClearColor { get; set; }
 
     /// <summary>
     /// Stopwatch to keep track of the time between frames (delta time).
@@ -45,8 +34,6 @@ internal static class Renderer {
     /// Static constructor to initialize clear color and required properties.
     /// </summary>
     static Renderer() {
-        ClearColor = MELBA_LIGHT_YELLOW;
-
         UpdateStopwatch = new Stopwatch();
         Time = 0;
         Tumbler = new StrawberryBackgroundTumbler(60);
@@ -77,7 +64,7 @@ internal static class Renderer {
         UpdateStopwatch.Restart();
 
         Raylib.BeginDrawing();
-        Raylib.ClearBackground(ClearColor);
+        Raylib.ClearBackground(ResourceManager.GetColor("background"));
 
         RlGl.rlPushMatrix();
 
@@ -100,7 +87,7 @@ internal static class Renderer {
 
     private static void DrawBackground() {
         const float ANGLE = -12.5f;
-        Color elementColor = MELBA_LIGHT_PINK.ChangeAlpha(64);
+        Color elementColor = ResourceManager.GetColor("light_accent").ChangeAlpha(64);
         //Color elementColor = new Color(255, 255, 255, 64);
 
         Raylib.DrawRectanglePro(

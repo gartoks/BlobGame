@@ -1,9 +1,8 @@
-﻿using BlobGame.Drawing;
+﻿using BlobGame.App;
 using BlobGame.Game.Gui;
 using BlobGame.Game.Util;
-using System.Diagnostics;
+using BlobGame.ResourceHandling;
 using System.Numerics;
-using System.Reflection;
 using static BlobGame.Game.Gui.GuiSelector;
 using static BlobGame.Game.Util.Settings;
 
@@ -22,6 +21,8 @@ internal class SettingsScene : Scene {
 
     private GuiLabel MonitorLabel { get; }
     private GuiSelector MonitorSelector { get; }
+    private GuiLabel ThemeLabel { get; }
+    private GuiSelector ThemeSelector { get; }
 
     private GuiLabel MusicVolumeLabel { get; }
     private GuiSelector MusicVolumeSelector { get; }
@@ -40,7 +41,7 @@ internal class SettingsScene : Scene {
         BackgroundPanel = new GuiPanel(
             Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.05f,
             Application.BASE_WIDTH * 0.9f, Application.BASE_HEIGHT * 0.8f,
-            Renderer.MELBA_LIGHT_PINK,
+            ResourceManager.GetColor("light_accent"),
             new Vector2(0, 0));
 
         BackButton = new GuiTextButton(
@@ -96,6 +97,19 @@ internal class SettingsScene : Scene {
         SoundVolumeSelector = soundVolumeSelector;
         xOffset += 0.1f;
 
+        SelectionElement[] availableThemes = Directory.GetFiles(Files.GetResourceFilePath("Themes"))
+            .Where(file => file.EndsWith(".theme"))
+            .Select(file => new SelectionElement($"{Path.GetFileNameWithoutExtension(file)}", Path.GetFileNameWithoutExtension(file))).ToArray();
+        int selectedThemeIndex = Array.FindIndex(availableThemes, e => e.Element.Equals(Application.Settings.GetCurrentThemeName()));
+
+        (GuiSelector themeSelector, GuiLabel themeLabel) = CreateSettingsEntry(
+            "Theme", xOffset,
+            availableThemes,
+            selectedThemeIndex);
+        ThemeSelector = themeSelector;
+        ThemeLabel = themeLabel;
+        xOffset += 0.1f;
+
         ResetScoreButton = new GuiTextButton(
             new Vector2(Application.BASE_WIDTH * 0.1f, Application.BASE_HEIGHT * 0.8f),
             new Vector2(Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 16f),
@@ -120,6 +134,7 @@ internal class SettingsScene : Scene {
         ResolutionLabel.Draw();
         MusicVolumeLabel.Draw();
         SoundVolumeLabel.Draw();
+        ThemeLabel.Draw();
 
         if (BackButton.Draw())
             GameManager.SetScene(new MainMenuScene());
@@ -131,6 +146,7 @@ internal class SettingsScene : Scene {
         ResolutionSelector.Draw();
         MusicVolumeSelector.Draw();
         SoundVolumeSelector.Draw();
+        ThemeSelector.Draw();
 
         if (ResetScoreButton.Draw())
             GameManager.Scoreboard.Reset();
@@ -142,6 +158,7 @@ internal class SettingsScene : Scene {
         int monitor = (int)MonitorSelector.SelectedElement.Element;
         eScreenMode screenMode = (eScreenMode)ScreenModeSelector.SelectedElement.Element;
         (int w, int h) resolution = ((int w, int h))ResolutionSelector.SelectedElement.Element;
+        string theme = (string)ThemeSelector.SelectedElement.Element;
 
         if (resolution != Application.Settings.GetCurrentResolution())
             Application.Settings.SetResolution(resolution.w, resolution.h);
@@ -149,9 +166,15 @@ internal class SettingsScene : Scene {
             Application.Settings.SetScreenMode(screenMode);
         if (monitor != Application.Settings.GetCurrentMonitor())
             Application.Settings.SetMonitor(monitor);
+        if (theme != Application.Settings.GetCurrentThemeName())
+            Application.Settings.SetTheme(theme);
 
+#if WINDOWS
+        // This crashes on linux for some reason. Everything works without it, so it doesn't matter
         Application.Exit();
         Process.Start(Assembly.GetExecutingAssembly().Location);
+#endif
+        GameManager.SetScene(new SettingsScene());
     }
 
     private (GuiSelector, GuiLabel) CreateSettingsEntry(string name, float xOffset, SelectionElement[] selectionElements, int selectedIndex) {

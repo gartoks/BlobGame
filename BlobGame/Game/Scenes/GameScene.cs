@@ -51,7 +51,7 @@ internal sealed class GameScene : Scene {
         GameOverPanel = new GuiPanel(
             new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT / 2f),
             new Vector2(1100, 500),
-            Renderer.MELBA_LIGHT_PINK,
+            ResourceManager.GetColor("light_accent"),
             new Vector2(0.5f, 0.5f));
         GameOverLabel = new GuiLabel(
             new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.35f),
@@ -91,7 +91,7 @@ internal sealed class GameScene : Scene {
             CurrentBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
             NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.NextBlob}");
         } else {
-            CurrentBlobTexture = ResourceManager.DefaultTexture;
+            CurrentBlobTexture = ResourceManager.FallbackTexture;
             NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
         }
 
@@ -245,7 +245,7 @@ internal sealed class GameScene : Scene {
             new Rectangle(Simulation.ARENA_WIDTH * 0.75f, 0, mW, mH),
             new Vector2(mW / 2, mH / 2),
             0,
-            Renderer.MELBA_LIGHT_PINK
+            ResourceManager.GetColor("light_accent")
             );
 
         // Blob
@@ -264,7 +264,7 @@ internal sealed class GameScene : Scene {
             textPos,
             textPos / 2f,
             -25.5f,
-            80, 5, Renderer.MELBA_DARK_PINK);
+            80, 5, ResourceManager.GetColor("dark_accent"));
     }
 
     internal void DrawDropper(float x) {
@@ -285,7 +285,7 @@ internal sealed class GameScene : Scene {
             new Rectangle(x, 0, DROP_INDICATOR_WIDTH, Simulation.ARENA_HEIGHT),
             new Vector2(DROP_INDICATOR_WIDTH / 2f, 0),
             0,
-            Renderer.MELBA_LIGHT_YELLOW.ChangeAlpha(128));
+            ResourceManager.GetColor("background").ChangeAlpha(128));
     }
 
     internal void DrawCurrentBlob(float x) {
@@ -331,7 +331,7 @@ internal sealed class GameScene : Scene {
             new Vector2(x + w - 50 - scoreTextSize.X, y),
             100,
             10,
-            Renderer.MELBA_DARK_PINK);
+            ResourceManager.GetColor("dark_accent"));
     }
 
     private void DrawGameOverScreen() {

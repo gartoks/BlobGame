@@ -1,4 +1,5 @@
 ﻿using BlobGame.App;
+using BlobGame.ResourceHandling;
 using Raylib_CsLo;
 using System.Dynamic;
 using System.Text.Json;
@@ -66,6 +67,13 @@ internal sealed class Settings {
         }
     }
 
+    /// The current theme.
+    /// </summary>
+    public string ThemeName { get; private set; };
+
+    public Settings() {
+        ThemeName = "default";
+    }
 
     /// <summary>
     /// Sets the resolution to the given width and height. Only works if the screen mode is not borderless.
@@ -137,6 +145,12 @@ internal sealed class Settings {
         Save();
     }
 
+    public void SetTheme(string name){
+        ResourceManager.SetTheme(name);
+        ThemeName = name;
+        Save();
+    }
+
     /// <summary>
     /// Gets the index of the current monitor.
     /// </summary>
@@ -171,6 +185,12 @@ internal sealed class Settings {
         int curMonitor = Raylib.GetCurrentMonitor();
         return GetMonitorResolution(curMonitor);
     }
+    /// <summary>
+    /// Gets the name of the theme the game is currently using.
+    /// </summary>
+    public string GetCurrentThemeName(){
+        return ThemeName;
+    }
 
     /// <summary>
     /// Gets the resolution of the monitor with the given index.
@@ -196,6 +216,7 @@ internal sealed class Settings {
         settingsData.MusicVolume = _MusicVolume;
         settingsData.SoundVolume = _SoundVolume;
         settingsData.IsTutorialEnabled = _IsTutorialEnabled;
+        settingsData.ThemeName = ThemeName;
 
         File.WriteAllText(file, JsonSerializer.Serialize(settingsData));
     }
@@ -210,6 +231,7 @@ internal sealed class Settings {
         int musicVolume = 100;
         int soundVolume = 100;
         bool isTutorialEnabled = true;
+        string themeName = "default";
 
         string file = Files.GetConfigFilePath("settings.json");
         if (File.Exists(file)) {
@@ -224,6 +246,7 @@ internal sealed class Settings {
                 musicVolume = settingsData.MusicVolume;
                 soundVolume = settingsData.SoundVolume;
                 isTutorialEnabled = settingsData.IsTutorialEnabled;
+                themeName = settingsData.ThemeName;
             }
         }
 
@@ -234,10 +257,13 @@ internal sealed class Settings {
         _SoundVolume = soundVolume;
         IsTutorialEnabled = isTutorialEnabled;
         Save();
+        SetTheme(themeName);
     }
 
     private record SettingsData(
         string ScreenMode, int Monitor, int ResolutionW, int ResolutionH,
         int MusicVolume = 100, int SoundVolume = 100,
-        bool IsTutorialEnabled = true);
+        bool IsTutorialEnabled = true,
+        string ThemeName = "default"
+        );
 }

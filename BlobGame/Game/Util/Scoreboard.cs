@@ -39,6 +39,11 @@ public sealed class Scoreboard {
         if (!File.Exists(file))
             return;
 
+        ExpandoObject? scoreData = JsonSerializer.Deserialize<ExpandoObject>(File.ReadAllText(file));
+
+        if (scoreData == null)
+            return;
+
         string[] lines = File.ReadAllLines(file);
         if (lines.Length != 5)
             return;

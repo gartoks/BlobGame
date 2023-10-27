@@ -1,5 +1,5 @@
 ﻿using BlobGame.App;
-using BlobGame.Drawing;
+using BlobGame.ResourceHandling;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
@@ -20,7 +20,7 @@ internal sealed class GuiTextButton {
             y += -h * pivot.Value.Y;
         }
 
-        Panel = new GuiPanel(x, y, w, h, Renderer.MELBA_LIGHT_PINK, new Vector2(0, 0));
+        Panel = new GUIPanel(x, y, w, h, ResourceManager.GetColor("light_accent"), new Vector2(0, 0));
         Label = new GuiLabel(x, y, w, h, text, new Vector2(0, 0));
 
         Bounds = new Rectangle(x, y, w, h);
@@ -28,9 +28,9 @@ internal sealed class GuiTextButton {
 
     internal bool Draw() {
         bool containsMouse = Bounds.Contains(Input.ScreenToWorld(Raylib.GetMousePosition()));
-        Color bgColor = Renderer.MELBA_LIGHT_PINK;
+        Color bgColor = ResourceManager.GetColor("light_accent");
         if (containsMouse)
-            bgColor = Renderer.MELBA_DARK_PINK;
+            bgColor = ResourceManager.GetColor("dark_accent");
 
         Panel.Color = bgColor;
         Panel.Draw();
