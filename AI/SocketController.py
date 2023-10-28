@@ -1,6 +1,8 @@
 import socket
 import struct
 
+from FrameInfo import FrameInfo, Blob, BLOB_SIZE
+
 class SocketController:
     def __init__(self, host_tuple: (str, int)) -> None:
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -21,3 +23,28 @@ class SocketController:
     def send_frame_info(self, t: float, shouldDrop: bool):
         buffer = struct.pack("f?", t, shouldDrop)
         self.connection.send(buffer)
+    
+    def receive_exact(self, count: int):
+        data = self.connection.recv(count)
+        
+        while (len(data) < count):
+            data += self.connection.recv(count - len(data))
+
+            if (len(data) == 0):
+                raise socket.error("Connection closed")
+        return data
+
+    def receive_frame_info(self):
+        count, = struct.unpack("i", self.receive_exact(4))
+        
+        bytes_left = BLOB_SIZE * count
+        buffer = self.receive_exact(bytes_left)
+        
+        frame = FrameInfo([], -1, -1, False)
+        for i in range(0, bytes_left, BLOB_SIZE):
+            x, y, t = struct.unpack("ffi", buffer[i:i+BLOB_SIZE])
+            frame.blobs.append(Blob(x, y, t))
+        
+        frame.current_blob, frame.next_blob, frame.can_drop = struct.unpack("ii?", self.receive_exact(9))
+        return frame
+

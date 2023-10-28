@@ -86,6 +86,7 @@ internal sealed class GameScene : Scene {
     /// <param name="dT">The delta time since the last frame, typically used for frame-rate independent updates.</param>
     internal override void Update(float dT) {
         GameSim.Update(dT);
+        Controller.Update(GameSim);
 
         if (GameSim.CanSpawnBlob) {
             CurrentBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");

@@ -18,6 +18,11 @@ internal interface IGameController {
     bool SpawnBlob(ISimulation simulation, out float t);
 
     /// <summary>
+    /// Runs every frame.
+    /// </summary>
+    void Update(ISimulation simulation);
+
+    /// <summary>
     /// Closes any connections and disposes resources needed by the controller
     /// </summary>
     void Close();

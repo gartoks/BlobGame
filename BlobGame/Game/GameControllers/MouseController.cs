@@ -45,6 +45,7 @@ internal class MouseController : IGameController {
         t = GetCurrentT();
         return true;
     }
+    public void Update(ISimulation simulation){}
     public void Close(){}
 
 }

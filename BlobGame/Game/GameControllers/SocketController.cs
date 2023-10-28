@@ -1,11 +1,7 @@
-﻿using BlobGame.App;
+﻿using BlobGame.Game.GameObjects;
 using BlobGame.Game.Scenes;
-using Raylib_CsLo;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net.Sockets;
-using System.Numerics;
-using System.Security.Cryptography.X509Certificates;
 
 namespace BlobGame.Game.GameControllers;
 
@@ -24,32 +20,20 @@ internal class SocketController : IGameController {
     /// </summary>
     private NetworkStream stream;
 
-    /// <summary>
-    /// Tells the receiver thread to stop.
-    /// </summary>
-    private bool IsClosed = false;
-
-    /// <summary>
-    /// Receives frame data on a different thread.
-    /// </summary>
-    private Thread receiverThread;
-
-    private ConcurrentQueue<(float t, bool shouldDrop)> frameInputs;
-
-    private object inputLock = new object();
+    private (float t, bool shouldDrop) frameInputs;
 
     public SocketController(GameScene scene) {
         Scene = scene;
 
-        client = new TcpClient("localhost", 1234);
-        stream = client.GetStream();
+        try{
+            client = new TcpClient("localhost", 1234);
+            stream = client.GetStream();
+        }
+        catch(SocketException){
+            Debug.WriteLine("Controller stream was closed.");
+            GameManager.SetScene(new MainMenuScene());
+        }
         Debug.WriteLine("Connected to localhost:1234");
-    
-        frameInputs = new();
-        frameInputs.Enqueue((0.5f, false));
-
-        receiverThread = new Thread(ReceiveFrames);
-        receiverThread.Start();
     }
 
     ~SocketController(){
@@ -57,9 +41,6 @@ internal class SocketController : IGameController {
     }
 
     public void Close(){
-        IsClosed = true;
-        Debug.WriteLine("Waiting for receiver thread");
-        receiverThread.Join();
         Debug.WriteLine("Closing tcp socket");
         client.Close();
     }
@@ -69,7 +50,7 @@ internal class SocketController : IGameController {
     /// </summary>
     /// <returns>The current value of t.</returns>
     public float GetCurrentT() {
-        return frameInputs.Last().t;
+        return frameInputs.t;
     }
 
     /// <summary>
@@ -85,35 +66,83 @@ internal class SocketController : IGameController {
         
         t = GetCurrentT();
         
-        return frameInputs.Last().shouldDrop;
+        return frameInputs.shouldDrop;
+    }
+    public void Update(ISimulation simulation){
+        // send simulation state
+        SendGameState(simulation);
+
+        // wait for inputs
+        ReceiveInputs();
+    }
+
+    public void SendGameState(ISimulation simulation){
+        
+
+        List<Blob> blobs = new();
+        simulation.GameObjects.Enumerate(go => {
+            if (go.GetType() == typeof(Blob)){
+                blobs.Add((Blob)go);
+            }
+        });
+
+        IEnumerable<byte> buffer = new byte[0];
+        buffer = buffer.Concat(BitConverter.GetBytes(blobs.Count));
+        foreach(Blob blob in blobs){
+            buffer = buffer.Concat(BitConverter.GetBytes(blob.Position.X));
+            buffer = buffer.Concat(BitConverter.GetBytes(blob.Position.Y));
+            buffer = buffer.Concat(BitConverter.GetBytes((int)blob.Type));
+        }
+        buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.CurrentBlob));
+        buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.NextBlob));
+        buffer = buffer.Concat(BitConverter.GetBytes(simulation.CanSpawnBlob));
+
+        bool failed = false;
+        try{
+            stream.Write(buffer.ToArray());
+        }
+        catch(SocketException){
+            failed = true;
+        }
+        catch(IOException){
+            failed = true;
+        }
+
+        if (failed){
+            Debug.WriteLine("Controller stream was closed.");
+            GameManager.SetScene(new MainMenuScene());
+            return;
+        }
     }
 
     /// <summary>
-    /// Waits for the next frame of inputs and stores them in nextFrameInputs.
+    /// Waits for the next frame of inputs and stores them in frameInputs.
     /// </summary>
-    public void ReceiveFrames(){
+    public void ReceiveInputs(){
+        byte[] buffer = new byte[5];
+        bool failed = false;
         try{
-            while (!IsClosed){
-                while (frameInputs.Count > 2){
-                    frameInputs.TryDequeue(out _);
-                }
-
-                byte[] buffer = new byte[1024];
-                
-                stream.ReadExactly(buffer, 0, 5);
-                float t = BitConverter.ToSingle(buffer, 0);
-                bool shouldDrop = BitConverter.ToBoolean(buffer, 4);
-                frameInputs.Enqueue((t, shouldDrop));
-            }
+            stream.ReadExactly(buffer, 0, 5);
         }
         catch(EndOfStreamException){
-            Debug.WriteLine("Controller stream was closed.");
-            GameManager.SetScene(new MainMenuScene());
+            failed = true;
         }
         catch(SocketException){
-            Debug.WriteLine("Controller stream was closed.");
-            GameManager.SetScene(new MainMenuScene());
+            failed = true;
         }
+        catch(IOException){
+            failed = true;
+        }
+        if (failed){
+            Debug.WriteLine("Controller input stream was closed.");
+            GameManager.SetScene(new MainMenuScene());
+            return;
+        }
+
+        float t = BitConverter.ToSingle(buffer, 0);
+        bool shouldDrop = BitConverter.ToBoolean(buffer, 4);
+        frameInputs = (t, shouldDrop);
     }
+
 
 }
