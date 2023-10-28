@@ -33,7 +33,7 @@ internal sealed class TextureResource {
     /// </summary>
     public Texture Resource {
         get {
-            if (_Resource == null)
+            if (!IsLoaded())
                 _Resource = ResourceRetriever(Key);
 
             return _Resource ?? Fallback;
@@ -59,5 +59,12 @@ internal sealed class TextureResource {
     /// </summary>
     internal void Unload() {
         _Resource = null;
+    }
+
+    /// <summary>
+    /// Returns whether the resource is loaded yet.
+    /// </summary>
+    internal bool IsLoaded(){
+        return _Resource != null;
     }
 }

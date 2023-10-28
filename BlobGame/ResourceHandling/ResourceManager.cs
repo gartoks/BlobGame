@@ -131,25 +131,28 @@ internal static class ResourceManager {
     /// </summary>
     private static void UnloadEverything() {
         while (ResourceLoadingQueue.TryTake(out _)) ;
-
-        foreach ((Font? font, FontResource resource) item in Fonts.Values.ToList()) {
-            UnloadFont(item.resource);
-            Fonts.Remove(item.resource.Key, out _);
+        Debug.WriteLine("Unloading fonts.");
+        foreach (string key in Fonts.Keys.ToList()) {
+            UnloadFont(key);
+            LoadFont(key);
         }
 
-        foreach ((Texture? texture, TextureResource resource) item in Textures.Values.ToList()) {
-            UnloadTexture(item.resource);
-            Textures.Remove(item.resource.Key, out _);
+        Debug.WriteLine("Unloading textures.");
+        foreach (string key in Textures.Keys.ToList()) {
+            UnloadTexture(key);
+            LoadTexture(key);
         }
 
-        foreach ((Sound? sound, SoundResource resource) item in Sounds.Values.ToList()) {
-            UnloadSound(item.resource);
-            Sounds.Remove(item.resource.Key, out _);
+        Debug.WriteLine("Unloading sounds.");
+        foreach (string key in Sounds.Keys.ToList()) {
+            UnloadSound(key);
+            LoadSound(key);
         }
 
-        foreach ((Music? music, MusicResource resource) item in Music.Values.ToList()) {
-            UnloadMusic(item.resource);
-            Music.Remove(item.resource.Key, out _);
+        Debug.WriteLine("Unloading music.");
+        foreach (string key in Music.Keys.ToList()) {
+            UnloadMusic(key);
+            LoadMusic(key);
         }
 
     }
@@ -272,8 +275,18 @@ internal static class ResourceManager {
     /// </summary>
     /// <param name="key"></param>
     public static void LoadFont(string key) {
-        if (!Fonts.ContainsKey(key) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+        if (ResourceLoadingQueue.Any(r => r.key == key)){
+            return;
+        }
+        if (Fonts.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded())){
+            return;
+        }
+
+        if (!Fonts.ContainsKey(key)) {
             Fonts[key] = (null, new FontResource(key, _FallbackFont, TryGetFont));
+            ResourceLoadingQueue.Add((key, typeof(Font)));
+        }
+        else if (Fonts.Any(pair => pair.Key == key && !pair.Value.resource.IsLoaded())){
             ResourceLoadingQueue.Add((key, typeof(Font)));
         }
     }
@@ -303,10 +316,13 @@ internal static class ResourceManager {
     /// <summary>
     /// Unloads the given font.
     /// </summary>
-    /// <param name="font"></param>
-    private static void UnloadFont(FontResource font) {
-        font.Unload();
-        Raylib.UnloadFont(font.Resource);
+    /// <param name="key"></param>
+    private static void UnloadFont(string key) {
+        FontResource resource = Fonts[key].resource;
+        if (resource.Resource.texture.id != 0 && resource.Resource.texture.id != FallbackFont.Resource.texture.id)
+            Raylib.UnloadFont(resource.Resource);
+        resource.Unload();
+        Fonts[key] = (null, resource);
     }
 
     /// <summary>
@@ -314,7 +330,7 @@ internal static class ResourceManager {
     /// </summary>
     /// <param name="key"></param>
     public static void LoadTexture(string key) {
-        if (!Textures.ContainsKey(key) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+        if (!Textures.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded()) && !ResourceLoadingQueue.Any(r => r.key == key)) {
             Textures[key] = (null, new TextureResource(key, _FallbackTexture, TryGetTexture));
             ResourceLoadingQueue.Add((key, typeof(Texture)));
         }
@@ -345,10 +361,13 @@ internal static class ResourceManager {
     /// <summary>
     /// Unloads the given texture.
     /// </summary>
-    /// <param name="sound"></param>
-    private static void UnloadTexture(TextureResource sound) {
-        sound.Unload();
-        Raylib.UnloadTexture(sound.Resource);
+    /// <param name="key"></param>
+    private static void UnloadTexture(string key) {
+        TextureResource resource = Textures[key].resource;
+        if (resource.Resource.id != 0 && resource.Resource.id != FallbackTexture.Resource.id)
+            Raylib.UnloadTexture(resource.Resource);
+        resource.Unload();
+        Textures[key] = (null, resource);
     }
 
     /// <summary>
@@ -356,7 +375,7 @@ internal static class ResourceManager {
     /// </summary>
     /// <param name="key"></param>
     public static void LoadSound(string key) {
-        if (!Sounds.ContainsKey(key) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+        if (!Sounds.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded()) && !ResourceLoadingQueue.Any(r => r.key == key)) {
             Sounds[key] = (null, new SoundResource(key, _FallbackSound, TryGetSound));
             ResourceLoadingQueue.Add((key, typeof(Sound)));
         }
@@ -387,10 +406,12 @@ internal static class ResourceManager {
     /// <summary>
     /// Unloads the given sound.
     /// </summary>
-    /// <param name="sound"></param>
-    private static void UnloadSound(SoundResource sound) {
-        sound.Unload();
-        Raylib.UnloadSound(sound.Resource);
+    /// <param name="key"></param>
+    private static void UnloadSound(string key) {
+        SoundResource resource = Sounds[key].resource;
+        Raylib.UnloadSound(resource.Resource);
+        resource.Unload();
+        Sounds[key] = (null, resource);
     }
 
     /// <summary>
@@ -398,7 +419,7 @@ internal static class ResourceManager {
     /// </summary>
     /// <param name="key"></param>
     public static void LoadMusic(string key) {
-        if (!Music.ContainsKey(key) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+        if (!Music.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded()) && !ResourceLoadingQueue.Any(r => r.key == key)) {
             Music[key] = (null, new MusicResource(key, _FallbackMusic, TryGetMusic));
             ResourceLoadingQueue.Add((key, typeof(Music)));
         }
@@ -429,10 +450,12 @@ internal static class ResourceManager {
     /// <summary>
     /// Unloads the given sound.
     /// </summary>
-    /// <param name="music"></param>
-    private static void UnloadMusic(MusicResource music) {
-        music.Unload();
-        Raylib.UnloadMusicStream(music.Resource);
+    /// <param name="key"></param>
+    private static void UnloadMusic(string key) {
+        MusicResource resource = Music[key].resource;
+        Raylib.UnloadMusicStream(resource.Resource);
+        resource.Unload();
+        Music[key] = (null, resource);
     }
 
 }

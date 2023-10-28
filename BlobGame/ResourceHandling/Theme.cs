@@ -49,6 +49,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         if (WasLoaded)
             throw new InvalidOperationException("Theme was already loaded.");
 
+        Debug.WriteLine($"Loading theme {Name}");
         MemoryStream ms = new MemoryStream();
         using FileStream fs = new FileStream(ThemeFilePath, FileMode.Open);
 
@@ -104,13 +105,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
 
-        // TDODO: Temporary code until font loading is fixed
-        string path = Files.GetResourceFilePath("Themes", Name, "Fonts", $"{key}.ttf");
-        Font tmpFont = Raylib.LoadFont(path);
-        Font font = Raylib.LoadFontEx(path, 200, tmpFont.glyphCount);
-        // TODO: end
-
-        /*string path = $"Fonts/{key}.ttf";
+        string path = $"Fonts/{key}.ttf";
         ZipArchiveEntry? zippedFont = ThemeArchive!.GetEntry(path);
 
         if (zippedFont == null) {
@@ -128,9 +123,9 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         Font font;
         unsafe {
             fixed (byte* fontPtr = fontData) {
-                font = Raylib.LoadFontFromMemory("ttf", fontPtr, fontData.Length, 200, null, 0);
+                font = Raylib.LoadFontFromMemory(".ttf", fontPtr, fontData.Length, 200, null, 0);
             }
-        }*/
+        }
 
         if (font.texture.id == 0) {
             Debug.WriteLine($"Failed to load font {key} from {path}");
@@ -204,7 +199,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         Sound sound;
         unsafe {
             fixed (byte* soundPtr = soundData) {
-                sound = Raylib.LoadSoundFromWave(Raylib.LoadWaveFromMemory("wav", soundPtr, soundData.Length));
+                sound = Raylib.LoadSoundFromWave(Raylib.LoadWaveFromMemory(".wav", soundPtr, soundData.Length));
             }
         }
 
@@ -219,11 +214,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
 
-        string path = Files.GetResourceFilePath("Themes", Name, "Music", $"{key}.mp3");
-        Music music = Raylib.LoadMusicStream(path);
-        music.looping = false;
-
-        /*string path = $"Music/{key}.mp3";
+        string path = $"Music/{key}.mp3";
         ZipArchiveEntry? zippedSound = ThemeArchive!.GetEntry(path);
 
         if (zippedSound == null) {
@@ -242,9 +233,9 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         Music music;
         unsafe {
             fixed (byte* soundPtr = musicData) {
-                music = Raylib.LoadMusicStreamFromMemory("mp3", soundPtr, musicData.Length);
+                music = Raylib.LoadMusicStreamFromMemory(".mp3", soundPtr, musicData.Length);
             }
-        }*/
+        }
 
         return music;
     }
