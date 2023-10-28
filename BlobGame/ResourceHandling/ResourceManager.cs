@@ -154,7 +154,6 @@ internal static class ResourceManager {
             UnloadMusic(key);
             LoadMusic(key);
         }
-
     }
 
     /// <summary>
@@ -260,14 +259,17 @@ internal static class ResourceManager {
     /// Tries to get a color to the given key.
     /// </summary>
     /// <param name="key"></param>
-    public static Color GetColor(string key) {
-        Color? color = MainTheme.GetColor(key) ?? _DefaultTheme.GetColor(key);
-        if (color == null) {
-            Debug.WriteLine($"The default theme doesn't contain a color for {key}");
-            return Raylib.RED;
-        }
+    public static ColorResource GetColor(string key) {
+        return new ColorResource(key, GetColorInternal);
+    }
 
-        return (Color)color;
+    /// <summary>
+    /// Tries to get a raylib color from the given key. Retrieves it from the theme if needed.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    private static Color GetColorInternal(string key) {
+        return MainTheme.GetColor(key) ?? _DefaultTheme.GetColor(key) ?? Raylib.RED;
     }
 
     /// <summary>

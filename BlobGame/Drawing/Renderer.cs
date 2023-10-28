@@ -64,7 +64,7 @@ internal static class Renderer {
         UpdateStopwatch.Restart();
 
         Raylib.BeginDrawing();
-        Raylib.ClearBackground(ResourceManager.GetColor("background"));
+        Raylib.ClearBackground(ResourceManager.GetColor("background").Resource);
 
         RlGl.rlPushMatrix();
 
@@ -87,7 +87,7 @@ internal static class Renderer {
 
     private static void DrawBackground() {
         const float ANGLE = -12.5f;
-        Color elementColor = ResourceManager.GetColor("light_accent").ChangeAlpha(64);
+        Color elementColor = ResourceManager.GetColor("light_accent").Resource.ChangeAlpha(64);
         //Color elementColor = new Color(255, 255, 255, 64);
 
         Raylib.DrawRectanglePro(
