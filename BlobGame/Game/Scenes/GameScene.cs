@@ -35,7 +35,7 @@ internal sealed class GameScene : Scene {
     /// Creates a new game scene.
     /// </summary>
     public GameScene() {
-        Controller = new MouseController(this);
+        Controller = new SocketController(this);
         GameSim = new Simulation(new Random().Next());
 
         RetryButton = new GuiTextButton(
@@ -144,6 +144,7 @@ internal sealed class GameScene : Scene {
     /// </summary>
     internal override void Unload() {
         GameManager.Scoreboard.AddScore(GameSim.Score);
+        Controller.Close();
         // TODO unload NOT NEEDED resources
     }
 
