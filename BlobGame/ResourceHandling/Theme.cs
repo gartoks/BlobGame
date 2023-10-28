@@ -7,49 +7,100 @@ namespace BlobGame.ResourceHandling;
 /// <summary>
 /// Class for one set of game resources. Doesn't cache anything.
 /// </summary>
-internal class Theme {
+internal sealed class Theme : IDisposable {
     /// <summary>
-    /// The zip archive containing all assets.
+    /// The file path to the asset file.
     /// </summary>
-    private ZipArchive Assets;
+    private string ThemeFilePath { get; }
+
     /// <summary>
     /// A mapping of color name to colors.
     /// </summary>
-    private Dictionary<string, Color> Colors;
+    private Dictionary<string, Color> Colors { get; }
+
+    /// <summary>
+    /// The zip archive containing all assets.
+    /// </summary>
+    private ZipArchive? ThemeArchive { get; set; }
+
+    /// <summary>
+    /// Flag indicating whether the theme was loaded.
+    /// </summary>
+    private bool WasLoaded { get; set; }
+
+    private bool disposedValue;
 
     /// <summary>
     /// Constructor to load a theme from disk.
     /// </summary>
-    public Theme(string path) {
-        Assets = new ZipArchive(new FileStream(path, FileMode.Open));
-
+    internal Theme(string themefilePath) {
+        ThemeFilePath = themefilePath;
         Colors = new Dictionary<string, Color>();
 
-        ZipArchiveEntry? colorEntry = Assets.GetEntry("colors.json");
+        WasLoaded = false;
+    }
+
+    internal void Load() {
+        if (WasLoaded)
+            throw new InvalidOperationException("Theme was already loaded.");
+
+        MemoryStream ms = new MemoryStream();
+        using FileStream fs = new FileStream(ThemeFilePath, FileMode.Open);
+
+        fs.CopyTo(ms);
+        ms.Position = 0;
+
+        ThemeArchive = new ZipArchive(ms, ZipArchiveMode.Read);
+
+        ZipArchiveEntry? colorEntry = ThemeArchive.GetEntry("colors.json");
         if (colorEntry == null) {
-            Debug.WriteLine($"Theme {path} doesn't contain colors.");
+            Debug.WriteLine($"Theme {ThemeFilePath} doesn't contain colors.");
             return;
         }
 
         StreamReader colorStreamReader = new StreamReader(colorEntry.Open());
-        Dictionary<string, int[]>? colorsInWrongFormat = JsonSerializer.Deserialize<Dictionary<string, int[]>>(colorStreamReader.ReadToEnd());
-        if (colorsInWrongFormat == null) {
-            Debug.WriteLine($"colors.json in theme {path} has a wrong format.");
+        Dictionary<string, int[]>? colors = JsonSerializer.Deserialize<Dictionary<string, int[]>>(colorStreamReader.ReadToEnd());
+        if (colors == null) {
+            Debug.WriteLine($"colors.json in theme {ThemeFilePath} has a wrong format.");
             return;
         }
 
-        Colors = colorsInWrongFormat
-            .ToDictionary(pair => pair.Key, pair => new Color((byte)pair.Value[0], (byte)pair.Value[1], (byte)pair.Value[2], (byte)pair.Value[3]));
+        foreach (KeyValuePair<string, int[]> entry in colors) {
+            Colors[entry.Key] = new Color((byte)entry.Value[0], (byte)entry.Value[1], (byte)entry.Value[2], (byte)entry.Value[3]);
+        }
+
+        WasLoaded = true;
     }
 
+    internal void Unload() {
+
+    }
+
+    /// <summary>
+    /// Tries to get a color to the given key.
+    /// </summary>
+    /// <param name="key"></param>
+    internal Color? GetColor(string key) {
+        if (!WasLoaded)
+            throw new InvalidOperationException("Theme was not loaded.");
+
+        if (!Colors.ContainsKey(key)) {
+            return null;
+        }
+
+        return Colors[key];
+    }
 
     /// <summary>
     /// Tries to load a font from the zip archive.
     /// </summary>
     /// <param name="key"></param>
     public Font? LoadFont(string key) {
+        if (!WasLoaded)
+            throw new InvalidOperationException("Theme was not loaded.");
+
         string path = $"Fonts/{key}.ttf";
-        ZipArchiveEntry? zippedFont = Assets.GetEntry(path);
+        ZipArchiveEntry? zippedFont = ThemeArchive!.GetEntry(path);
 
         if (zippedFont == null) {
             Debug.WriteLine($"Font {key} doesn't exist in this theme");
@@ -82,8 +133,11 @@ internal class Theme {
     /// </summary>
     /// <param name="key"></param>
     public Texture? LoadTexture(string key) {
+        if (!WasLoaded)
+            throw new InvalidOperationException("Theme was not loaded.");
+
         string path = $"Textures/{key}.png";
-        ZipArchiveEntry? zippedTexture = Assets.GetEntry(path);
+        ZipArchiveEntry? zippedTexture = ThemeArchive!.GetEntry(path);
 
         if (zippedTexture == null) {
             Debug.WriteLine($"Texture {key} doesn't exist in this theme");
@@ -116,8 +170,11 @@ internal class Theme {
     /// </summary>
     /// <param name="key"></param>
     public Sound? LoadSound(string key) {
+        if (!WasLoaded)
+            throw new InvalidOperationException("Theme was not loaded.");
+
         string path = $"Sounds/{key}.wav";
-        ZipArchiveEntry? zippedSound = Assets.GetEntry(path);
+        ZipArchiveEntry? zippedSound = ThemeArchive!.GetEntry(path);
 
         if (zippedSound == null) {
             Debug.WriteLine($"Sound {key} doesn't exist in this theme");
@@ -146,8 +203,11 @@ internal class Theme {
     /// </summary>
     /// <param name="key"></param>
     public Music? LoadMusic(string key) {
+        if (!WasLoaded)
+            throw new InvalidOperationException("Theme was not loaded.");
+
         string path = $"Music/{key}.wav";
-        ZipArchiveEntry? zippedSound = Assets.GetEntry(path);
+        ZipArchiveEntry? zippedSound = ThemeArchive!.GetEntry(path);
 
         if (zippedSound == null) {
             Debug.WriteLine($"Music {key} doesn't exist in this theme");
@@ -171,15 +231,28 @@ internal class Theme {
         return music;
     }
 
-    /// <summary>
-    /// Tries to get a color to the given key.
-    /// </summary>
-    /// <param name="key"></param>
-    public Color? GetColor(string key) {
-        if (!Colors.ContainsKey(key)) {
-            return null;
-        }
+    private void Dispose(bool disposing) {
+        if (!disposedValue) {
+            if (disposing) {
+                ThemeArchive?.Dispose();
+            }
 
-        return Colors[key];
+            // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+            // TODO: set large fields to null
+            disposedValue = true;
+        }
+    }
+
+    // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+    // ~Theme()
+    // {
+    //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+    //     Dispose(disposing: false);
+    // }
+
+    public void Dispose() {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

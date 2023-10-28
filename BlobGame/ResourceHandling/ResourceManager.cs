@@ -90,7 +90,7 @@ internal static class ResourceManager {
         Sounds = new ConcurrentDictionary<string, Sound>();
         Music = new ConcurrentDictionary<string, Music>();
 
-        _DefaultTheme = new Theme(Files.GetResourceFilePath("Themes", "default.theme"));
+        _DefaultTheme = new Theme(Files.GetResourceFilePath("MelbaToast.theme"));
         MainTheme = _DefaultTheme;
     }
 
@@ -112,6 +112,8 @@ internal static class ResourceManager {
     /// Loads default resources.
     /// </summary>
     internal static void Load() {
+        _DefaultTheme.Load();
+
         _FallbackFont = Raylib.GetFontDefault();
         Image image = Raylib.GenImageColor(1, 1, Raylib.BLANK);
         _FallbackTexture = Raylib.LoadTextureFromImage(image);
@@ -122,6 +124,14 @@ internal static class ResourceManager {
         FallbackTexture = new TextureResource("fallback", _FallbackTexture, TryGetTexture);
         FallbackSound = new SoundResource("fallback", _FallbackSound, TryGetSound);
         FallbackMusic = new MusicResource("fallback", _FallbackMusic, TryGetMusic);
+    }
+
+    internal static void Unload() {
+        _DefaultTheme?.Unload();
+        _DefaultTheme?.Dispose();
+
+        MainTheme?.Unload();
+        MainTheme?.Dispose();
     }
 
     /// <summary>
@@ -190,6 +200,38 @@ internal static class ResourceManager {
         } else {
             Debug.WriteLine($"Resource type {type} is not supported");
         }
+    }
+
+    /// <summary>
+    /// Sets the main theme to the one named
+    /// </summary>
+    /// <param name="name"></param>
+    public static void SetTheme(string name) {
+        string filename = Files.GetResourceFilePath(name + ".theme");
+
+        if (!File.Exists(filename)) {
+            Debug.WriteLine($"ERROR: Theme named '{name}' doesn't exist. Using Fallback.");
+            return;
+        }
+        MainTheme = new Theme(filename);
+        MainTheme.Load();
+
+        // force everything to reload
+        ClearCache();
+    }
+
+    /// <summary>
+    /// Tries to get a color to the given key.
+    /// </summary>
+    /// <param name="key"></param>
+    public static Color GetColor(string key) {
+        Color? color = MainTheme.GetColor(key) ?? _DefaultTheme.GetColor(key);
+        if (color == null) {
+            Debug.WriteLine($"The default theme doesn't contain a color for {key}");
+            return Raylib.RED;
+        }
+
+        return (Color)color;
     }
 
     /// <summary>
@@ -283,36 +325,6 @@ internal static class ResourceManager {
             return sound;
 
         return null;
-    }
-
-    /// <summary>
-    /// Tries to get a color to the given key.
-    /// </summary>
-    /// <param name="key"></param>
-    public static Color GetColor(string key) {
-        Color? color = MainTheme.GetColor(key) ?? _DefaultTheme.GetColor(key);
-        if (color == null) {
-            Debug.WriteLine($"The default theme doesn't contain a color for {key}");
-            return Raylib.RED;
-        }
-
-        return (Color)color;
-    }
-
-    /// <summary>
-    /// Sets the main theme to the one named
-    /// </summary>
-    /// <param name="name"></param>
-    public static void SetTheme(string name) {
-        string filename = Files.GetResourceFilePath("Themes", name + ".theme");
-
-        if (!File.Exists(filename)) {
-            Debug.WriteLine($"ERROR: Theme named '{name}' doesn't exist. Using Fallback.");
-            return;
-        }
-        MainTheme = new Theme(filename);
-        // force everything to reload
-        ClearCache();
     }
 
     /// <summary>

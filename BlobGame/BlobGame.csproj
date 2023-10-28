@@ -17,6 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Resources\MelbaToast.theme">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Resources\Themes\default.theme">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

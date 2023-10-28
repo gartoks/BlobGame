@@ -75,8 +75,19 @@ internal sealed class Settings {
     /// Default Constructor.
     /// </summary>
     public Settings() {
-        ThemeName = "default";
+        ThemeName = "MelbaToast";
     }
+
+    /// <summary>
+    /// Sets and loads a new theme.
+    /// </summary>
+    /// <param name="name"></param>
+    public void SetTheme(string name) {
+        ResourceManager.SetTheme(name);
+        ThemeName = name;
+        Save();
+    }
+
 
     /// <summary>
     /// Sets the resolution to the given width and height. Only works if the screen mode is not borderless.
@@ -145,12 +156,6 @@ internal sealed class Settings {
         }
 
         ScreenMode = mode;
-        Save();
-    }
-
-    public void SetTheme(string name) {
-        ResourceManager.SetTheme(name);
-        ThemeName = name;
         Save();
     }
 

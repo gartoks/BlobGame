@@ -112,10 +112,12 @@ internal static class Application {
             Input.Update();
             Renderer.Draw();
 
-            if (Raylib.WindowShouldClose()){
+            if (Raylib.WindowShouldClose()) {
                 IsRunning = false;
             }
         }
+
+        ResourceManager.Unload();
 
         GameThread.Join();
         Raylib.CloseWindow();

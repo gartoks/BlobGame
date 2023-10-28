@@ -97,7 +97,7 @@ internal class SettingsScene : Scene {
         SoundVolumeSelector = soundVolumeSelector;
         xOffset += 0.1f;
 
-        SelectionElement[] availableThemes = Directory.GetFiles(Files.GetResourceFilePath("Themes"))
+        SelectionElement[] availableThemes = Directory.GetFiles(Files.GetResourceFilePath())
             .Where(file => file.EndsWith(".theme"))
             .Select(file => new SelectionElement($"{Path.GetFileNameWithoutExtension(file)}", Path.GetFileNameWithoutExtension(file))).ToArray();
         int selectedThemeIndex = Array.FindIndex(availableThemes, e => e.Element.Equals(Application.Settings.GetCurrentThemeName()));

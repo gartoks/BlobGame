@@ -4,7 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 BlobGame/Resources/References/*
-BlobGame/Resources/Themes/default/*
+BlobGame/Resources/Themes/*
 
 # User-specific files
 *.rsuser
