@@ -27,9 +27,18 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
     private ZipArchive? ThemeArchive { get; set; }
 
     /// <summary>
+    /// A collection of all music data from this theme.
+    /// This has to exist because Raylib.loadMusicStreamFromMemory
+    /// streams in the music while playing. This just keeps it from
+    /// being garbage collected.
+    /// </summary>
+    private List<byte[]> _MusicBuffers;
+
+    /// <summary>
     /// Flag indicating whether the theme was loaded.
     /// </summary>
     private bool WasLoaded { get; set; }
+
 
     private bool disposedValue;
 
@@ -41,6 +50,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
 
         ThemeFilePath = themefilePath;
         Colors = new Dictionary<string, Color>();
+        _MusicBuffers = new();
 
         WasLoaded = false;
     }
@@ -236,6 +246,9 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
                 music = Raylib.LoadMusicStreamFromMemory(".mp3", soundPtr, musicData.Length);
             }
         }
+
+        // force the data to stay alive until the theme changes.
+        _MusicBuffers.Add(musicData);
 
         return music;
     }

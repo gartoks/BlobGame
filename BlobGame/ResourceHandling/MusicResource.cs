@@ -24,6 +24,7 @@ internal sealed class MusicResource {
     /// The raylib resource. Is null if the resource has not been loaded yet.
     /// </summary>
     private Music? _Resource { get; set; }
+
     /// <summary>
     /// The raylib resource. Returns the fallback if the resource has not been loaded (yet).
     /// </summary>
