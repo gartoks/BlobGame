@@ -145,6 +145,7 @@ internal sealed class GameScene : Scene {
     /// Called when the scene is about to be unloaded or replaced by another scene. Override this method to provide custom cleanup or deinitialization logic and to unload resources.
     /// </summary>
     internal override void Unload() {
+        Scoreboard.AddScore(GameSim.Score);
         // TODO unload NOT NEEDED resources
     }
 

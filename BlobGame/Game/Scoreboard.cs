@@ -81,8 +81,10 @@ internal static class Scoreboard {
 
         for (int i = 0; i < _DailyHighscores.Length; i++) {
             if (score > _DailyHighscores[i]) {
+                int lastScore = _DailyHighscores[i];
                 _DailyHighscores[i] = score;
-                break;
+
+                score = lastScore;
             }
         }
 
