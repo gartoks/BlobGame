@@ -1,6 +1,9 @@
-﻿using BlobGame.Drawing;
+﻿using BlobGame.Audio;
+using BlobGame.Drawing;
 using BlobGame.Game.Gui;
 using BlobGame.ResourceHandling;
+using Raylib_CsLo;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace BlobGame.Game.Scenes;
@@ -9,12 +12,16 @@ namespace BlobGame.Game.Scenes;
 /// </summary>
 internal sealed class MainMenuScene : Scene {
     private TextureResource TitleTexture { get; set; }
+    private TextureResource AvatarTexture { get; set; }
+    private IReadOnlyList<MusicResource> Music { get; set; }
 
     private GUIImage TitleImage { get; }
     private GuiTextButton PlayButton { get; }
     private GuiTextButton SettingsButton { get; }
     private GuiTextButton CreditsButton { get; }
     private GuiTextButton QuitButton { get; }
+
+    private bool WasMusicQueued { get; set; }
 
     public MainMenuScene() {
         PlayButton = new GuiTextButton(
@@ -44,15 +51,35 @@ internal sealed class MainMenuScene : Scene {
             //Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.2f,
             ResourceManager.FallbackTexture,
             new Vector2(0.5f, 0));
+
+        WasMusicQueued = false;
     }
 
     internal override void Load() {
         TitleTexture = ResourceManager.GetTexture("title_logo");
+        AvatarTexture = ResourceManager.GetTexture("melba_avatar");
+        Music = new MusicResource[] {
+            ResourceManager.GetMusic("crossinglike"),
+            ResourceManager.GetMusic("Melba_1"),
+            ResourceManager.GetMusic("Melba_2"),
+            ResourceManager.GetMusic("Melba_3"),
+            ResourceManager.GetMusic("Melba_s_Toasty_Game"),
+            ResourceManager.GetMusic("On_the_Surface"),
+            ResourceManager.GetMusic("synthyupdated"),
+        };
 
         TitleImage.Texture = TitleTexture;
     }
 
     internal override void Update(float dT) {
+        if (Music.All(m => !AudioManager.IsMusicPlaying(m.Key))) {
+            if (WasMusicQueued)
+                return;
+
+            Random rng = new Random();
+            AudioManager.PlayMusic(Music[rng.Next(Music.Count)].Key);
+            WasMusicQueued = true;
+        }
     }
 
     internal override void Draw() {
@@ -68,6 +95,27 @@ internal sealed class MainMenuScene : Scene {
         float t = MathF.Sin(Renderer.Time * 4);
         TitleImage.Scale = 0.985f + 0.03f * t;
         TitleImage.Draw();
+
+        // TODO: Is tmp, will fix when back
+        Debug.WriteLine(Renderer.Time);
+        TestDraw(-130, Application.BASE_HEIGHT * 1f + 130, 150, -150, 45, 10);
+        TestDraw(Application.BASE_WIDTH * 0.7f, Application.BASE_HEIGHT * 1f + 170, 0, -150, 0, 14);
+    }
+
+    // TODO: Is tmp, will fix when back
+    private void TestDraw(float x, float y, float dx, float dy, float rot, float time) {
+        int w = AvatarTexture.Resource.width;
+        int h = AvatarTexture.Resource.height;
+
+        float dX = 0;
+        float dY = 0;
+        if (Renderer.Time > time) {
+            float t2 = -MathF.Pow(2 * (Renderer.Time - time) - 1, 4) + 1;
+            dX = t2 * dx;
+            dY = t2 * dy;
+        }
+
+        Raylib.DrawTexturePro(AvatarTexture.Resource, new Rectangle(0, 0, w, h), new Rectangle(x + dX, y + dY, w / 4f, h / 4f), new Vector2(w / 2f / 4f, h / 2f / 4f), rot, Raylib.WHITE);
     }
 
     internal override void Unload() {

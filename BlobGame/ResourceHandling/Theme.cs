@@ -122,7 +122,6 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         byte[] fontData;
         using (MemoryStream ms = new MemoryStream()) {
             fontStream.CopyTo(ms);
-            ms.Position = 0;
             fontData = ms.ToArray();
         }
 
@@ -160,6 +159,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         byte[] textureData;
         using (MemoryStream ms = new MemoryStream()) {
             textureStream.CopyTo(ms);
+            ms.Position = 0;
             textureData = ms.ToArray();
         }
 
@@ -197,6 +197,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         byte[] soundData;
         using (MemoryStream ms = new MemoryStream()) {
             soundStream.CopyTo(ms);
+            ms.Position = 0;
             soundData = ms.ToArray();
         }
 
@@ -218,7 +219,11 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
 
-        string path = $"Music/{key}.wav";
+        string path = Files.GetResourceFilePath("Themes", Name, "Music", $"{key}.mp3");
+        Music music = Raylib.LoadMusicStream(path);
+        music.looping = false;
+
+        /*string path = $"Music/{key}.mp3";
         ZipArchiveEntry? zippedSound = ThemeArchive!.GetEntry(path);
 
         if (zippedSound == null) {
@@ -230,15 +235,16 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         byte[] musicData;
         using (MemoryStream ms = new MemoryStream()) {
             musicStream.CopyTo(ms);
+            ms.Position = 0;
             musicData = ms.ToArray();
         }
 
         Music music;
         unsafe {
             fixed (byte* soundPtr = musicData) {
-                music = Raylib.LoadMusicStreamFromMemory("wav", soundPtr, musicData.Length);
+                music = Raylib.LoadMusicStreamFromMemory("mp3", soundPtr, musicData.Length);
             }
-        }
+        }*/
 
         return music;
     }

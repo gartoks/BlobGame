@@ -1,4 +1,5 @@
-﻿using BlobGame.ResourceHandling;
+﻿using BlobGame.Audio;
+using BlobGame.ResourceHandling;
 using Raylib_CsLo;
 using System.Dynamic;
 using System.Text.Json;
@@ -38,8 +39,9 @@ internal sealed class Settings {
         get => _MusicVolume;
         set {
             _MusicVolume = Math.Clamp(value, 0, 100);
-
             Save();
+
+            AudioManager.SetMusicVolume(_MusicVolume);
         }
     }
 
@@ -52,6 +54,8 @@ internal sealed class Settings {
         set {
             _SoundVolume = Math.Clamp(value, 0, 100);
             Save();
+
+            AudioManager.SetSoundVolume(_MusicVolume);
         }
     }
 
@@ -83,6 +87,8 @@ internal sealed class Settings {
     /// </summary>
     /// <param name="name"></param>
     public void SetTheme(string name) {
+        AudioManager.ClearSounds();
+        AudioManager.ClearMusic();
         ResourceManager.SetTheme(name);
         ThemeName = name;
         Save();

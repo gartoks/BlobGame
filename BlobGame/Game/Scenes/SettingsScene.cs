@@ -159,23 +159,40 @@ internal class SettingsScene : Scene {
         int monitor = (int)MonitorSelector.SelectedElement.Element;
         eScreenMode screenMode = (eScreenMode)ScreenModeSelector.SelectedElement.Element;
         (int w, int h) resolution = ((int w, int h))ResolutionSelector.SelectedElement.Element;
+        int soundVolume = (int)SoundVolumeSelector.SelectedElement.Element;
+        int musicVolume = (int)MusicVolumeSelector.SelectedElement.Element;
         string theme = (string)ThemeSelector.SelectedElement.Element;
 
-        if (resolution != Application.Settings.GetCurrentResolution())
+        bool needsRestart = false;
+        if (resolution != Application.Settings.GetCurrentResolution()) {
             Application.Settings.SetResolution(resolution.w, resolution.h);
-        if (screenMode != Application.Settings.ScreenMode)
+            needsRestart = true;
+        }
+        if (screenMode != Application.Settings.ScreenMode) {
             Application.Settings.SetScreenMode(screenMode);
-        if (monitor != Application.Settings.GetCurrentMonitor())
+            needsRestart = true;
+        }
+        if (monitor != Application.Settings.GetCurrentMonitor()) {
             Application.Settings.SetMonitor(monitor);
+            needsRestart = true;
+        }
+        if (soundVolume != Application.Settings.SoundVolume)
+            Application.Settings.SoundVolume = soundVolume;
+        if (musicVolume != Application.Settings.MusicVolume)
+            Application.Settings.MusicVolume = musicVolume;
         if (theme != Application.Settings.GetCurrentThemeName())
             Application.Settings.SetTheme(theme);
 
 #if WINDOWS
-        // This crashes on linux for some reason. Everything works without it, so it doesn't matter
-        Application.Exit();
-        Process.Start(Assembly.GetExecutingAssembly().Location);
+
+        if (needsRestart) {
+            // This is needed because if the resolution, screen mode or monitor is change the UI is all fricked up
+            Application.Exit();
+            Process.Start(Assembly.GetExecutingAssembly().Location);
+        }
+
 #endif
-        GameManager.SetScene(new SettingsScene());
+        //GameManager.SetScene(new SettingsScene());
     }
 
     private (GuiSelector, GuiLabel) CreateSettingsEntry(string name, float xOffset, SelectionElement[] selectionElements, int selectedIndex) {

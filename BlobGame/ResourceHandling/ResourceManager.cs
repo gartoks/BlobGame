@@ -197,7 +197,7 @@ internal static class ResourceManager {
             Textures[key] = (texture.Value, val.resource);
         } else if (type == typeof(Sound)) {
             if (!Sounds.TryGetValue(key, out (Sound? sound, SoundResource resource) val)) {
-                Debug.WriteLine($"Unable to sound texture '{key}'.");
+                Debug.WriteLine($"Unable to load sound '{key}'.");
                 return;
             }
 
@@ -210,7 +210,7 @@ internal static class ResourceManager {
             Sounds[key] = (sound.Value, val.resource);
         } else if (type == typeof(Music)) {
             if (!Music.TryGetValue(key, out (Music? music, MusicResource resource) val)) {
-                Debug.WriteLine($"Unable to sound texture '{key}'.");
+                Debug.WriteLine($"Unable to load music '{key}'.");
                 return;
             }
 

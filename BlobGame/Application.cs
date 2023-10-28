@@ -99,6 +99,7 @@ internal static class Application {
         Raylib.InitWindow(BASE_WIDTH, BASE_HEIGHT, NAME);
         Raylib.SetTargetFPS(FPS);
         Raylib.SetExitKey(KeyboardKey.KEY_NULL);
+        Raylib.InitAudioDevice();
 
         Settings.Load();
         ResourceManager.Load();
@@ -124,6 +125,7 @@ internal static class Application {
         ResourceManager.Unload();
 
         GameThread.Join();
+        Raylib.CloseAudioDevice();
         Raylib.CloseWindow();
     }
 
