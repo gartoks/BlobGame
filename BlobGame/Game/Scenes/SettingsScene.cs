@@ -1,10 +1,11 @@
 ﻿using BlobGame.App;
 using BlobGame.Game.Gui;
-using BlobGame.Game.Util;
 using BlobGame.ResourceHandling;
+using System.Diagnostics;
 using System.Numerics;
+using System.Reflection;
+using static BlobGame.App.Settings;
 using static BlobGame.Game.Gui.GuiSelector;
-using static BlobGame.Game.Util.Settings;
 
 namespace BlobGame.Game.Scenes;
 internal class SettingsScene : Scene {

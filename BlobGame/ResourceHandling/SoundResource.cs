@@ -23,16 +23,16 @@ internal sealed class SoundResource {
     /// <summary>
     /// The raylib resource. Is null if the resource has not been loaded yet.
     /// </summary>
-    private Sound? _Reource { get; set; }
+    private Sound? _Resource { get; set; }
     /// <summary>
     /// The raylib resource. Returns the fallback if the resource has not been loaded (yet).
     /// </summary>
     public Sound Resource {
         get {
-            if (_Reource == null)
-                _Reource = ResourceRetriever(Key);
+            if (_Resource == null)
+                _Resource = ResourceRetriever(Key);
 
-            return _Reource ?? Fallback;
+            return _Resource ?? Fallback;
         }
     }
 
@@ -47,6 +47,13 @@ internal sealed class SoundResource {
 
         ResourceRetriever = resourceRetriever;
         Fallback = fallback;
-        _Reource = resourceRetriever(key);
+        _Resource = resourceRetriever(key);
+    }
+
+    /// <summary>
+    /// Unloads the resource.
+    /// </summary>
+    internal void Unload() {
+        _Resource = null;
     }
 }

@@ -40,6 +40,7 @@ internal class MouseController : IGameController {
         if (!Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT))
             return false;
 
+        Input.WasMouseHandled |= true;
 
         t = GetCurrentT();
         return true;

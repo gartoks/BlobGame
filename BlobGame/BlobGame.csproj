@@ -11,6 +11,10 @@
     <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux> 
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Aether.Physics2D" Version="2.0.0" />
     <PackageReference Include="Raylib-CsLo" Version="4.2.0.9" />
@@ -23,7 +27,16 @@
     <None Update="Resources\Themes\default.theme">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Resources\Themes\default\colors.json">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\Themes\default\Fonts\NewBread.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Resources\Themes\example.theme">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\Themes\MelbaToast\Fonts\NewBread.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

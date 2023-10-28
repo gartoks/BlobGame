@@ -1,3 +1,4 @@
+using BlobGame.App;
 using Raylib_CsLo;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -7,7 +8,9 @@ namespace BlobGame.ResourceHandling;
 /// <summary>
 /// Class for one set of game resources. Doesn't cache anything.
 /// </summary>
-internal sealed class Theme : IDisposable {
+internal sealed class Theme : IDisposable, IEquatable<Theme?> {
+    public string Name { get; }
+
     /// <summary>
     /// The file path to the asset file.
     /// </summary>
@@ -34,6 +37,8 @@ internal sealed class Theme : IDisposable {
     /// Constructor to load a theme from disk.
     /// </summary>
     internal Theme(string themefilePath) {
+        Name = Path.GetFileNameWithoutExtension(themefilePath);
+
         ThemeFilePath = themefilePath;
         Colors = new Dictionary<string, Color>();
 
@@ -99,7 +104,13 @@ internal sealed class Theme : IDisposable {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
 
-        string path = $"Fonts/{key}.ttf";
+        // TDODO: Temporary code until font loading is fixed
+        string path = Files.GetResourceFilePath("Themes", Name, "Fonts", $"{key}.ttf");
+        Font tmpFont = Raylib.LoadFont(path);
+        Font font = Raylib.LoadFontEx(path, 200, tmpFont.glyphCount);
+        // TODO: end
+
+        /*string path = $"Fonts/{key}.ttf";
         ZipArchiveEntry? zippedFont = ThemeArchive!.GetEntry(path);
 
         if (zippedFont == null) {
@@ -111,6 +122,7 @@ internal sealed class Theme : IDisposable {
         byte[] fontData;
         using (MemoryStream ms = new MemoryStream()) {
             fontStream.CopyTo(ms);
+            ms.Position = 0;
             fontData = ms.ToArray();
         }
 
@@ -119,7 +131,7 @@ internal sealed class Theme : IDisposable {
             fixed (byte* fontPtr = fontData) {
                 font = Raylib.LoadFontFromMemory("ttf", fontPtr, fontData.Length, 200, null, 0);
             }
-        }
+        }*/
 
         if (font.texture.id == 0) {
             Debug.WriteLine($"Failed to load font {key} from {path}");
@@ -255,4 +267,11 @@ internal sealed class Theme : IDisposable {
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
+
+    public override bool Equals(object? obj) => Equals(obj as Theme);
+    public bool Equals(Theme? other) => other is not null && Name == other.Name;
+    public override int GetHashCode() => HashCode.Combine(Name);
+
+    public static bool operator ==(Theme? left, Theme? right) => EqualityComparer<Theme>.Default.Equals(left, right);
+    public static bool operator !=(Theme? left, Theme? right) => !(left == right);
 }

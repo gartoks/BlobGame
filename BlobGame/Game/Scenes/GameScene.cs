@@ -95,7 +95,7 @@ internal sealed class GameScene : Scene {
             NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
         }
 
-        if (Controller.SpawnBlob(GameSim, out float t) && GameSim.CanSpawnBlob) {
+        if (GameSim.CanSpawnBlob && Controller.SpawnBlob(GameSim, out float t)) {
             t = Math.Clamp(t, 0, 1);
             GameSim.TrySpawnBlob(t, out Blob? blob);
         }

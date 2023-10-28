@@ -1,9 +1,10 @@
 ﻿using BlobGame.App;
+using BlobGame.Audio;
 using BlobGame.Drawing;
-using BlobGame.Game.Util;
 using BlobGame.ResourceHandling;
 using Raylib_CsLo;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace BlobGame;
 /// <summary>
@@ -79,6 +80,7 @@ internal static class Application {
     /// </summary>
     public static void Initialize() {
         ResourceManager.Initialize();
+        AudioManager.Initialize();
         Input.Initialize();
         Renderer.Initialize();
         //GUIHandler.Initialize();
@@ -100,6 +102,7 @@ internal static class Application {
 
         Settings.Load();
         ResourceManager.Load();
+        AudioManager.Load();
         Input.Load();
         Renderer.Load();
         //GUIHandler.Load();
@@ -109,6 +112,7 @@ internal static class Application {
 
         while (IsRunning) {
             ResourceManager.Update();
+            AudioManager.Update();
             Input.Update();
             Renderer.Draw();
 

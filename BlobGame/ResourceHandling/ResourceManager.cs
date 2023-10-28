@@ -20,19 +20,19 @@ internal static class ResourceManager {
     /// <summary>
     /// Font resources.
     /// </summary>
-    private static ConcurrentDictionary<string, Font> Fonts { get; }
+    private static ConcurrentDictionary<string, (Font? font, FontResource resource)> Fonts { get; }
     /// <summary>
     /// Texture resources.
     /// </summary>
-    private static ConcurrentDictionary<string, Texture> Textures { get; }
+    private static ConcurrentDictionary<string, (Texture? texture, TextureResource resource)> Textures { get; }
     /// <summary>
     /// Sound resources.
     /// </summary>
-    private static ConcurrentDictionary<string, Sound> Sounds { get; }
+    private static ConcurrentDictionary<string, (Sound? sound, SoundResource resource)> Sounds { get; }
     /// <summary>
     /// Sound resources.
     /// </summary>
-    private static ConcurrentDictionary<string, Music> Music { get; }
+    private static ConcurrentDictionary<string, (Music? music, MusicResource resource)> Music { get; }
 
     /// <summary>
     /// Default raylib font.
@@ -85,21 +85,13 @@ internal static class ResourceManager {
     static ResourceManager() {
         ResourceLoadingQueue = new BlockingCollection<(string key, Type type)>();
 
-        Fonts = new ConcurrentDictionary<string, Font>();
-        Textures = new ConcurrentDictionary<string, Texture>();
-        Sounds = new ConcurrentDictionary<string, Sound>();
-        Music = new ConcurrentDictionary<string, Music>();
+        Fonts = new();
+        Textures = new();
+        Sounds = new();
+        Music = new();
 
         _DefaultTheme = new Theme(Files.GetResourceFilePath("MelbaToast.theme"));
         MainTheme = _DefaultTheme;
-    }
-
-    private static void ClearCache() {
-        while (ResourceLoadingQueue.TryTake(out _)) ;
-
-        Fonts.Clear();
-        Textures.Clear();
-        Sounds.Clear();
     }
 
     /// <summary>
@@ -135,6 +127,34 @@ internal static class ResourceManager {
     }
 
     /// <summary>
+    /// Clears the resource cache.
+    /// </summary>
+    private static void UnloadEverything() {
+        while (ResourceLoadingQueue.TryTake(out _)) ;
+
+        foreach ((Font? font, FontResource resource) item in Fonts.Values.ToList()) {
+            UnloadFont(item.resource);
+            Fonts.Remove(item.resource.Key, out _);
+        }
+
+        foreach ((Texture? texture, TextureResource resource) item in Textures.Values.ToList()) {
+            UnloadTexture(item.resource);
+            Textures.Remove(item.resource.Key, out _);
+        }
+
+        foreach ((Sound? sound, SoundResource resource) item in Sounds.Values.ToList()) {
+            UnloadSound(item.resource);
+            Sounds.Remove(item.resource.Key, out _);
+        }
+
+        foreach ((Music? music, MusicResource resource) item in Music.Values.ToList()) {
+            UnloadMusic(item.resource);
+            Music.Remove(item.resource.Key, out _);
+        }
+
+    }
+
+    /// <summary>
     /// Called every frame. Checks the resource loading queue and loads resources if needed.
     /// </summary>
     internal static void Update() {
@@ -150,8 +170,10 @@ internal static class ResourceManager {
     /// <param name="type">The type of the raylib resource type</param>
     private static void LoadResource(string key, Type type) {
         if (type == typeof(Font)) {
-            if (Fonts.ContainsKey(key))
+            if (!Fonts.TryGetValue(key, out (Font? font, FontResource resource) val)) {
+                Debug.WriteLine($"Unable to load font '{key}'.");
                 return;
+            }
 
             Font? font = MainTheme.LoadFont(key) ?? _DefaultTheme.LoadFont(key);
             if (font == null) {
@@ -159,11 +181,12 @@ internal static class ResourceManager {
                 return;
             }
 
-            if (!Fonts.TryAdd(key, font.Value))
-                Debug.WriteLine($"Failed to add font {key} to dictionary");
+            Fonts[key] = (font.Value, val.resource);
         } else if (type == typeof(Texture)) {
-            if (Textures.ContainsKey(key))
+            if (!Textures.TryGetValue(key, out (Texture? texture, TextureResource resource) val)) {
+                Debug.WriteLine($"Unable to load texture '{key}'.");
                 return;
+            }
 
             Texture? texture = MainTheme.LoadTexture(key) ?? _DefaultTheme.LoadTexture(key);
             if (texture == null) {
@@ -171,11 +194,12 @@ internal static class ResourceManager {
                 return;
             }
 
-            if (!Textures.TryAdd(key, texture.Value))
-                Debug.WriteLine($"Failed to add texture {key} to dictionary");
+            Textures[key] = (texture.Value, val.resource);
         } else if (type == typeof(Sound)) {
-            if (Sounds.ContainsKey(key))
+            if (!Sounds.TryGetValue(key, out (Sound? sound, SoundResource resource) val)) {
+                Debug.WriteLine($"Unable to sound texture '{key}'.");
                 return;
+            }
 
             Sound? sound = MainTheme.LoadSound(key) ?? _DefaultTheme.LoadSound(key);
             if (sound == null) {
@@ -183,11 +207,12 @@ internal static class ResourceManager {
                 return;
             }
 
-            if (!Sounds.TryAdd(key, sound.Value))
-                Debug.WriteLine($"Failed to add sound {key} to dictionary");
+            Sounds[key] = (sound.Value, val.resource);
         } else if (type == typeof(Music)) {
-            if (Music.ContainsKey(key))
+            if (!Music.TryGetValue(key, out (Music? music, MusicResource resource) val)) {
+                Debug.WriteLine($"Unable to sound texture '{key}'.");
                 return;
+            }
 
             Music? music = MainTheme.LoadMusic(key) ?? _DefaultTheme.LoadMusic(key);
             if (music == null) {
@@ -195,8 +220,7 @@ internal static class ResourceManager {
                 return;
             }
 
-            if (!Music.TryAdd(key, music.Value))
-                Debug.WriteLine($"Failed to add music {key} to dictionary");
+            Music[key] = (music.Value, val.resource);
         } else {
             Debug.WriteLine($"Resource type {type} is not supported");
         }
@@ -207,17 +231,26 @@ internal static class ResourceManager {
     /// </summary>
     /// <param name="name"></param>
     public static void SetTheme(string name) {
+        if (MainTheme?.Name == name)
+            return;
+
         string filename = Files.GetResourceFilePath(name + ".theme");
 
         if (!File.Exists(filename)) {
             Debug.WriteLine($"ERROR: Theme named '{name}' doesn't exist. Using Fallback.");
             return;
         }
+
+        if (MainTheme != _DefaultTheme) {
+            MainTheme.Unload();
+            MainTheme.Dispose();
+        }
+
         MainTheme = new Theme(filename);
         MainTheme.Load();
 
         // force everything to reload
-        ClearCache();
+        UnloadEverything();
     }
 
     /// <summary>
@@ -239,8 +272,10 @@ internal static class ResourceManager {
     /// </summary>
     /// <param name="key"></param>
     public static void LoadFont(string key) {
-        if (!Fonts.ContainsKey(key) && !ResourceLoadingQueue.Any(r => r.key == key))
+        if (!Fonts.ContainsKey(key) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+            Fonts[key] = (null, new FontResource(key, _FallbackFont, TryGetFont));
             ResourceLoadingQueue.Add((key, typeof(Font)));
+        }
     }
 
     /// <summary>
@@ -250,7 +285,7 @@ internal static class ResourceManager {
     /// <returns></returns>
     public static FontResource GetFont(string key) {
         LoadFont(key);
-        return new FontResource(key, _FallbackFont, TryGetFont);
+        return Fonts[key].resource;
     }
 
     /// <summary>
@@ -259,10 +294,19 @@ internal static class ResourceManager {
     /// <param name="key"></param>
     /// <returns></returns>
     private static Font? TryGetFont(string key) {
-        if (Fonts.TryGetValue(key, out Font font))
-            return font;
+        if (Fonts.TryGetValue(key, out (Font? font, FontResource resource) font))
+            return font.font;
 
         return null;
+    }
+
+    /// <summary>
+    /// Unloads the given font.
+    /// </summary>
+    /// <param name="font"></param>
+    private static void UnloadFont(FontResource font) {
+        font.Unload();
+        Raylib.UnloadFont(font.Resource);
     }
 
     /// <summary>
@@ -270,8 +314,10 @@ internal static class ResourceManager {
     /// </summary>
     /// <param name="key"></param>
     public static void LoadTexture(string key) {
-        if (!Textures.ContainsKey(key))
+        if (!Textures.ContainsKey(key) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+            Textures[key] = (null, new TextureResource(key, _FallbackTexture, TryGetTexture));
             ResourceLoadingQueue.Add((key, typeof(Texture)));
+        }
     }
 
     /// <summary>
@@ -281,7 +327,7 @@ internal static class ResourceManager {
     /// <returns></returns>
     public static TextureResource GetTexture(string key) {
         LoadTexture(key);
-        return new TextureResource(key, _FallbackTexture, TryGetTexture);
+        return Textures[key].resource;
     }
 
     /// <summary>
@@ -290,10 +336,19 @@ internal static class ResourceManager {
     /// <param name="key"></param>
     /// <returns></returns>
     private static Texture? TryGetTexture(string key) {
-        if (Textures.TryGetValue(key, out Texture texture))
-            return texture;
+        if (Textures.TryGetValue(key, out (Texture? texture, TextureResource resource) texture))
+            return texture.texture;
 
         return null;
+    }
+
+    /// <summary>
+    /// Unloads the given texture.
+    /// </summary>
+    /// <param name="sound"></param>
+    private static void UnloadTexture(TextureResource sound) {
+        sound.Unload();
+        Raylib.UnloadTexture(sound.Resource);
     }
 
     /// <summary>
@@ -301,8 +356,10 @@ internal static class ResourceManager {
     /// </summary>
     /// <param name="key"></param>
     public static void LoadSound(string key) {
-        if (!Sounds.ContainsKey(key))
+        if (!Sounds.ContainsKey(key) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+            Sounds[key] = (null, new SoundResource(key, _FallbackSound, TryGetSound));
             ResourceLoadingQueue.Add((key, typeof(Sound)));
+        }
     }
 
     /// <summary>
@@ -312,7 +369,7 @@ internal static class ResourceManager {
     /// <returns></returns>
     public static SoundResource GetSound(string key) {
         LoadSound(key);
-        return new SoundResource(key, _FallbackSound, TryGetSound);
+        return Sounds[key].resource;
     }
 
     /// <summary>
@@ -321,10 +378,19 @@ internal static class ResourceManager {
     /// <param name="key"></param>
     /// <returns></returns>
     private static Sound? TryGetSound(string key) {
-        if (Sounds.TryGetValue(key, out Sound sound))
-            return sound;
+        if (Sounds.TryGetValue(key, out (Sound? sound, SoundResource resource) sound))
+            return sound.sound;
 
         return null;
+    }
+
+    /// <summary>
+    /// Unloads the given sound.
+    /// </summary>
+    /// <param name="sound"></param>
+    private static void UnloadSound(SoundResource sound) {
+        sound.Unload();
+        Raylib.UnloadSound(sound.Resource);
     }
 
     /// <summary>
@@ -332,8 +398,10 @@ internal static class ResourceManager {
     /// </summary>
     /// <param name="key"></param>
     public static void LoadMusic(string key) {
-        if (!Music.ContainsKey(key))
+        if (!Music.ContainsKey(key) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+            Music[key] = (null, new MusicResource(key, _FallbackMusic, TryGetMusic));
             ResourceLoadingQueue.Add((key, typeof(Music)));
+        }
     }
 
     /// <summary>
@@ -343,7 +411,7 @@ internal static class ResourceManager {
     /// <returns></returns>
     public static MusicResource GetMusic(string key) {
         LoadMusic(key);
-        return new MusicResource(key, _FallbackMusic, TryGetMusic);
+        return Music[key].resource;
     }
 
     /// <summary>
@@ -352,10 +420,19 @@ internal static class ResourceManager {
     /// <param name="key"></param>
     /// <returns></returns>
     private static Music? TryGetMusic(string key) {
-        if (Music.TryGetValue(key, out Music music))
-            return music;
+        if (Music.TryGetValue(key, out (Music? music, MusicResource resource) music))
+            return music.music;
 
         return null;
+    }
+
+    /// <summary>
+    /// Unloads the given sound.
+    /// </summary>
+    /// <param name="music"></param>
+    private static void UnloadMusic(MusicResource music) {
+        music.Unload();
+        Raylib.UnloadMusicStream(music.Resource);
     }
 
 }

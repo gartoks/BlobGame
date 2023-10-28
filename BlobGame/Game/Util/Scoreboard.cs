@@ -1,5 +1,4 @@
 ﻿using BlobGame.App;
-using System.Dynamic;
 using System.Text.Json;
 
 namespace BlobGame.Game.Util;
@@ -39,12 +38,10 @@ public sealed class Scoreboard {
         if (!File.Exists(file))
             return;
 
-        ExpandoObject? tmp = JsonSerializer.Deserialize<ExpandoObject>(File.ReadAllText(file));
+        ScoreboardData? scoreData = JsonSerializer.Deserialize<ScoreboardData>(File.ReadAllText(file));
 
-        if (tmp == null)
+        if (scoreData == null)
             return;
-
-        dynamic scoreData = tmp;
 
         int globalHighscore = scoreData.GlobalHighscore;
         DateTime date = scoreData.Date;
@@ -97,11 +94,10 @@ public sealed class Scoreboard {
     private void Save() {
         string file = Files.GetConfigFilePath("scores.sav");
 
-        dynamic scoreData = new ExpandoObject();
-        scoreData.GlobalHighscore = GlobalHighscore;
-        scoreData.Date = DateTime.Today;
-        scoreData.DailyHighscores = _DailyHighscores;
+        ScoreboardData scoreData = new ScoreboardData(GlobalHighscore, DateTime.Today, _DailyHighscores);
 
         File.WriteAllText(file, JsonSerializer.Serialize(scoreData));
     }
+
+    private record ScoreboardData(int GlobalHighscore, DateTime Date, int[] DailyHighscores);
 }

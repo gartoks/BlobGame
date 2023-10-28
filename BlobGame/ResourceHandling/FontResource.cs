@@ -48,4 +48,11 @@ internal sealed class FontResource {
         ResourceRetriever = resourceRetriever;
         _Resource = resourceRetriever(key);
     }
+
+    /// <summary>
+    /// Unloads the resource.
+    /// </summary>
+    internal void Unload() {
+        _Resource = null;
+    }
 }

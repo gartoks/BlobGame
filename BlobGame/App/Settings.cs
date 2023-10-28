@@ -1,10 +1,9 @@
-﻿using BlobGame.App;
-using BlobGame.ResourceHandling;
+﻿using BlobGame.ResourceHandling;
 using Raylib_CsLo;
 using System.Dynamic;
 using System.Text.Json;
 
-namespace BlobGame.Game.Util;
+namespace BlobGame.App;
 /// <summary>
 /// Class for managing the game settings
 /// </summary>
@@ -39,6 +38,7 @@ internal sealed class Settings {
         get => _MusicVolume;
         set {
             _MusicVolume = Math.Clamp(value, 0, 100);
+
             Save();
         }
     }
@@ -239,7 +239,7 @@ internal sealed class Settings {
         int musicVolume = 100;
         int soundVolume = 100;
         bool isTutorialEnabled = true;
-        string themeName = "default";
+        string themeName = "MelbaToast";
 
         string file = Files.GetConfigFilePath("settings.json");
         if (File.Exists(file)) {
@@ -261,11 +261,11 @@ internal sealed class Settings {
         SetScreenMode(screenMode);
         SetResolution(resolution.w, resolution.h);
         SetMonitor(monitor);
-        _MusicVolume = musicVolume;
-        _SoundVolume = soundVolume;
+        MusicVolume = musicVolume;
+        SoundVolume = soundVolume;
         IsTutorialEnabled = isTutorialEnabled;
-        Save();
         SetTheme(themeName);
+        Save();
     }
 
     private record SettingsData(
