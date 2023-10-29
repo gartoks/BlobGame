@@ -1,4 +1,3 @@
-using BlobGame.App;
 using Raylib_CsLo;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -249,6 +248,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
 
         // force the data to stay alive until the theme changes.
         _MusicBuffers.Add(musicData);
+        music.looping = false;
 
         return music;
     }

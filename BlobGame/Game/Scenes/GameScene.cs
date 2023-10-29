@@ -3,6 +3,7 @@ using BlobGame.Game.Blobs;
 using BlobGame.Game.GameControllers;
 using BlobGame.Game.GameObjects;
 using BlobGame.Game.Gui;
+using BlobGame.Game.Util;
 using BlobGame.ResourceHandling;
 using BlobGame.Util;
 using Raylib_CsLo;
@@ -30,6 +31,8 @@ internal sealed class GameScene : Scene {
     private GuiTextButton RetryButton { get; }
     private GuiTextButton ToMainMenuButton { get; }
     private float LastDropIndicatorX { get; set; }
+
+    private TutorialDisplay? Tutorial { get; }
 
     /// <summary>
     /// Creates a new game scene.
@@ -59,6 +62,9 @@ internal sealed class GameScene : Scene {
             new Vector2(1100, 120),
             "Game over",
             new Vector2(0.5f, 0.5f));
+
+        //if (Application.Settings.IsTutorialEnabled)
+        Tutorial = new TutorialDisplay();
     }
 
 
@@ -67,8 +73,10 @@ internal sealed class GameScene : Scene {
     /// </summary>
     internal override void Load() {
         // Loads all the blob textures
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i <= 10; i++) {
             ResourceManager.LoadTexture($"{i}");
+            ResourceManager.LoadTexture($"{i}_shadow");
+        }
 
         GameSim.Load();
 
@@ -79,6 +87,8 @@ internal sealed class GameScene : Scene {
         DropperTexture = ResourceManager.GetTexture("dropper");
         CurrentBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
         NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.NextBlob}");
+
+        Tutorial?.Load();
     }
 
     /// <summary>
@@ -86,20 +96,24 @@ internal sealed class GameScene : Scene {
     /// </summary>
     /// <param name="dT">The delta time since the last frame, typically used for frame-rate independent updates.</param>
     internal override void Update(float dT) {
-        GameSim.Update(dT);
-        Controller.Update(GameSim);
-
-        if (GameSim.CanSpawnBlob) {
-            CurrentBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
-            NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.NextBlob}");
+        if (Tutorial != null && !Tutorial.IsFinished) {
+            Tutorial.Update(dT);
         } else {
-            CurrentBlobTexture = ResourceManager.FallbackTexture;
-            NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
-        }
+            GameSim.Update(dT);
+            Controller.Update(GameSim);
 
-        if (GameSim.CanSpawnBlob && Controller.SpawnBlob(GameSim, out float t)) {
-            t = Math.Clamp(t, 0, 1);
-            GameSim.TrySpawnBlob(t, out Blob? blob);
+            if (GameSim.CanSpawnBlob) {
+                CurrentBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
+                NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.NextBlob}");
+            } else {
+                CurrentBlobTexture = ResourceManager.FallbackTexture;
+                NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
+            }
+
+            if (GameSim.CanSpawnBlob && Controller.SpawnBlob(GameSim, out float t)) {
+                t = Math.Clamp(t, 0, 1);
+                GameSim.TrySpawnBlob(t, out Blob? blob);
+            }
         }
     }
 
@@ -118,7 +132,7 @@ internal sealed class GameScene : Scene {
 
         GameSim.GameObjects.Enumerate(item => item.Draw());
 
-        float t = Math.Clamp(Controller.GetCurrentT(), 0, 1);
+        float t = Tutorial != null && !Tutorial.IsFinished ? 0.5f : Math.Clamp(Controller.GetCurrentT(), 0, 1);
         float indicatorOffset = DROP_INDICATOR_WIDTH / 2f + 1;
         float x = -Simulation.ARENA_WIDTH / 2f + indicatorOffset + t * (Simulation.ARENA_WIDTH - 2 * indicatorOffset);
 
@@ -136,6 +150,8 @@ internal sealed class GameScene : Scene {
         DrawDropper(x);
 
         RlGl.rlPopMatrix();
+
+        Tutorial?.Draw();
 
         if (GameSim.IsGameOver)
             DrawGameOverScreen();
@@ -187,8 +203,8 @@ internal sealed class GameScene : Scene {
         Raylib.DrawTexturePro(
             RankupArrowTexture.Resource,
             new Rectangle(0, 0, ruaW, ruaH),
-            new Rectangle(cX, cY, ruaW, ruaH),
-            new Vector2(ruaW / 2, ruaH / 2),
+            new Rectangle(cX, cY, ruaW * 1.3f, ruaH * 1.3f),
+            new Vector2(ruaW * 1.3f / 2, ruaH * 1.3f / 2),
             0,
             new Color(255, 255, 255, 255));
         //new Color(234, 89, 203, 255));
@@ -200,12 +216,12 @@ internal sealed class GameScene : Scene {
             float x = cX + radius * MathF.Cos(angle);
             float y = cY + radius * MathF.Sin(angle);
 
-            Texture tex = ResourceManager.GetTexture($"{i}").Resource;
+            Texture tex = ResourceManager.GetTexture($"{i}_shadow").Resource;
             float w = tex.width;
             float h = tex.height;
 
             Raylib.DrawTexturePro(
-                ResourceManager.GetTexture($"{i}").Resource,
+                ResourceManager.GetTexture($"{i}_shadow").Resource,
                 new Rectangle(0, 0, w, h),
                 new Rectangle(x, y, size, size),
                 new Vector2(size / 2, size / 2), 0, Raylib.WHITE);

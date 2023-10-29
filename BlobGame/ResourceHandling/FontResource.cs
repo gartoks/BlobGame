@@ -1,4 +1,5 @@
 ﻿using Raylib_CsLo;
+using System.Numerics;
 
 namespace BlobGame.ResourceHandling;
 /// <summary>
@@ -55,11 +56,26 @@ internal sealed class FontResource {
     internal void Unload() {
         _Resource = null;
     }
-    
+
     /// <summary>
     /// Returns whether the resource is loaded yet.
     /// </summary>
-    internal bool IsLoaded(){
+    internal bool IsLoaded() {
         return _Resource != null;
+    }
+
+    internal void Draw(string text, float fontSize, ColorResource tint, Vector2 position, /*Vector2? pivot = null, */float rotation = 0) {
+        /*if (pivot == null)
+            pivot = Vector2.Zero;
+*/
+        Raylib.DrawTextPro(
+            Resource,
+            text,
+            position,
+            new Vector2(),
+            rotation,
+            fontSize,
+            fontSize / 16f,
+            tint.Resource);
     }
 }

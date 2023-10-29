@@ -26,7 +26,7 @@ public static class Input {
     /// <summary>
     /// Whether the mouse was handled by the game this frame. If true, the mouse was handled and no other game should handle it.
     /// </summary>
-    public static bool WasMouseHandled { get; set; }
+    public static Dictionary<MouseButton, bool> WasMouseHandled { get; }
 
     /// <summary>
     /// Static constructor to initialize the mouse button and hotkey states.
@@ -36,6 +36,8 @@ public static class Input {
         MouseButtonStates[MouseButton.MOUSE_BUTTON_LEFT] = eInteractionState.Up;
         MouseButtonStates[MouseButton.MOUSE_BUTTON_RIGHT] = eInteractionState.Up;
         MouseButtonStates[MouseButton.MOUSE_BUTTON_MIDDLE] = eInteractionState.Up;
+
+        WasMouseHandled = new Dictionary<MouseButton, bool>();
 
         Hotkeys = new Dictionary<string, Hotkey>();
     }
@@ -56,8 +58,6 @@ public static class Input {
     /// Called every frame to read and update the input states, as well as apply states to mouse buttons and hotkeys.
     /// </summary>
     internal static void Update() {
-        WasMouseHandled = false;
-
         Vector2 mPosDelta = Raylib.GetMouseDelta();
         foreach (MouseButton mbs in MouseButtonStates.Keys) {
             if (Raylib.IsMouseButtonDown(mbs)) {
@@ -68,8 +68,10 @@ public static class Input {
             } else if (Raylib.IsMouseButtonUp(mbs)) {
                 if (MouseButtonStates[mbs] == eInteractionState.Down)
                     MouseButtonStates[mbs] = eInteractionState.Released;
-                else
+                else {
+                    WasMouseHandled[mbs] = false;
                     MouseButtonStates[mbs] = eInteractionState.Up;
+                }
             }
         }
 
@@ -138,7 +140,16 @@ public static class Input {
     /// <param name="button"></param>
     /// <returns></returns>
     public static bool IsMouseButtonActive(MouseButton button) {
-        return !WasMouseHandled && MouseButtonStates[button] == eInteractionState.Released;
+        return !WasMouseHandled[button] && MouseButtonStates[button] == eInteractionState.Released;
+    }
+
+    /// <summary>
+    /// Returns whether the given mouse button is pressed.
+    /// </summary>
+    /// <param name="button"></param>
+    /// <returns></returns>
+    public static bool IsMouseButtonDown(MouseButton button) {
+        return MouseButtonStates[button] is eInteractionState.Pressed or eInteractionState.Down;
     }
 }
 

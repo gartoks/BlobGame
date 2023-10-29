@@ -18,8 +18,8 @@ internal sealed class Blob : GameObject {
     /// <param name="blobType"></param>
     /// <returns></returns>
     public static Blob Create(World world, Vector2 position, eBlobType blobType) {
-        (string name, eBlobType type, int score, float radius, string textureKey) = BlobData.Data.Single(d => d.type == blobType);
-        return new Blob(name, type, score, world, position, radius, ResourceManager.GetTexture(textureKey), new Vector2(0.5f, 0.5f));
+        (string name, eBlobType type, int score, float radius, float mass, string textureKey) = BlobData.Data.Single(d => d.type == blobType);
+        return new Blob(name, type, score, world, position, radius, mass, ResourceManager.GetTexture(textureKey), new Vector2(0.5f, 0.5f));
     }
 
     /// <summary>
@@ -52,7 +52,7 @@ internal sealed class Blob : GameObject {
     /// <summary>
     /// Create a new blob with the given parameters.
     /// </summary>
-    private Blob(string name, eBlobType type, int score, World world, Vector2 position, float radius, TextureResource texture, Vector2 textureOrigin)
+    private Blob(string name, eBlobType type, int score, World world, Vector2 position, float radius, float mass, TextureResource texture, Vector2 textureOrigin)
         : base(name, world, position, 0, BodyType.Dynamic) {
 
         Type = type;
@@ -62,7 +62,7 @@ internal sealed class Blob : GameObject {
         Fixture = Body.CreateCircle(radius / 10f, 1);
         Fixture.Restitution = 0.15f;
         Fixture.Friction = 0.1f;
-        Body.Mass = 1;
+        Body.Mass = mass;
         Body.AngularDamping = 0.9f;
 
         Texture = texture;

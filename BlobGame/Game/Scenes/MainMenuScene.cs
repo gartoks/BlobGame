@@ -1,9 +1,7 @@
-﻿using BlobGame.Audio;
-using BlobGame.Drawing;
+﻿using BlobGame.Drawing;
 using BlobGame.Game.Gui;
 using BlobGame.ResourceHandling;
 using Raylib_CsLo;
-using System.Diagnostics;
 using System.Numerics;
 
 namespace BlobGame.Game.Scenes;
@@ -13,15 +11,12 @@ namespace BlobGame.Game.Scenes;
 internal sealed class MainMenuScene : Scene {
     private TextureResource TitleTexture { get; set; }
     private TextureResource AvatarTexture { get; set; }
-    private IReadOnlyList<MusicResource> Music { get; set; }
 
     private GUIImage TitleImage { get; }
     private GuiTextButton PlayButton { get; }
     private GuiTextButton SettingsButton { get; }
     private GuiTextButton CreditsButton { get; }
     private GuiTextButton QuitButton { get; }
-
-    private bool WasMusicQueued { get; set; }
 
     public MainMenuScene() {
         PlayButton = new GuiTextButton(
@@ -51,35 +46,15 @@ internal sealed class MainMenuScene : Scene {
             //Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.2f,
             ResourceManager.FallbackTexture,
             new Vector2(0.5f, 0));
-
-        WasMusicQueued = false;
     }
 
     internal override void Load() {
         TitleTexture = ResourceManager.GetTexture("title_logo");
         AvatarTexture = ResourceManager.GetTexture("melba_avatar");
-        Music = new MusicResource[] {
-            ResourceManager.GetMusic("crossinglike"),
-            ResourceManager.GetMusic("Melba_1"),
-            ResourceManager.GetMusic("Melba_2"),
-            ResourceManager.GetMusic("Melba_3"),
-            ResourceManager.GetMusic("Melba_s_Toasty_Game"),
-            ResourceManager.GetMusic("On_the_Surface"),
-            ResourceManager.GetMusic("synthyupdated"),
-        };
-
         TitleImage.Texture = TitleTexture;
     }
 
     internal override void Update(float dT) {
-        if (Music.All(m => !AudioManager.IsMusicPlaying(m.Key))) {
-            if (WasMusicQueued)
-                return;
-
-            Random rng = new Random();
-            AudioManager.PlayMusic(Music[rng.Next(Music.Count)].Key);
-            WasMusicQueued = true;
-        }
     }
 
     internal override void Draw() {
@@ -97,7 +72,6 @@ internal sealed class MainMenuScene : Scene {
         TitleImage.Draw();
 
         // TODO: Is tmp, will fix when back
-        Debug.WriteLine(Renderer.Time);
         TestDraw(-130, Application.BASE_HEIGHT * 1f + 130, 150, -150, 45, 10);
         TestDraw(Application.BASE_WIDTH * 0.7f, Application.BASE_HEIGHT * 1f + 170, 0, -150, 0, 14);
     }

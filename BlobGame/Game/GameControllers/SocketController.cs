@@ -13,6 +13,11 @@ internal class SocketController : IGameController {
     private int GameIndex { get; }
 
     /// <summary>
+    /// The port used to connect.
+    /// </summary>
+    private int Port { get; }
+
+    /// <summary>
     /// The tcp client used to control this controller.
     /// </summary>
     private TcpClient Client { get; }
@@ -25,16 +30,17 @@ internal class SocketController : IGameController {
 
     private (float t, bool shouldDrop) FrameInputs { get; set; }
 
-    public SocketController(int gameIndex) {
+    public SocketController(int gameIndex, int port) {
         GameIndex = gameIndex;
+        Port = port;
 
         try {
-            Client = new TcpClient("localhost", 1234);
+            Client = new TcpClient("localhost", Port);
             Stream = Client.GetStream();
         } catch (SocketException) {
             Debug.WriteLine("Controller stream was closed.");
         }
-        Debug.WriteLine("Connected to localhost:1234");
+        Debug.WriteLine($"Connected to localhost:{Port}");
     }
 
     ~SocketController() {

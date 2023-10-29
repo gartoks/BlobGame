@@ -1,17 +1,24 @@
-﻿TODO:
-texture atlas
+﻿BUGS:
 Sometimes clicking doesnt spawn fruit
-apparently cherries and strawberries combine into one when 3 of them collide at once?!
-scene unloading
-custom physics engine?
-maybe score sync with other players? export as base94 string?
-Game controller to run multiple game sims at once and a socket api to control them. *wink wink*
-random rotations on spawn
 z order changes wrongly when blobs are combined
-tutorial
 make that items are only added to the audio action queue once
-change display settings without restarting => needs gui bounds update
+get game to play like the original
+
+
+TODO:
+tutorial
+scene unloading
 clean all references of melba in the files and code to make it generic for multiple themes
+
+NICE TO HAVE:
+change display settings without restarting => needs gui bounds update
+random rotations on spawn
+custom physics engine?
+apparently cherries and strawberries combine into one when 3 of them collide at once?!
+maybe score sync with other players? export as base94 string?
+
+CREDITS:
+_neurofumo -> avatar
 
 arena internal
 width: 670

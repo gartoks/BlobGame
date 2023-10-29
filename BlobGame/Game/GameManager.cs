@@ -1,5 +1,7 @@
-﻿using BlobGame.Game.Scenes;
+﻿using BlobGame.Audio;
+using BlobGame.Game.Scenes;
 using BlobGame.Game.Util;
+using BlobGame.ResourceHandling;
 
 namespace BlobGame.Game;
 /// <summary>
@@ -15,6 +17,11 @@ public static class GameManager {
     /// </summary>
     private static bool WasSceneLoaded { get; set; }
 
+
+    private static IReadOnlyList<MusicResource> Music { get; set; }
+    private static bool WasMusicQueued { get; set; }
+
+
     /// <summary>
     /// Initializes the game. Creates the initially loaded scene.
     /// </summary>
@@ -22,6 +29,7 @@ public static class GameManager {
         //InputHandler.RegisterHotkey("w", KeyboardKey.KEY_W);
 
         WasSceneLoaded = false;
+        WasMusicQueued = false;
     }
 
     public static Scoreboard Scoreboard { get; }
@@ -35,6 +43,17 @@ public static class GameManager {
     /// </summary>
     internal static void Load() {
         Scoreboard.Load();
+
+        Music = new MusicResource[] {
+            ResourceManager.GetMusic("crossinglike"),
+            ResourceManager.GetMusic("Melba_1"),
+            ResourceManager.GetMusic("Melba_2"),
+            ResourceManager.GetMusic("Melba_3"),
+            ResourceManager.GetMusic("Melba_s_Toasty_Game"),
+            ResourceManager.GetMusic("On_the_Surface"),
+            ResourceManager.GetMusic("synthyupdated"),
+        };
+
         Scene = new MainMenuScene();
     }
 
@@ -43,6 +62,17 @@ public static class GameManager {
     /// </summary>
     /// <param name="dT"></param>
     internal static void Update(float dT) {
+        if (Music.All(m => !AudioManager.IsMusicPlaying(m.Key))) {
+            if (WasMusicQueued)
+                return;
+
+            Random rng = new Random();
+            AudioManager.PlayMusic(Music[rng.Next(Music.Count)].Key);
+            WasMusicQueued = true;
+        } else {
+            WasMusicQueued = false;
+        }
+
         // The scene is loaded in the update method to ensure scene drawing doesn't access unloaded resources.
         if (!WasSceneLoaded) {
             Scene.Load();

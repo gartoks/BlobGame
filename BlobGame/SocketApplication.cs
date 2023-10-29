@@ -19,14 +19,20 @@ internal static class SocketApplication {
     /// </summary>
     private static bool UseSeparateThreads { get; set; }
 
+    /// <summary>
+    /// The port used to connect.
+    /// </summary>
+    private static int Port { get; set; }
+
     private static IReadOnlyList<Thread>? Threads { get; set; }
 
     private static IReadOnlyList<(Simulation simulation, SocketController controller)>? Games { get; set; }
 
-    internal static void Initialize(int numParallelGames, bool useSeparateThreads, int seed) {
+    internal static void Initialize(int numParallelGames, bool useSeparateThreads, int seed, int port) {
         Seed = seed;
         NumParallelGames = numParallelGames;
         UseSeparateThreads = useSeparateThreads;
+        Port = port;
 
         if (UseSeparateThreads)
             InitializeWithThreads();
@@ -44,7 +50,7 @@ internal static class SocketApplication {
     private static void InitializeWithoutThreads() {
         Random random = new Random(Seed);
         Games = Enumerable.Range(0, NumParallelGames)
-            .Select(i => (new Simulation(random.Next()), new SocketController(i)))
+            .Select(i => (new Simulation(random.Next()), new SocketController(i, Port)))
             .ToList();
     }
 
@@ -94,7 +100,7 @@ internal static class SocketApplication {
         const float dT = 1f / 60f;
 
         Simulation simulation = new Simulation(seed);
-        SocketController controller = new SocketController(gameIndex);
+        SocketController controller = new SocketController(gameIndex, Port);
 
         while (!simulation.IsGameOver && controller.IsConnected) {
             simulation.Update(dT);

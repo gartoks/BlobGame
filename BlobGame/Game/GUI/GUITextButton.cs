@@ -37,7 +37,7 @@ internal sealed class GuiTextButton {
         Label.Draw();
 
         bool clicked = containsMouse && Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT);
-        Input.WasMouseHandled |= clicked;
+        Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT] |= clicked;
 
         return clicked;
     }
