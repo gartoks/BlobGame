@@ -35,7 +35,7 @@ internal sealed class GameScene : Scene {
     /// Creates a new game scene.
     /// </summary>
     public GameScene() {
-        Controller = new MouseController(this);
+        Controller = new SocketController(this);
         GameSim = new Simulation(new Random().Next());
 
         RetryButton = new GuiTextButton(
@@ -86,6 +86,7 @@ internal sealed class GameScene : Scene {
     /// <param name="dT">The delta time since the last frame, typically used for frame-rate independent updates.</param>
     internal override void Update(float dT) {
         GameSim.Update(dT);
+        Controller.Update(GameSim);
 
         if (GameSim.CanSpawnBlob) {
             CurrentBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
@@ -144,6 +145,7 @@ internal sealed class GameScene : Scene {
     /// </summary>
     internal override void Unload() {
         GameManager.Scoreboard.AddScore(GameSim.Score);
+        Controller.Close();
         // TODO unload NOT NEEDED resources
     }
 

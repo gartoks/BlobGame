@@ -16,4 +16,14 @@ internal interface IGameController {
     /// <param name="t">The t value at which the blob is spawned, which represents the position of the dropper above the arena..</param>
     /// <returns>True if blob spawning was attempted, otherwise false.</returns>
     bool SpawnBlob(ISimulation simulation, out float t);
+
+    /// <summary>
+    /// Runs every frame.
+    /// </summary>
+    void Update(ISimulation simulation);
+
+    /// <summary>
+    /// Closes any connections and disposes resources needed by the controller
+    /// </summary>
+    void Close();
 }
