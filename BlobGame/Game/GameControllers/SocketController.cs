@@ -6,43 +6,44 @@ using System.Net.Sockets;
 namespace BlobGame.Game.GameControllers;
 
 internal class SocketController : IGameController {
+
     /// <summary>
-    /// Represents the game scene associated with this controller.
+    /// The index of the running game.
     /// </summary>
-    private GameScene Scene { get; }
-    
+    private int GameIndex { get; }
+
     /// <summary>
     /// The tcp client used to control this controller.
     /// </summary>
-    private TcpClient client;
+    private TcpClient Client { get; }
     /// <summary>
     /// The network stream used to communicate with the server.
     /// </summary>
-    private NetworkStream stream;
+    private NetworkStream Stream { get; }
 
-    private (float t, bool shouldDrop) frameInputs;
+    internal bool IsConnected => Client.Connected;
 
-    public SocketController(GameScene scene) {
-        Scene = scene;
+    private (float t, bool shouldDrop) FrameInputs { get; set; }
 
-        try{
-            client = new TcpClient("localhost", 1234);
-            stream = client.GetStream();
-        }
-        catch(SocketException){
+    public SocketController(int gameIndex) {
+        GameIndex = gameIndex;
+
+        try {
+            Client = new TcpClient("localhost", 1234);
+            Stream = Client.GetStream();
+        } catch (SocketException) {
             Debug.WriteLine("Controller stream was closed.");
-            GameManager.SetScene(new MainMenuScene());
         }
         Debug.WriteLine("Connected to localhost:1234");
     }
 
-    ~SocketController(){
+    ~SocketController() {
         Close();
     }
 
-    public void Close(){
+    public void Close() {
         Debug.WriteLine("Closing tcp socket");
-        client.Close();
+        Client.Close();
     }
 
     /// <summary>
@@ -50,7 +51,7 @@ internal class SocketController : IGameController {
     /// </summary>
     /// <returns>The current value of t.</returns>
     public float GetCurrentT() {
-        return frameInputs.t;
+        return FrameInputs.t;
     }
 
     /// <summary>
@@ -63,12 +64,16 @@ internal class SocketController : IGameController {
         t = -1;
         if (!simulation.CanSpawnBlob)
             return false;
-        
+
         t = GetCurrentT();
-        
-        return frameInputs.shouldDrop;
+
+        return FrameInputs.shouldDrop;
     }
-    public void Update(ISimulation simulation){
+
+    public void Update(ISimulation simulation) {
+        if (!IsConnected)
+            return;
+
         // send simulation state
         SendGameState(simulation);
 
@@ -76,19 +81,17 @@ internal class SocketController : IGameController {
         ReceiveInputs();
     }
 
-    public void SendGameState(ISimulation simulation){
-        
-
+    public void SendGameState(ISimulation simulation) {
         List<Blob> blobs = new();
         simulation.GameObjects.Enumerate(go => {
-            if (go.GetType() == typeof(Blob)){
+            if (go.GetType() == typeof(Blob)) {
                 blobs.Add((Blob)go);
             }
         });
 
         IEnumerable<byte> buffer = new byte[0];
         buffer = buffer.Concat(BitConverter.GetBytes(blobs.Count));
-        foreach(Blob blob in blobs){
+        foreach (Blob blob in blobs) {
             buffer = buffer.Concat(BitConverter.GetBytes(blob.Position.X));
             buffer = buffer.Concat(BitConverter.GetBytes(blob.Position.Y));
             buffer = buffer.Concat(BitConverter.GetBytes((int)blob.Type));
@@ -96,21 +99,21 @@ internal class SocketController : IGameController {
         buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.CurrentBlob));
         buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.NextBlob));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.CanSpawnBlob));
+        buffer = buffer.Concat(BitConverter.GetBytes(simulation.Score));
+        buffer = buffer.Concat(BitConverter.GetBytes(simulation.IsGameOver));
+        buffer = buffer.Concat(BitConverter.GetBytes(GameIndex));
 
         bool failed = false;
-        try{
-            stream.Write(buffer.ToArray());
-        }
-        catch(SocketException){
+        try {
+            Stream.Write(buffer.ToArray());
+        } catch (SocketException) {
             failed = true;
-        }
-        catch(IOException){
+        } catch (IOException) {
             failed = true;
         }
 
-        if (failed){
+        if (failed) {
             Debug.WriteLine("Controller stream was closed.");
-            GameManager.SetScene(new MainMenuScene());
             return;
         }
     }
@@ -118,22 +121,19 @@ internal class SocketController : IGameController {
     /// <summary>
     /// Waits for the next frame of inputs and stores them in frameInputs.
     /// </summary>
-    public void ReceiveInputs(){
+    public void ReceiveInputs() {
         byte[] buffer = new byte[5];
         bool failed = false;
-        try{
-            stream.ReadExactly(buffer, 0, 5);
-        }
-        catch(EndOfStreamException){
+        try {
+            Stream.ReadExactly(buffer, 0, 5);
+        } catch (EndOfStreamException) {
+            failed = true;
+        } catch (SocketException) {
+            failed = true;
+        } catch (IOException) {
             failed = true;
         }
-        catch(SocketException){
-            failed = true;
-        }
-        catch(IOException){
-            failed = true;
-        }
-        if (failed){
+        if (failed) {
             Debug.WriteLine("Controller input stream was closed.");
             GameManager.SetScene(new MainMenuScene());
             return;
@@ -141,8 +141,6 @@ internal class SocketController : IGameController {
 
         float t = BitConverter.ToSingle(buffer, 0);
         bool shouldDrop = BitConverter.ToBoolean(buffer, 4);
-        frameInputs = (t, shouldDrop);
+        FrameInputs = (t, shouldDrop);
     }
-
-
 }

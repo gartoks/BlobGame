@@ -35,7 +35,8 @@ internal sealed class GameScene : Scene {
     /// Creates a new game scene.
     /// </summary>
     public GameScene() {
-        Controller = new SocketController(this);
+        //Controller = new SocketController(this);
+        Controller = new MouseController(this);
         GameSim = new Simulation(new Random().Next());
 
         RetryButton = new GuiTextButton(

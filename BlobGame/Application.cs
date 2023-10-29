@@ -28,10 +28,6 @@ internal static class Application {
     /// The udpates per second the game is targeting.
     /// </summary>
     private const int UPS = 60;
-    /// <summary>
-    /// The time scale to use.
-    /// </summary>
-    private const float TIME_SCALE = 1;
 
     /// <summary>
     /// The base width of the game window. All resolutions use this to scale components to the right proportions.
@@ -152,7 +148,7 @@ internal static class Application {
             sw.Stop();
             int sleepTime = (int)Math.Max(0, 1000 / UPS - sw.ElapsedMilliseconds);
             deltaTime = MathF.Max(BASE_DELTA_TIME, sw.ElapsedMilliseconds / 1000f);
-            Thread.Sleep((int)(sleepTime / TIME_SCALE));
+            Thread.Sleep(sleepTime);
         }
 
         Game.GameManager.Unload();
