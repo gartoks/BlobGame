@@ -245,7 +245,7 @@ internal sealed class GameScene : Scene {
             new Rectangle(Simulation.ARENA_WIDTH * 0.75f, 0, mW, mH),
             new Vector2(mW / 2, mH / 2),
             0,
-            ResourceManager.GetColor("light_accent")
+            ResourceManager.GetColor("light_accent").Resource
             );
 
         // Blob
@@ -264,7 +264,7 @@ internal sealed class GameScene : Scene {
             textPos,
             textPos / 2f,
             -25.5f,
-            80, 5, ResourceManager.GetColor("dark_accent"));
+            80, 5, ResourceManager.GetColor("dark_accent").Resource);
     }
 
     internal void DrawDropper(float x) {
@@ -285,7 +285,7 @@ internal sealed class GameScene : Scene {
             new Rectangle(x, 0, DROP_INDICATOR_WIDTH, Simulation.ARENA_HEIGHT),
             new Vector2(DROP_INDICATOR_WIDTH / 2f, 0),
             0,
-            ResourceManager.GetColor("background").ChangeAlpha(128));
+            ResourceManager.GetColor("background").Resource.ChangeAlpha(128));
     }
 
     internal void DrawCurrentBlob(float x) {
@@ -331,7 +331,7 @@ internal sealed class GameScene : Scene {
             new Vector2(x + w - 50 - scoreTextSize.X, y),
             100,
             10,
-            ResourceManager.GetColor("dark_accent"));
+            ResourceManager.GetColor("dark_accent").Resource);
     }
 
     private void DrawGameOverScreen() {

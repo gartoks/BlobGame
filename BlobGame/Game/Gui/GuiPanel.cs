@@ -1,17 +1,18 @@
-﻿using Raylib_CsLo;
+﻿using BlobGame.ResourceHandling;
+using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;
 internal sealed class GuiPanel {
-    public Color Color { get; set; }
+    public ColorResource Color { get; set; }
 
     private Rectangle Bounds { get; }
 
-    public GuiPanel(Vector2 pos, Vector2 size, Color color, Vector2? pivot = null)
+    public GuiPanel(Vector2 pos, Vector2 size, ColorResource color, Vector2? pivot = null)
         : this(pos.X, pos.Y, size.X, size.Y, color, pivot) {
     }
 
-    public GuiPanel(float x, float y, float w, float h, Color color, Vector2? pivot = null) {
+    public GuiPanel(float x, float y, float w, float h, ColorResource color, Vector2? pivot = null) {
         if (pivot != null) {
             x += -w * pivot.Value.X;
             y += -h * pivot.Value.Y;
@@ -22,7 +23,7 @@ internal sealed class GuiPanel {
     }
 
     internal void Draw() {
-        Raylib.DrawRectangleRounded(Bounds, 0.15f, 10, Color);
+        Raylib.DrawRectangleRounded(Bounds, 0.15f, 10, Color.Resource);
         Raylib.DrawRectangleRoundedLines(Bounds, 0.15f, 10, 8, Raylib.WHITE);
     }
 

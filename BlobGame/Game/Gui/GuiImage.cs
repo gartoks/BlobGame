@@ -5,7 +5,7 @@ using System.Numerics;
 namespace BlobGame.Game.Gui;
 internal sealed class GUIImage {
     public TextureResource Texture { get; set; }
-    public Color Tint { get; set; }
+    public ColorResource Tint { get; set; }
 
     public float Scale { get; set; }
     private Vector2 Position { get; }
@@ -21,7 +21,7 @@ internal sealed class GUIImage {
 
         Scale = scale;
         Texture = texture;
-        Tint = Raylib.WHITE;
+        Tint = ColorResource.WHITE;
     }
 
     internal void Draw() {
@@ -37,7 +37,7 @@ internal sealed class GUIImage {
                 new Rectangle(x, y, w, h),
                 new Vector2(0, 0),
                 0,
-                Tint);
+                Tint.Resource);
     }
 
 }

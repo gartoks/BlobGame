@@ -24,12 +24,13 @@ internal sealed class MusicResource {
     /// The raylib resource. Is null if the resource has not been loaded yet.
     /// </summary>
     private Music? _Resource { get; set; }
+
     /// <summary>
     /// The raylib resource. Returns the fallback if the resource has not been loaded (yet).
     /// </summary>
     public Music Resource {
         get {
-            if (_Resource == null)
+            if (!IsLoaded())
                 _Resource = ResourceRetriever(Key);
 
             return _Resource ?? Fallback;
@@ -55,5 +56,12 @@ internal sealed class MusicResource {
     /// </summary>
     internal void Unload() {
         _Resource = null;
+    }
+    
+    /// <summary>
+    /// Returns whether the resource is loaded yet.
+    /// </summary>
+    internal bool IsLoaded(){
+        return _Resource != null;
     }
 }

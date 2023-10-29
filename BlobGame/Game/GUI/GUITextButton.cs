@@ -28,7 +28,7 @@ internal sealed class GuiTextButton {
 
     internal bool Draw() {
         bool containsMouse = Bounds.Contains(Input.ScreenToWorld(Raylib.GetMousePosition()));
-        Color bgColor = ResourceManager.GetColor("light_accent");
+        ColorResource bgColor = ResourceManager.GetColor("light_accent");
         if (containsMouse)
             bgColor = ResourceManager.GetColor("dark_accent");
 
