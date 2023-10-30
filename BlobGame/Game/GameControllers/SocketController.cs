@@ -26,7 +26,7 @@ internal class SocketController : IGameController {
     /// </summary>
     private NetworkStream Stream { get; }
 
-    internal bool IsConnected => Client.Connected;
+    internal bool IsConnected => Client != null && Client.Connected;
 
     private (float t, bool shouldDrop) FrameInputs { get; set; }
 
@@ -40,7 +40,8 @@ internal class SocketController : IGameController {
         } catch (SocketException) {
             Debug.WriteLine("Controller stream was closed.");
         }
-        Debug.WriteLine($"Connected to localhost:{Port}");
+        if (Client != null)
+            Debug.WriteLine($"Connected to localhost:{Port}");
     }
 
     ~SocketController() {
@@ -48,8 +49,10 @@ internal class SocketController : IGameController {
     }
 
     public void Close() {
-        Debug.WriteLine("Closing tcp socket");
-        Client.Close();
+        if (IsConnected){
+            Debug.WriteLine("Closing tcp socket");
+            Client.Close();
+        }
     }
 
     /// <summary>
@@ -77,8 +80,10 @@ internal class SocketController : IGameController {
     }
 
     public void Update(ISimulation simulation) {
-        if (!IsConnected)
+        if (!IsConnected){
+            Debug.WriteLine($"Connection nr. {GameIndex} closed.");
             return;
+        }
 
         // send simulation state
         SendGameState(simulation);
@@ -116,6 +121,8 @@ internal class SocketController : IGameController {
             failed = true;
         } catch (IOException) {
             failed = true;
+        } catch (ObjectDisposedException) {
+            failed = true;
         }
 
         if (failed) {
@@ -138,10 +145,11 @@ internal class SocketController : IGameController {
             failed = true;
         } catch (IOException) {
             failed = true;
+        } catch (ObjectDisposedException) {
+            failed = true;
         }
         if (failed) {
             Debug.WriteLine("Controller input stream was closed.");
-            GameManager.SetScene(new MainMenuScene());
             return;
         }
 

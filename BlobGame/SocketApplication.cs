@@ -74,6 +74,10 @@ internal static class SocketApplication {
 
         List<int> runningGames = Enumerable.Range(0, NumParallelGames).ToList();
 
+        foreach ((Simulation sim, var _) in Games!){
+            sim.Load();
+        }
+
         while (runningGames.Count > 0) {
             for (int i = 0; i < Games!.Count; i++) {
                 if (!runningGames.Contains(i))
@@ -82,6 +86,7 @@ internal static class SocketApplication {
                 (Simulation simulation, SocketController controller) = Games[i];
 
                 simulation.Update(dT);
+                controller.Update(simulation);
 
                 if (simulation.CanSpawnBlob && controller.SpawnBlob(simulation, out float t)) {
                     t = Math.Clamp(t, 0, 1);
@@ -90,6 +95,8 @@ internal static class SocketApplication {
 
                 if (simulation.IsGameOver || !controller.IsConnected) {
                     runningGames.Remove(i);
+                    // send the game over state
+                    controller.Update(simulation);
                     Console.WriteLine($"Game {i} ended with score {simulation.Score}. {runningGames.Count} games running.");
                 }
             }
@@ -102,13 +109,20 @@ internal static class SocketApplication {
         Simulation simulation = new Simulation(seed);
         SocketController controller = new SocketController(gameIndex, Port);
 
+        simulation.Load();
+
         while (!simulation.IsGameOver && controller.IsConnected) {
             simulation.Update(dT);
+            controller.Update(simulation);
 
             if (simulation.CanSpawnBlob && controller.SpawnBlob(simulation, out float t)) {
                 t = Math.Clamp(t, 0, 1);
                 simulation.TrySpawnBlob(t, out _);
             }
         }
+        // send the game over state
+        controller.Update(simulation);
+
+        Console.WriteLine($"Game {gameIndex} has finished with {simulation.Score} points");
     }
 }
