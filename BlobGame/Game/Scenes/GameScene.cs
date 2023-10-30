@@ -3,7 +3,7 @@ using BlobGame.Game.Blobs;
 using BlobGame.Game.GameControllers;
 using BlobGame.Game.GameObjects;
 using BlobGame.Game.Gui;
-using BlobGame.Game.Util;
+using BlobGame.Game.Tutorial;
 using BlobGame.ResourceHandling;
 using BlobGame.Util;
 using Raylib_CsLo;

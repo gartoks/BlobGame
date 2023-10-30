@@ -125,10 +125,6 @@ internal class SettingsScene : Scene {
     }
 
     internal override void Draw() {
-        DrawBackButton();
-    }
-
-    private void DrawBackButton() {
         BackgroundPanel.Draw();
         //MonitorLabel.Draw(); // TODO: Currently disabled because it is not working.
         ScreenModeLabel.Draw();

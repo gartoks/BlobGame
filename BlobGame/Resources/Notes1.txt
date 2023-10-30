@@ -18,7 +18,10 @@ apparently cherries and strawberries combine into one when 3 of them collide at 
 maybe score sync with other players? export as base94 string?
 
 CREDITS:
-_neurofumo -> avatar
+Code: gartoks, Robotino
+Art: Pixl, Troobs, _neuroFumo
+Music: Wiggle, Fibi
+
 
 arena internal
 width: 670

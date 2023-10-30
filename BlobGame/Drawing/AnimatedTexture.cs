@@ -17,10 +17,10 @@ internal sealed class AnimatedTexture {
 
     private float Duration { get; }
 
-    private Func<float, Vector2>? PositionAnimator { get; init; }
-    private Func<float, Vector2>? ScaleAnimator { get; init; }
-    private Func<float, float>? RotationAnimator { get; init; }
-    private Func<float, Color>? ColorAnimator { get; init; }
+    internal Func<float, Vector2>? PositionAnimator { get; init; }
+    internal Func<float, Vector2>? ScaleAnimator { get; init; }
+    internal Func<float, float>? RotationAnimator { get; init; }
+    internal Func<float, Color>? ColorAnimator { get; init; }
 
     /// <summary>
     /// Time when the animation started.
@@ -37,16 +37,29 @@ internal sealed class AnimatedTexture {
     /// </summary>
     public bool IsReady => Renderer.Time - StartTime < 0;
 
-    public AnimatedTexture(TextureResource texture, float duration, Vector2 position, Vector2 pivot, Vector2 scale, float rotation, Color color) {
+    public AnimatedTexture(string textureKey, float duration, Vector2 position, Vector2 pivot, Vector2? scale = null, float rotation = 0, Color? color = null)
+        : this(ResourceManager.GetTexture(textureKey), duration, position, pivot, scale, rotation, color) {
+    }
+
+    public AnimatedTexture(TextureResource texture, float duration, Vector2 position, Vector2? pivot = null, Vector2? scale = null, float rotation = 0, Color? color = null) {
+        if (pivot == null)
+            pivot = Vector2.Zero;
+
+        if (scale == null)
+            scale = Vector2.One;
+
+        if (color == null)
+            color = Raylib.WHITE;
+
         Texture = texture;
         Position = position;
-        Pivot = pivot;
-        Scale = scale;
+        Pivot = pivot.Value;
+        Scale = scale.Value;
         Rotation = rotation;
         Duration = duration;
-        Color = color;
+        Color = color.Value;
 
-        StartTime = float.MinValue;
+        StartTime = -float.MinValue;
     }
 
     /// <summary>
@@ -60,7 +73,7 @@ internal sealed class AnimatedTexture {
     /// Resets the animation to the "not yet started" state.
     /// </summary>
     public void Reset() {
-        StartTime = float.MinValue;
+        StartTime = -float.MinValue;
     }
 
     public void Draw() {
@@ -73,8 +86,8 @@ internal sealed class AnimatedTexture {
             t = (Renderer.Time - StartTime) / Duration;
 
         Vector2 pos = Position + (PositionAnimator?.Invoke(t) ?? Vector2.Zero);
-        Vector2 scale = Scale * (ScaleAnimator?.Invoke(t) ?? Vector2.Zero);
-        float rot = Rotation + (RotationAnimator?.Invoke(t) ?? 0);
+        Vector2 scale = Scale * (ScaleAnimator?.Invoke(t) ?? Vector2.One);
+        float rot = (/*Rotation + */(RotationAnimator?.Invoke(t) ?? 0)) * RayMath.RAD2DEG;
         Color color = ColorAnimator?.Invoke(t) ?? Color;
 
         Texture.Draw(pos, Pivot, scale, rot, color);
