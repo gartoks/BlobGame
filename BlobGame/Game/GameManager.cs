@@ -26,14 +26,14 @@ public static class GameManager {
     /// <summary>
     /// Tubmler to draw cute little strawberries in the background.
     /// </summary>
-    private static StrawberryBackgroundTumbler Tumbler { get; }
+    private static BackgroundTumbler Tumbler { get; }
 
     private static IReadOnlyList<MusicResource> Music { get; set; }
     private static bool WasMusicQueued { get; set; }
 
     static GameManager() {
         Scoreboard = new Scoreboard();
-        Tumbler = new StrawberryBackgroundTumbler(60);
+        Tumbler = new BackgroundTumbler(60);
     }
 
     /// <summary>

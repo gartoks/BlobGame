@@ -7,12 +7,12 @@ namespace BlobGame.Drawing;
 /// <summary>
 /// Class to handle the logic and drawing of the cute little berries in the background.
 /// </summary>
-internal sealed class StrawberryBackgroundTumbler {
+internal sealed class BackgroundTumbler {
     private TextureResource[] Textures { get; set; }
 
     private TumblerData[] Tumblers { get; }
 
-    public StrawberryBackgroundTumbler(int numTumblers) {
+    public BackgroundTumbler(int numTumblers) {
         Textures = Enumerable.Range(0, 2).Select(i => ResourceManager.FallbackTexture).ToArray();
 
         // Spawn tumblers off screen in a circle around the center of the screen.
@@ -46,8 +46,8 @@ internal sealed class StrawberryBackgroundTumbler {
     }
 
     internal void Load() {
-        Textures[0] = ResourceManager.GetTexture($"0");
-        Textures[1] = ResourceManager.GetTexture($"1");
+        Textures[0] = ResourceManager.GetTexture($"blueberry_no_face");
+        Textures[1] = ResourceManager.GetTexture($"strawberry_no_face");
     }
 
     internal void Draw(float dT) {

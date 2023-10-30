@@ -6,7 +6,7 @@ using System.Numerics;
 
 namespace BlobGame.Game.Tutorial;
 internal sealed class TutorialDisplay {
-    private const float HOLD_TIME = 0.1f;
+    private const float HOLD_TIME = 0.5f;
 
     private int CurrentStageIndex { get; set; }
     private IReadOnlyList<TutorialStage> Stages { get; }
@@ -57,7 +57,7 @@ internal sealed class TutorialDisplay {
     }
 
     internal void Update(float dT) {
-        if (CurrentStage != null && CurrentStage.IsFadeInFinished && !AdvanceStage && Input.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT))
+        if (CurrentStage != null && CurrentStage.IsFadeInFinished && !AdvanceStage && Input.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT) && !Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT])
             HoldTime += dT;
 
         if (!AdvanceStage && HoldTime >= HOLD_TIME) {
