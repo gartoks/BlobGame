@@ -57,11 +57,11 @@ internal sealed class MusicResource {
     internal void Unload() {
         _Resource = null;
     }
-    
+
     /// <summary>
     /// Returns whether the resource is loaded yet.
     /// </summary>
-    internal bool IsLoaded(){
+    internal bool IsLoaded() {
         return _Resource != null;
     }
 }

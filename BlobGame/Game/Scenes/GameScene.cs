@@ -74,8 +74,8 @@ internal sealed class GameScene : Scene {
     internal override void Load() {
         // Loads all the blob textures
         for (int i = 0; i <= 10; i++) {
-            ResourceManager.LoadTexture($"{i}");
-            ResourceManager.LoadTexture($"{i}_shadow");
+            ResourceManager.GetTexture($"{i}");
+            ResourceManager.GetTexture($"{i}_shadow");
         }
 
         GameSim.Load();

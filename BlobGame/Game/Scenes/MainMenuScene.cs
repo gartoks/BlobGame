@@ -12,6 +12,8 @@ internal sealed class MainMenuScene : Scene {
     private TextureResource TitleTexture { get; set; }
     private TextureResource AvatarTexture { get; set; }
 
+    private TextScroller Scroller { get; }
+
     private GUIImage TitleImage { get; }
     private GuiTextButton PlayButton { get; }
     private GuiTextButton SettingsButton { get; }
@@ -19,6 +21,8 @@ internal sealed class MainMenuScene : Scene {
     private GuiTextButton QuitButton { get; }
 
     public MainMenuScene() {
+        Scroller = new TextScroller(15, 45, 15);
+
         PlayButton = new GuiTextButton(
             Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.45f,
             Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
@@ -51,6 +55,9 @@ internal sealed class MainMenuScene : Scene {
     internal override void Load() {
         TitleTexture = ResourceManager.GetTexture("title_logo");
         AvatarTexture = ResourceManager.GetTexture("melba_avatar");
+
+        Scroller.Load();
+
         TitleImage.Texture = TitleTexture;
     }
 
@@ -58,6 +65,8 @@ internal sealed class MainMenuScene : Scene {
     }
 
     internal override void Draw() {
+        Scroller.Draw();
+
         if (PlayButton.Draw())
             GameManager.SetScene(new GameScene());
         if (SettingsButton.Draw())
@@ -93,5 +102,6 @@ internal sealed class MainMenuScene : Scene {
     }
 
     internal override void Unload() {
+        Scroller.Unload();
     }
 }

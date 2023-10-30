@@ -33,6 +33,10 @@ internal static class ResourceManager {
     /// Sound resources.
     /// </summary>
     private static ConcurrentDictionary<string, (Music? music, MusicResource resource)> Music { get; }
+    /// <summary>
+    /// Text resources.
+    /// </summary>
+    private static ConcurrentDictionary<string, (string? text, TextResource resource)> Texts { get; }
 
     /// <summary>
     /// Default raylib font.
@@ -71,6 +75,15 @@ internal static class ResourceManager {
     public static MusicResource FallbackMusic { get; private set; }
 
     /// <summary>
+    /// Default text.
+    /// </summary>
+    private static string _FallbackText { get; set; }
+    /// <summary>
+    /// Default fallback text resource.
+    /// </summary>
+    public static TextResource FallbackText { get; private set; }
+
+    /// <summary>
     /// Base theme.
     /// </summary>
     private static Theme _DefaultTheme { get; }
@@ -89,6 +102,7 @@ internal static class ResourceManager {
         Textures = new();
         Sounds = new();
         Music = new();
+        Texts = new();
 
         _DefaultTheme = new Theme(Files.GetResourceFilePath("MelbaToast.theme"));
         MainTheme = _DefaultTheme;
@@ -111,11 +125,13 @@ internal static class ResourceManager {
         _FallbackTexture = Raylib.LoadTextureFromImage(image);
         _FallbackSound = new Sound();
         _FallbackMusic = new Music();
+        _FallbackText = string.Empty;
 
         FallbackFont = new FontResource("fallback", _FallbackFont, TryGetFont);
         FallbackTexture = new TextureResource("fallback", _FallbackTexture, TryGetTexture);
         FallbackSound = new SoundResource("fallback", _FallbackSound, TryGetSound);
         FallbackMusic = new MusicResource("fallback", _FallbackMusic, TryGetMusic);
+        FallbackText = new TextResource("fallback", _FallbackText, TryGetText);
     }
 
     internal static void Unload() {
@@ -153,6 +169,12 @@ internal static class ResourceManager {
         foreach (string key in Music.Keys.ToList()) {
             UnloadMusic(key);
             LoadMusic(key);
+        }
+
+        Debug.WriteLine("Unloading texts.");
+        foreach (string key in Texts.Keys.ToList()) {
+            UnloadText(key);
+            LoadText(key);
         }
     }
 
@@ -223,6 +245,19 @@ internal static class ResourceManager {
             }
 
             Music[key] = (music.Value, val.resource);
+        } else if (type == typeof(string)) {
+            if (!Texts.TryGetValue(key, out (string? text, TextResource resource) val)) {
+                Debug.WriteLine($"Unable to load text '{key}'.");
+                return;
+            }
+
+            string? text = MainTheme.LoadText(key) ?? _DefaultTheme.LoadText(key);
+            if (text == null) {
+                Debug.WriteLine($"The default theme doesn't contain a text for {key}");
+                return;
+            }
+
+            Texts[key] = (text!, val.resource);
         } else {
             Debug.WriteLine($"Resource type {type} is not supported");
         }
@@ -273,27 +308,6 @@ internal static class ResourceManager {
     }
 
     /// <summary>
-    /// Queues a font for loading from the given key.
-    /// </summary>
-    /// <param name="key"></param>
-    public static void LoadFont(string key) {
-        if (ResourceLoadingQueue.Any(r => r.key == key)){
-            return;
-        }
-        if (Fonts.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded())){
-            return;
-        }
-
-        if (!Fonts.ContainsKey(key)) {
-            Fonts[key] = (null, new FontResource(key, _FallbackFont, TryGetFont));
-            ResourceLoadingQueue.Add((key, typeof(Font)));
-        }
-        else if (Fonts.Any(pair => pair.Key == key && !pair.Value.resource.IsLoaded())){
-            ResourceLoadingQueue.Add((key, typeof(Font)));
-        }
-    }
-
-    /// <summary>
     /// Gets a font resource from the given key. Queues it for loading if needed.
     /// </summary>
     /// <param name="key"></param>
@@ -301,6 +315,26 @@ internal static class ResourceManager {
     public static FontResource GetFont(string key) {
         LoadFont(key);
         return Fonts[key].resource;
+    }
+
+    /// <summary>
+    /// Queues a font for loading from the given key.
+    /// </summary>
+    /// <param name="key"></param>
+    private static void LoadFont(string key) {
+        if (ResourceLoadingQueue.Any(r => r.key == key)) {
+            return;
+        }
+        if (Fonts.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded())) {
+            return;
+        }
+
+        if (!Fonts.ContainsKey(key)) {
+            Fonts[key] = (null, new FontResource(key, _FallbackFont, TryGetFont));
+            ResourceLoadingQueue.Add((key, typeof(Font)));
+        } else if (Fonts.Any(pair => pair.Key == key && !pair.Value.resource.IsLoaded())) {
+            ResourceLoadingQueue.Add((key, typeof(Font)));
+        }
     }
 
     /// <summary>
@@ -328,17 +362,6 @@ internal static class ResourceManager {
     }
 
     /// <summary>
-    /// Queues a texture for loading from the given key.
-    /// </summary>
-    /// <param name="key"></param>
-    public static void LoadTexture(string key) {
-        if (!Textures.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded()) && !ResourceLoadingQueue.Any(r => r.key == key)) {
-            Textures[key] = (null, new TextureResource(key, _FallbackTexture, TryGetTexture));
-            ResourceLoadingQueue.Add((key, typeof(Texture)));
-        }
-    }
-
-    /// <summary>
     /// Gets a texture resource from the given key. Queues it for loading if needed.
     /// </summary>
     /// <param name="key"></param>
@@ -346,6 +369,17 @@ internal static class ResourceManager {
     public static TextureResource GetTexture(string key) {
         LoadTexture(key);
         return Textures[key].resource;
+    }
+
+    /// <summary>
+    /// Queues a texture for loading from the given key.
+    /// </summary>
+    /// <param name="key"></param>
+    private static void LoadTexture(string key) {
+        if (!Textures.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded()) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+            Textures[key] = (null, new TextureResource(key, _FallbackTexture, TryGetTexture));
+            ResourceLoadingQueue.Add((key, typeof(Texture)));
+        }
     }
 
     /// <summary>
@@ -373,17 +407,6 @@ internal static class ResourceManager {
     }
 
     /// <summary>
-    /// Queues a sound for loading from the given key.
-    /// </summary>
-    /// <param name="key"></param>
-    public static void LoadSound(string key) {
-        if (!Sounds.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded()) && !ResourceLoadingQueue.Any(r => r.key == key)) {
-            Sounds[key] = (null, new SoundResource(key, _FallbackSound, TryGetSound));
-            ResourceLoadingQueue.Add((key, typeof(Sound)));
-        }
-    }
-
-    /// <summary>
     /// Gets a sound resource from the given key. Queues it for loading if needed.
     /// </summary>
     /// <param name="key"></param>
@@ -391,6 +414,17 @@ internal static class ResourceManager {
     public static SoundResource GetSound(string key) {
         LoadSound(key);
         return Sounds[key].resource;
+    }
+
+    /// <summary>
+    /// Queues a sound for loading from the given key.
+    /// </summary>
+    /// <param name="key"></param>
+    private static void LoadSound(string key) {
+        if (!Sounds.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded()) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+            Sounds[key] = (null, new SoundResource(key, _FallbackSound, TryGetSound));
+            ResourceLoadingQueue.Add((key, typeof(Sound)));
+        }
     }
 
     /// <summary>
@@ -417,17 +451,6 @@ internal static class ResourceManager {
     }
 
     /// <summary>
-    /// Queues a Music for loading from the given key.
-    /// </summary>
-    /// <param name="key"></param>
-    public static void LoadMusic(string key) {
-        if (!Music.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded()) && !ResourceLoadingQueue.Any(r => r.key == key)) {
-            Music[key] = (null, new MusicResource(key, _FallbackMusic, TryGetMusic));
-            ResourceLoadingQueue.Add((key, typeof(Music)));
-        }
-    }
-
-    /// <summary>
     /// Gets a Music resource from the given key. Queues it for loading if needed.
     /// </summary>
     /// <param name="key"></param>
@@ -435,6 +458,17 @@ internal static class ResourceManager {
     public static MusicResource GetMusic(string key) {
         LoadMusic(key);
         return Music[key].resource;
+    }
+
+    /// <summary>
+    /// Queues a Music for loading from the given key.
+    /// </summary>
+    /// <param name="key"></param>
+    private static void LoadMusic(string key) {
+        if (!Music.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded()) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+            Music[key] = (null, new MusicResource(key, _FallbackMusic, TryGetMusic));
+            ResourceLoadingQueue.Add((key, typeof(Music)));
+        }
     }
 
     /// <summary>
@@ -460,4 +494,46 @@ internal static class ResourceManager {
         Music[key] = (null, resource);
     }
 
+    /// <summary>
+    /// Gets a text resource from the given key. Queues it for loading if needed.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    public static TextResource GetText(string key) {
+        LoadText(key);
+        return Texts[key].resource;
+    }
+
+    /// <summary>
+    /// Queues a text for loading from the given key.
+    /// </summary>
+    /// <param name="key"></param>
+    private static void LoadText(string key) {
+        if (!Texts.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded()) && !ResourceLoadingQueue.Any(r => r.key == key)) {
+            Texts[key] = (null, new TextResource(key, _FallbackText, TryGetText));
+            ResourceLoadingQueue.Add((key, typeof(string)));
+        }
+    }
+
+    /// <summary>
+    /// Tries to get a string from the given key. Returns null if it doesn't exist.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    private static string? TryGetText(string key) {
+        if (Texts.TryGetValue(key, out (string? text, TextResource resource) text))
+            return text.text;
+
+        return null;
+    }
+
+    /// <summary>
+    /// Unloads the given text.
+    /// </summary>
+    /// <param name="key"></param>
+    private static void UnloadText(string key) {
+        TextResource resource = Texts[key].resource;
+        resource.Unload();
+        Texts[key] = (null, resource);
+    }
 }

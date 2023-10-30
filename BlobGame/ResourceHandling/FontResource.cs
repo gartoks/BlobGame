@@ -65,6 +65,9 @@ internal sealed class FontResource {
     }
 
     internal void Draw(string text, float fontSize, ColorResource tint, Vector2 position, /*Vector2? pivot = null, */float rotation = 0) {
+        Draw(text, fontSize, tint.Resource, position, /*pivot, */rotation);
+    }
+    internal void Draw(string text, float fontSize, Color tint, Vector2 position, /*Vector2? pivot = null, */float rotation = 0) {
         /*if (pivot == null)
             pivot = Vector2.Zero;
 */
@@ -76,6 +79,6 @@ internal sealed class FontResource {
             rotation,
             fontSize,
             fontSize / 16f,
-            tint.Resource);
+            tint);
     }
 }

@@ -1,6 +1,7 @@
 using Raylib_CsLo;
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Text;
 using System.Text.Json;
 
 namespace BlobGame.ResourceHandling;
@@ -95,6 +96,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
     /// Tries to get a color to the given key.
     /// </summary>
     /// <param name="key"></param>
+    /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
     internal Color? GetColor(string key) {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
@@ -107,9 +109,35 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
     }
 
     /// <summary>
+    /// Tries to get a text to the given key.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
+    internal string? LoadText(string key) {
+        if (!WasLoaded)
+            throw new InvalidOperationException("Theme was not loaded.");
+
+        string path = $"Texts/{key}.txt";
+        ZipArchiveEntry? zippedText = ThemeArchive!.GetEntry(path);
+
+        if (zippedText == null) {
+            Debug.WriteLine($"Text {key} doesn't exist in this theme");
+            return null;
+        }
+
+        using Stream textStream = zippedText.Open();
+        using StreamReader sr = new StreamReader(textStream, Encoding.UTF8);
+        string text = sr.ReadToEnd();
+
+        return text;
+    }
+
+    /// <summary>
     /// Tries to load a font from the zip archive.
     /// </summary>
     /// <param name="key"></param>
+    /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
     public Font? LoadFont(string key) {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
@@ -122,7 +150,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
             return null;
         }
 
-        Stream fontStream = zippedFont.Open();
+        using Stream fontStream = zippedFont.Open();
         byte[] fontData;
         using (MemoryStream ms = new MemoryStream()) {
             fontStream.CopyTo(ms);
@@ -147,6 +175,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
     /// Tries to load a texture from the zip archive.
     /// </summary>
     /// <param name="key"></param>
+    /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
     public Texture? LoadTexture(string key) {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
@@ -159,7 +188,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
             return null;
         }
 
-        Stream textureStream = zippedTexture.Open();
+        using Stream textureStream = zippedTexture.Open();
         byte[] textureData;
         using (MemoryStream ms = new MemoryStream()) {
             textureStream.CopyTo(ms);
@@ -185,6 +214,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
     /// Tries to load a sound from the zip archive.
     /// </summary>
     /// <param name="key"></param>
+    /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
     public Sound? LoadSound(string key) {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
@@ -197,7 +227,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
             return null;
         }
 
-        Stream soundStream = zippedSound.Open();
+        using Stream soundStream = zippedSound.Open();
         byte[] soundData;
         using (MemoryStream ms = new MemoryStream()) {
             soundStream.CopyTo(ms);
@@ -219,6 +249,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
     /// Tries to load a music from the zip archive.
     /// </summary>
     /// <param name="key"></param>
+    /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
     public Music? LoadMusic(string key) {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
@@ -231,7 +262,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
             return null;
         }
 
-        Stream musicStream = zippedSound.Open();
+        using Stream musicStream = zippedSound.Open();
         byte[] musicData;
         using (MemoryStream ms = new MemoryStream()) {
             musicStream.CopyTo(ms);

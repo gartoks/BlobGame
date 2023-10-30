@@ -1,7 +1,11 @@
 ﻿using BlobGame.Audio;
+using BlobGame.Drawing;
 using BlobGame.Game.Scenes;
 using BlobGame.Game.Util;
 using BlobGame.ResourceHandling;
+using BlobGame.Util;
+using Raylib_CsLo;
+using System.Numerics;
 
 namespace BlobGame.Game;
 /// <summary>
@@ -17,10 +21,20 @@ public static class GameManager {
     /// </summary>
     private static bool WasSceneLoaded { get; set; }
 
+    public static Scoreboard Scoreboard { get; }
+
+    /// <summary>
+    /// Tubmler to draw cute little strawberries in the background.
+    /// </summary>
+    private static StrawberryBackgroundTumbler Tumbler { get; }
 
     private static IReadOnlyList<MusicResource> Music { get; set; }
     private static bool WasMusicQueued { get; set; }
 
+    static GameManager() {
+        Scoreboard = new Scoreboard();
+        Tumbler = new StrawberryBackgroundTumbler(60);
+    }
 
     /// <summary>
     /// Initializes the game. Creates the initially loaded scene.
@@ -32,17 +46,14 @@ public static class GameManager {
         WasMusicQueued = false;
     }
 
-    public static Scoreboard Scoreboard { get; }
-
-    static GameManager() {
-        Scoreboard = new Scoreboard();
-    }
 
     /// <summary>
     /// Loads the game. Loads the initial scene.
     /// </summary>
     internal static void Load() {
         Scoreboard.Load();
+
+        Tumbler.Load();
 
         Music = new MusicResource[] {
             ResourceManager.GetMusic("crossinglike"),
@@ -84,7 +95,10 @@ public static class GameManager {
     /// <summary>
     /// Draws the game. Is executed every frame.
     /// </summary>
-    internal static void Draw() {
+    internal static void Draw(float dT) {
+        DrawBackground();
+        Tumbler.Draw(dT);
+
         if (!WasSceneLoaded)
             return;
 
@@ -102,5 +116,23 @@ public static class GameManager {
         Scene.Unload();
         WasSceneLoaded = false;
         Scene = scene;
+    }
+
+    private static void DrawBackground() {
+        const float ANGLE = -12.5f;
+        Color elementColor = ResourceManager.GetColor("light_accent").Resource.ChangeAlpha(64);
+        //Color elementColor = new Color(255, 255, 255, 64);
+
+        Raylib.DrawRectanglePro(
+            new Rectangle(-100, 287.5f, 2500, 100),
+            new Vector2(), ANGLE, elementColor);
+
+        Raylib.DrawRectanglePro(
+            new Rectangle(-100, Application.BASE_HEIGHT * 0.80f, 2500, 25),
+            new Vector2(), ANGLE, elementColor);
+
+        Raylib.DrawRectanglePro(
+            new Rectangle(-100, Application.BASE_HEIGHT * 0.85f, 2500, 200),
+            new Vector2(), ANGLE, elementColor);
     }
 }
