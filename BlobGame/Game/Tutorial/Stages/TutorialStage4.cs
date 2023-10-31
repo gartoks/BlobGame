@@ -1,4 +1,5 @@
-﻿using BlobGame.Drawing;
+﻿using BlobGame.Audio;
+using BlobGame.Drawing;
 using BlobGame.ResourceHandling;
 using System.Numerics;
 
@@ -12,8 +13,10 @@ internal class TutorialStage4 : TutorialStage {
     internal override bool IsFadeInFinished => true;
     internal override bool IsFadeOutFinished => AnimatedAvatarFadeOut.IsFinished;
 
-    public TutorialStage4() {
+    private bool PlayedSound { get; set; }
 
+    public TutorialStage4() {
+        PlayedSound = false;
     }
 
     internal override void Load() {
@@ -46,6 +49,11 @@ internal class TutorialStage4 : TutorialStage {
     }
 
     internal override void Draw() {
+        if (!PlayedSound) {
+            AudioManager.PlaySound("tutorial_4");
+            PlayedSound = true;
+        }
+
         AvatarTexture.Draw(new Vector2(-100, Application.BASE_HEIGHT - AvatarTexture.Resource.height / 2));
 
         DrawSpeechBubble();

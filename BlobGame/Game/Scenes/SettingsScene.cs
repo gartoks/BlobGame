@@ -191,11 +191,11 @@ internal class SettingsScene : Scene {
         //GameManager.SetScene(new SettingsScene());
     }
 
-    private (GuiSelector, GuiLabel) CreateSettingsEntry(string name, float xOffset, SelectionElement[] selectionElements, int selectedIndex) {
+    private (GuiSelector, GuiLabel) CreateSettingsEntry(string title, float xOffset, SelectionElement[] selectionElements, int selectedIndex) {
         GuiLabel label = new GuiLabel(
             Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * xOffset,
             Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 16f,
-            name,
+            title,
             new Vector2(0, 0));
 
         GuiSelector selector = new GuiSelector(

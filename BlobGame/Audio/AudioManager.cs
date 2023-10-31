@@ -64,7 +64,6 @@ internal static class AudioManager {
         }
 
         foreach (string item in PlayingMusic.Keys.ToList()) {
-
             Music music = PlayingMusic[item].Resource;
             if (Raylib.IsMusicStreamPlaying(music))
                 Raylib.UpdateMusicStream(music);
@@ -85,8 +84,8 @@ internal static class AudioManager {
 
         SoundActionQueue.Add(() => {
             PlayingSounds[name] = sound;
-            Raylib.PlaySound(sound.Resource);
             Raylib.SetSoundVolume(sound.Resource, Application.Settings.SoundVolume / 100f);
+            Raylib.PlaySound(sound.Resource);
         });
     }
 

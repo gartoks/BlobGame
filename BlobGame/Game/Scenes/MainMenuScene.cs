@@ -68,7 +68,7 @@ internal sealed class MainMenuScene : Scene {
         Scroller.Draw();
 
         if (PlayButton.Draw())
-            GameManager.SetScene(new GameScene());
+            GameManager.SetScene(new GameModeSelectionScene());
         if (SettingsButton.Draw())
             GameManager.SetScene(new SettingsScene());
         if (CreditsButton.Draw())

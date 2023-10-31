@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-
-namespace BlobGame.App;
+﻿namespace BlobGame.App;
 /// <summary>
 /// Provides utility methods for working with files, particularly for retrieving paths for saves and resources.
 /// </summary>
@@ -37,6 +35,6 @@ internal static class Files {
     /// <returns>The full path to the resource file.</returns>
     public static string GetResourceFilePath(params string[] paths) {
         // Combine the execution directory of the assembly with the resource directory and provided subpaths
-        return Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, ResourceDirectory, Path.Combine(paths));
+        return Path.Combine(ResourceDirectory, Path.Combine(paths));
     }
 }

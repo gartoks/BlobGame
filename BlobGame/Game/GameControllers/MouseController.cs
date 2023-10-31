@@ -1,4 +1,5 @@
 ﻿using BlobGame.App;
+using BlobGame.Game.GameModes;
 using BlobGame.Game.Scenes;
 using Raylib_CsLo;
 using System.Numerics;
@@ -6,13 +7,10 @@ using System.Numerics;
 namespace BlobGame.Game.GameControllers;
 
 internal class MouseController : IGameController {
-    /// <summary>
-    /// Represents the game scene associated with this controller.
-    /// </summary>
-    private GameScene Scene { get; }
+    public MouseController() {
+    }
 
-    public MouseController(GameScene scene) {
-        Scene = scene;
+    public void Load() {
     }
 
     /// <summary>
@@ -20,8 +18,8 @@ internal class MouseController : IGameController {
     /// </summary>
     /// <returns>The current value of t.</returns>
     public float GetCurrentT() {
-        Vector2 mPos = Scene.ScreenToArenaPosition(Raylib.GetMousePosition());
-        float t = mPos.X / Simulation.ARENA_WIDTH;
+        Vector2 mPos = GameScene.ScreenToArenaPosition(Raylib.GetMousePosition());
+        float t = mPos.X / ClassicGameMode.ARENA_WIDTH;
         return t;
     }
 
@@ -31,7 +29,7 @@ internal class MouseController : IGameController {
     /// <param name="simulation">The game simulation in which to spawn the blob.</param>
     /// <param name="t">The t value at which the blob is spawned, which represents the position of the dropper above the arena..</param>
     /// <returns>True if blob spawning was attempted, otherwise false.</returns>
-    public bool SpawnBlob(ISimulation simulation, out float t) {
+    public bool SpawnBlob(IGameMode simulation, out float t) {
         t = -1;
 
         if (!simulation.CanSpawnBlob)
@@ -45,8 +43,7 @@ internal class MouseController : IGameController {
         t = GetCurrentT();
         return true;
     }
-    public void Update(ISimulation simulation) { }
+    public void Update(float dT, IGameMode simulation) { }
 
     public void Close() { }
-
 }

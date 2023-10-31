@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using BlobGame.Game;
 using BlobGame.Game.GameControllers;
+using BlobGame.Game.GameModes;
 
 namespace BlobGame;
 /// <summary>
@@ -27,7 +28,7 @@ internal static class SocketApplication {
 
     private static IReadOnlyList<Thread>? Threads { get; set; }
 
-    private static IReadOnlyList<(Simulation simulation, SocketController controller)>? Games { get; set; }
+    private static IReadOnlyList<(ClassicGameMode simulation, SocketController controller)>? Games { get; set; }
 
     internal static void Initialize(int numParallelGames, bool useSeparateThreads, int seed, int port) {
         Seed = seed;
@@ -51,7 +52,7 @@ internal static class SocketApplication {
     private static void InitializeWithoutThreads() {
         Random random = new Random(Seed);
         Games = Enumerable.Range(0, NumParallelGames)
-            .Select(i => (new Simulation(random.Next()), new SocketController(i, Port)))
+            .Select(i => (new ClassicGameMode(random.Next()), new SocketController(i, Port)))
             .ToList();
     }
 
@@ -75,8 +76,8 @@ internal static class SocketApplication {
 
         List<int> runningGames = Enumerable.Range(0, NumParallelGames).ToList();
 
-        foreach ((Simulation sim, var _) in Games!){
-            sim.Load();
+        foreach ((IGameMode simulation, var _) in Games!){
+            simulation.Load();
         }
 
         while (runningGames.Count > 0) {
@@ -84,20 +85,20 @@ internal static class SocketApplication {
                 if (!runningGames.Contains(i))
                     continue;
 
-                (Simulation simulation, SocketController controller) = Games[i];
+                (ClassicGameMode simulation, SocketController controller) = Games[i];
 
                 simulation.Update(dT);
-                controller.Update(simulation);
+                controller.Update(dT, simulation);
 
                 if (simulation.CanSpawnBlob && controller.SpawnBlob(simulation, out float t)) {
                     t = Math.Clamp(t, 0, 1);
-                    simulation.TrySpawnBlob(t, out _);
+                    simulation.TrySpawnBlob(t);
                 }
 
                 if (simulation.IsGameOver || !controller.IsConnected) {
                     runningGames.Remove(i);
                     // send the game over state
-                    controller.Update(simulation);
+                    controller.Update(dT, simulation);
                     Console.WriteLine($"Game {i} ended with score {simulation.Score}. {runningGames.Count} games running.");
                 }
             }
@@ -107,7 +108,7 @@ internal static class SocketApplication {
     private static void RunGameThread(int gameIndex, int seed) {
         const float dT = 1f / 60f;
 
-        Simulation simulation = new Simulation(seed);
+        ClassicGameMode simulation = new ClassicGameMode(seed);
         SocketController controller = new SocketController(gameIndex, Port);
 
         Stopwatch sw = new Stopwatch();
@@ -118,21 +119,16 @@ internal static class SocketApplication {
 
         while (!simulation.IsGameOver && controller.IsConnected) {
             simulation.Update(dT);
-            controller.Update(simulation);
+            controller.Update(dT, simulation);
 
             if (simulation.CanSpawnBlob && controller.SpawnBlob(simulation, out float t)) {
                 t = Math.Clamp(t, 0, 1);
-                simulation.TrySpawnBlob(t, out _);
-            }
-
-            if (frameCounter % 100 == 0){
-                Console.WriteLine($"100 Frames took {Math.Round(sw.Elapsed.TotalSeconds*1000.0, 5)}ms. Score: {simulation.Score}");
-                sw.Restart();
+                simulation.TrySpawnBlob(t);
             }
             frameCounter++;
         }
         // send the game over state
-        controller.Update(simulation);
+        controller.Update(dT, simulation);
 
         Console.WriteLine($"Game {gameIndex} has finished with {simulation.Score} points");
     }

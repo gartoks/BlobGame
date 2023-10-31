@@ -1,5 +1,5 @@
-﻿using BlobGame.Game.GameObjects;
-using BlobGame.Game.Scenes;
+﻿using BlobGame.Game.GameModes;
+using BlobGame.Game.GameObjects;
 using System.Diagnostics;
 using System.Net.Sockets;
 
@@ -20,39 +20,41 @@ internal class SocketController : IGameController {
     /// <summary>
     /// The tcp client used to control this controller.
     /// </summary>
-    private TcpClient Client { get; }
+    private TcpClient? Client { get; set; }
     /// <summary>
     /// The network stream used to communicate with the server.
     /// </summary>
-    private NetworkStream Stream { get; }
+    private NetworkStream? Stream { get; set; }
 
     internal bool IsConnected => Client != null && Client.Connected;
 
-    private (float t, bool shouldDrop) FrameInputs { get; set; }
+    private (float t, bool shouldDrop)? FrameInputs { get; set; }
 
     public SocketController(int gameIndex, int port) {
         GameIndex = gameIndex;
         Port = port;
-
-        try {
-            Client = new TcpClient("localhost", Port);
-            Stream = Client.GetStream();
-        } catch (SocketException) {
-            Debug.WriteLine("Controller stream was closed.");
-        }
-        if (Client != null)
-            Debug.WriteLine($"Connected to localhost:{Port}");
     }
 
     ~SocketController() {
         Close();
     }
 
-    public void Close() {
-        if (IsConnected){
-            Debug.WriteLine("Closing tcp socket");
-            Client.Close();
+    public void Load() {
+        try {
+            Client = new TcpClient("localhost", Port);
+            Stream = Client.GetStream();
+        } catch (SocketException) {
+            Client = null;
+            Stream = null!;
+            Debug.WriteLine("Controller stream was closed.");
         }
+        if (Client != null)
+            Debug.WriteLine($"Connected to localhost:{Port}");
+    }
+
+    public void Close() {
+        Debug.WriteLine("Closing tcp socket");
+        Client?.Close();
     }
 
     /// <summary>
@@ -60,7 +62,7 @@ internal class SocketController : IGameController {
     /// </summary>
     /// <returns>The current value of t.</returns>
     public float GetCurrentT() {
-        return FrameInputs.t;
+        return FrameInputs == null ? -1 : FrameInputs.Value.t;
     }
 
     /// <summary>
@@ -69,21 +71,19 @@ internal class SocketController : IGameController {
     /// <param name="simulation">The game simulation in which to spawn the blob.</param>
     /// <param name="t">The t value at which the blob is spawned, which represents the position of the dropper above the arena..</param>
     /// <returns>True if blob spawning was attempted, otherwise false.</returns>
-    public bool SpawnBlob(ISimulation simulation, out float t) {
+    public bool SpawnBlob(IGameMode simulation, out float t) {
         t = -1;
         if (!simulation.CanSpawnBlob)
             return false;
 
         t = GetCurrentT();
 
-        return FrameInputs.shouldDrop;
+        return FrameInputs != null && FrameInputs.Value.shouldDrop;
     }
 
-    public void Update(ISimulation simulation) {
-        if (!IsConnected){
-            Debug.WriteLine($"Connection nr. {GameIndex} closed.");
+    public void Update(float dT, IGameMode simulation) {
+        if (!IsConnected)
             return;
-        }
 
         // send simulation state
         SendGameState(simulation);
@@ -92,7 +92,7 @@ internal class SocketController : IGameController {
         ReceiveInputs();
     }
 
-    public void SendGameState(ISimulation simulation) {
+    public void SendGameState(IGameMode simulation) {
         List<Blob> blobs = new();
         simulation.GameObjects.Enumerate(go => {
             if (go.GetType() == typeof(Blob)) {
@@ -113,10 +113,11 @@ internal class SocketController : IGameController {
         buffer = buffer.Concat(BitConverter.GetBytes(GameIndex));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.CanSpawnBlob));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.IsGameOver));
+        //buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.GameMode));
 
         bool failed = false;
         try {
-            Stream.Write(buffer.ToArray());
+            Stream?.Write(buffer.ToArray());
         } catch (SocketException) {
             failed = true;
         } catch (IOException) {
@@ -138,7 +139,7 @@ internal class SocketController : IGameController {
         byte[] buffer = new byte[5];
         bool failed = false;
         try {
-            Stream.ReadExactly(buffer, 0, 5);
+            Stream?.ReadExactly(buffer, 0, 5);
         } catch (EndOfStreamException) {
             failed = true;
         } catch (SocketException) {
