@@ -108,6 +108,14 @@ public static class Input {
     }
 
     /// <summary>
+    /// Unregisteres the hotkey with the given name.
+    /// </summary>
+    /// <param name="key"></param>
+    public static void UnregisterHotkey(string key) {
+        Hotkeys.Remove(key);
+    }
+
+    /// <summary>
     /// Gets the state of the given mouse button.
     /// </summary>
     /// <param name="button"></param>

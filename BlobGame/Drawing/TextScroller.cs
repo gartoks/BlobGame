@@ -79,8 +79,8 @@ internal sealed class TextScroller {
     }
 
     private void CreateScroller() {
-        string[] scollersTexts = ScrollerTexts.Resource.Split('\n');
-        string scrollerText = scollersTexts[Random.Next(scollersTexts.Length)].Trim();
+        int idx = Random.Next(ScrollerTexts.Resource.Count);
+        string scrollerText = ScrollerTexts.Resource.Values.Skip(idx).First().Trim();
 
         Vector2 size = Raylib.MeasureTextEx(Renderer.Font.Resource, scrollerText, 200, 200 / 16f);
 

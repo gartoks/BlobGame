@@ -34,7 +34,7 @@ internal sealed class Wall : GameObject {
 
         Fixture = Body.CreateRectangle(Width / 10f, Height / 10f, 1, new Vector2(Width / 10f / 2, Height / 10f / 2));
         Fixture.Restitution = 0;
-        Fixture.Friction = 0.35f;
+        Fixture.Friction = 0.15f;
         ZIndex = 0;
     }
 

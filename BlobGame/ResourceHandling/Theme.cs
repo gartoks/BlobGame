@@ -1,7 +1,6 @@
 using Raylib_CsLo;
 using System.Diagnostics;
 using System.IO.Compression;
-using System.Text;
 using System.Text.Json;
 
 namespace BlobGame.ResourceHandling;
@@ -106,31 +105,6 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         }
 
         return Colors[key];
-    }
-
-    /// <summary>
-    /// Tries to get a text to the given key.
-    /// </summary>
-    /// <param name="key"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
-    internal string? LoadText(string key) {
-        if (!WasLoaded)
-            throw new InvalidOperationException("Theme was not loaded.");
-
-        string path = $"Texts/{key}.txt";
-        ZipArchiveEntry? zippedText = ThemeArchive!.GetEntry(path);
-
-        if (zippedText == null) {
-            Debug.WriteLine($"Text {key} doesn't exist in this theme");
-            return null;
-        }
-
-        using Stream textStream = zippedText.Open();
-        using StreamReader sr = new StreamReader(textStream, Encoding.UTF8);
-        string text = sr.ReadToEnd();
-
-        return text;
     }
 
     /// <summary>
@@ -282,6 +256,30 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         music.looping = false;
 
         return music;
+    }
+
+    /// <summary>
+    /// Tries to get a text to the given key.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
+    internal IReadOnlyDictionary<string, string>? LoadText(string key) {
+        if (!WasLoaded)
+            throw new InvalidOperationException("Theme was not loaded.");
+
+        string path = $"Texts/{key}.json";
+        ZipArchiveEntry? zippedText = ThemeArchive!.GetEntry(path);
+
+        if (zippedText == null) {
+            Debug.WriteLine($"Text {key} doesn't exist in this theme");
+            return null;
+        }
+
+        using Stream textStream = zippedText.Open();
+        Dictionary<string, string>? dict = JsonSerializer.Deserialize<Dictionary<string, string>>(textStream);
+
+        return dict;
     }
 
     private void Dispose(bool disposing) {

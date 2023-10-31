@@ -1,4 +1,5 @@
-﻿using BlobGame.Drawing;
+﻿using BlobGame.Audio;
+using BlobGame.Drawing;
 using BlobGame.ResourceHandling;
 using System.Numerics;
 
@@ -12,13 +13,16 @@ internal class TutorialStage1 : TutorialStage {
     internal override bool IsFadeInFinished => AnimatedAvatarFadeIn.IsFinished;
     internal override bool IsFadeOutFinished => true;
 
-    public TutorialStage1() {
+    private bool PlayedSound { get; set; }
 
+    public TutorialStage1() {
+        PlayedSound = false;
     }
 
     internal override void Load() {
         base.Load();
         SpeechbubbleTexture = ResourceManager.GetTexture("speechbubble");
+        //SoundResource sound = ResourceManager.GetSound("tutorial_click_to_drop");
 
         AnimatedSpeechbubble = new AnimatedTexture(
             SpeechbubbleTexture,
@@ -43,13 +47,17 @@ internal class TutorialStage1 : TutorialStage {
     }
 
     internal override void DrawFadeIn() {
-
         if (AnimatedAvatarFadeIn.IsReady)
             AnimatedAvatarFadeIn.Start();
         AnimatedAvatarFadeIn.Draw();
     }
 
     internal override void Draw() {
+        if (!PlayedSound) {
+            AudioManager.PlaySound("tutorial_1");
+            PlayedSound = true;
+        }
+
         AvatarTexture.Draw(new Vector2(-100, Application.BASE_HEIGHT - AvatarTexture.Resource.height / 2));
 
         if (AnimatedAvatarFadeIn.IsFinished) {
@@ -90,5 +98,4 @@ internal class TutorialStage1 : TutorialStage {
     private float GetSpeechbubbleRotationT(float t) {
         return -MathF.Sin(MathF.Tau * t);
     }
-
 }

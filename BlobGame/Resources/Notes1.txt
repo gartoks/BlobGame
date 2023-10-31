@@ -3,19 +3,27 @@ Sometimes clicking doesnt spawn fruit
 z order changes wrongly when blobs are combined
 make that items are only added to the audio action queue once
 get game to play like the original
+blob combining sound is low
+blob combining sound is delayed
 
 
 TODO:
-tutorial
+tutorial art
 scene unloading
 clean all references of melba in the files and code to make it generic for multiple themes
+back to menu in game scene
+blob combining shader
 
 NICE TO HAVE:
+localization
 change display settings without restarting => needs gui bounds update
 random rotations on spawn
 custom physics engine?
 apparently cherries and strawberries combine into one when 3 of them collide at once?!
 maybe score sync with other players? export as base94 string?
+music selection in settings
+advance tutorial with keyboard
+navigate menues with keyboard
 
 CREDITS:
 Code: gartoks, Robotino

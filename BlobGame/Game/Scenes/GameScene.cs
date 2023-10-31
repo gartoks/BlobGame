@@ -1,12 +1,14 @@
-﻿using BlobGame.Drawing;
+﻿using BlobGame.Audio;
+using BlobGame.Drawing;
 using BlobGame.Game.Blobs;
 using BlobGame.Game.GameControllers;
-using BlobGame.Game.GameObjects;
+using BlobGame.Game.GameModes;
 using BlobGame.Game.Gui;
 using BlobGame.Game.Tutorial;
 using BlobGame.ResourceHandling;
 using BlobGame.Util;
 using Raylib_CsLo;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace BlobGame.Game.Scenes;
@@ -16,7 +18,7 @@ internal sealed class GameScene : Scene {
     private const float DROP_INDICATOR_WIDTH = 10;
 
     internal IGameController Controller { get; }
-    internal Simulation GameSim { get; private set; }
+    internal IGameMode Game { get; private set; }
 
     private TextureResource TitleTexture { get; set; }
     private TextureResource RankupArrowTexture { get; set; }
@@ -37,18 +39,18 @@ internal sealed class GameScene : Scene {
     /// <summary>
     /// Creates a new game scene.
     /// </summary>
-    public GameScene() {
-        //Controller = new SocketController(this);
-        Controller = new MouseController(this);
-        GameSim = new Simulation(new Random().Next());
+    public GameScene(IGameController controller, IGameMode gameMode) {
+        Controller = controller;
+        Game = gameMode;
+        Game.OnBlobsCombined += Game_OnBlobsCombined;
 
         RetryButton = new GuiTextButton(
-            Application.BASE_WIDTH * 0.37f, Application.BASE_HEIGHT * 0.6f,
+            Application.BASE_WIDTH * 0.37f, Application.BASE_HEIGHT * 0.625f,
             Application.BASE_WIDTH * 0.2f, 100,
             "Retry",
             new Vector2(0.5f, 0.5f));
         ToMainMenuButton = new GuiTextButton(
-            Application.BASE_WIDTH * 0.62f, Application.BASE_HEIGHT * 0.6f,
+            Application.BASE_WIDTH * 0.62f, Application.BASE_HEIGHT * 0.625f,
             Application.BASE_WIDTH * 0.2f, 100,
             "To Menu",
             new Vector2(0.5f, 0.5f));
@@ -63,10 +65,9 @@ internal sealed class GameScene : Scene {
             "Game over",
             new Vector2(0.5f, 0.5f));
 
-        //if (Application.Settings.IsTutorialEnabled)
+        //if (Application.Settings.IsTutorialEnabled)   // TODO re-enable
         Tutorial = new TutorialDisplay();
     }
-
 
     /// <summary>
     /// Called when the scene is loaded. Override this method to provide custom scene initialization logic and to load resources.
@@ -78,15 +79,16 @@ internal sealed class GameScene : Scene {
             ResourceManager.GetTexture($"{i}_shadow");
         }
 
-        GameSim.Load();
+        Game.Load();
+        Controller.Load();
 
         TitleTexture = ResourceManager.GetTexture("title_logo");
         RankupArrowTexture = ResourceManager.GetTexture("rankup_arrow");
         ArenaTexture = ResourceManager.GetTexture("arena_bg");
         MarkerTexture = ResourceManager.GetTexture("marker");
         DropperTexture = ResourceManager.GetTexture("dropper");
-        CurrentBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
-        NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.NextBlob}");
+        CurrentBlobTexture = ResourceManager.GetTexture($"{(int)Game.CurrentBlob}");
+        NextBlobTexture = ResourceManager.GetTexture($"{(int)Game.NextBlob}");
 
         Tutorial?.Load();
     }
@@ -99,20 +101,20 @@ internal sealed class GameScene : Scene {
         if (Tutorial != null && !Tutorial.IsFinished) {
             Tutorial.Update(dT);
         } else {
-            GameSim.Update(dT);
-            Controller.Update(GameSim);
+            Game.Update(dT);
+            Controller.Update(dT, Game);
 
-            if (GameSim.CanSpawnBlob) {
-                CurrentBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
-                NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.NextBlob}");
+            if (Game.CanSpawnBlob) {
+                CurrentBlobTexture = ResourceManager.GetTexture($"{(int)Game.CurrentBlob}");
+                NextBlobTexture = ResourceManager.GetTexture($"{(int)Game.NextBlob}");
             } else {
                 CurrentBlobTexture = ResourceManager.FallbackTexture;
-                NextBlobTexture = ResourceManager.GetTexture($"{(int)GameSim.CurrentBlob}");
+                NextBlobTexture = ResourceManager.GetTexture($"{(int)Game.CurrentBlob}");
             }
 
-            if (GameSim.CanSpawnBlob && Controller.SpawnBlob(GameSim, out float t)) {
+            if (Game.CanSpawnBlob && Controller.SpawnBlob(Game, out float t)) {
                 t = Math.Clamp(t, 0, 1);
-                GameSim.TrySpawnBlob(t, out Blob? blob);
+                Game.TrySpawnBlob(t);
             }
         }
     }
@@ -130,20 +132,20 @@ internal sealed class GameScene : Scene {
         DrawArena();
         DrawTitle();
 
-        GameSim.GameObjects.Enumerate(item => item.Draw());
+        Game.GameObjects.Enumerate(item => item.Draw());
 
         float t = Tutorial != null && !Tutorial.IsFinished ? 0.5f : Math.Clamp(Controller.GetCurrentT(), 0, 1);
         float indicatorOffset = DROP_INDICATOR_WIDTH / 2f + 1;
-        float x = -Simulation.ARENA_WIDTH / 2f + indicatorOffset + t * (Simulation.ARENA_WIDTH - 2 * indicatorOffset);
+        float x = -ClassicGameMode.ARENA_WIDTH / 2f + indicatorOffset + t * (ClassicGameMode.ARENA_WIDTH - 2 * indicatorOffset);
 
-        if (GameSim.IsGameOver)
+        if (Game.IsGameOver)
             x = LastDropIndicatorX;
         else
             LastDropIndicatorX = x;
 
         DrawNextBlob();
 
-        if (GameSim.CanSpawnBlob) {
+        if (Game.CanSpawnBlob) {
             DrawDropIndicator(x);
             DrawCurrentBlob(x);
         }
@@ -153,7 +155,7 @@ internal sealed class GameScene : Scene {
 
         Tutorial?.Draw();
 
-        if (GameSim.IsGameOver)
+        if (Game.IsGameOver)
             DrawGameOverScreen();
     }
 
@@ -161,20 +163,18 @@ internal sealed class GameScene : Scene {
     /// Called when the scene is about to be unloaded or replaced by another scene. Override this method to provide custom cleanup or deinitialization logic and to unload resources.
     /// </summary>
     internal override void Unload() {
-        GameManager.Scoreboard.AddScore(GameSim.Score);
+        GameManager.Scoreboard.AddScore(Game.Score);
         Controller.Close();
         // TODO unload NOT NEEDED resources
     }
 
     /// <summary>
-    /// Converts a point in screen coordinates (such as the mouse position) to arena-localized coordinates with 0 at the arena's floor.
+    /// Called when two blobs combine.
     /// </summary>
-    /// <param name="pos"></param>
-    /// <returns></returns>
-    public Vector2 ScreenToArenaPosition(Vector2 pos) {
-        float x = pos.X / Application.WorldToScreenMultiplierX - ARENA_OFFSET_X + Simulation.ARENA_WIDTH / 2;
-        float y = pos.Y / Application.WorldToScreenMultiplierY - ARENA_OFFSET_Y;
-        return new Vector2(x, y);
+    /// <param name="newType">The type of newly created blob.</param>
+    private void Game_OnBlobsCombined(eBlobType newType) {
+        AudioManager.PlaySound("piece_combination");
+        Debug.WriteLine($"Blobs combined. New type: {newType}");
     }
 
     internal void DrawTitle() {
@@ -261,7 +261,7 @@ internal sealed class GameScene : Scene {
         Raylib.DrawTexturePro(
             MarkerTexture.Resource,
             new Rectangle(0, 0, mW, mH),
-            new Rectangle(Simulation.ARENA_WIDTH * 0.75f, 0, mW, mH),
+            new Rectangle(ClassicGameMode.ARENA_WIDTH * 0.75f, 0, mW, mH),
             new Vector2(mW / 2, mH / 2),
             0,
             ResourceManager.GetColor("light_accent").Resource
@@ -271,12 +271,12 @@ internal sealed class GameScene : Scene {
         Raylib.DrawTexturePro(
             NextBlobTexture.Resource,
             new Rectangle(0, 0, w, h),
-            new Rectangle(Simulation.ARENA_WIDTH * 0.75f, 0, w, h),
+            new Rectangle(ClassicGameMode.ARENA_WIDTH * 0.75f, 0, w, h),
             new Vector2(w / 2, h / 2),
             0,
             Raylib.WHITE);
 
-        Vector2 textPos = new Vector2(Simulation.ARENA_WIDTH * 0.75f, -310);
+        Vector2 textPos = new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, -310);
         Raylib.DrawTextPro(
             Renderer.Font.Resource,
             "NEXT",
@@ -293,7 +293,7 @@ internal sealed class GameScene : Scene {
         Raylib.DrawTexturePro(
             DropperTexture.Resource,
             new Rectangle(0, 0, w, h),
-            new Rectangle(x, Simulation.ARENA_SPAWN_Y_OFFSET - 0.65f * h, 1.5f * w, 1.5f * h),
+            new Rectangle(x, ClassicGameMode.ARENA_SPAWN_Y_OFFSET - 0.65f * h, 1.5f * w, 1.5f * h),
             new Vector2(w * 0.33f, h / 2),
             0,
             Raylib.WHITE);
@@ -301,7 +301,7 @@ internal sealed class GameScene : Scene {
 
     internal void DrawDropIndicator(float x) {
         Raylib.DrawRectanglePro(
-            new Rectangle(x, 0, DROP_INDICATOR_WIDTH, Simulation.ARENA_HEIGHT),
+            new Rectangle(x, 0, DROP_INDICATOR_WIDTH, ClassicGameMode.ARENA_HEIGHT),
             new Vector2(DROP_INDICATOR_WIDTH / 2f, 0),
             0,
             ResourceManager.GetColor("background").Resource.ChangeAlpha(128));
@@ -314,7 +314,7 @@ internal sealed class GameScene : Scene {
         Raylib.DrawTexturePro(
             CurrentBlobTexture.Resource,
             new Rectangle(0, 0, w, h),
-            new Rectangle(x, Simulation.ARENA_SPAWN_Y_OFFSET, w, h),
+            new Rectangle(x, ClassicGameMode.ARENA_SPAWN_Y_OFFSET, w, h),
             new Vector2(w / 2, h / 2),
             0,
             Raylib.WHITE);
@@ -325,7 +325,7 @@ internal sealed class GameScene : Scene {
             new Rectangle(x, y, w, 150),
             0.3f, 10, 8, Raylib.WHITE);
 
-        DrawScoreValue(x, y + 30, w, GameSim.Score);
+        DrawScoreValue(x, y + 30, w, Game.Score);
     }
 
     private void DrawHighscores(float x, float y, float w) {
@@ -357,17 +357,28 @@ internal sealed class GameScene : Scene {
         GameOverPanel.Draw();
         GameOverLabel.Draw();
 
-        bool isNewHighscore = GameSim.Score > GameManager.Scoreboard.GlobalHighscore;
+        bool isNewHighscore = Game.Score > GameManager.Scoreboard.GlobalHighscore;
         GuiLabel ScoreLabel = new GuiLabel(
             new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.45f),
             new Vector2(1100, 90),
-            $"{(isNewHighscore ? "New Highscore!\n" : "")}Score: {GameSim.Score}",
+            $"{(isNewHighscore ? "New Highscore!\n" : "")}Score: {Game.Score}",
             new Vector2(0.5f, 0.5f));
         ScoreLabel.Draw();
 
         if (RetryButton.Draw())
-            GameManager.SetScene(new GameScene());
+            GameManager.SetScene(new GameScene(Controller, IGameMode.CreateGameMode(Game.GetType(), new Random().Next())));
         if (ToMainMenuButton.Draw())
             GameManager.SetScene(new MainMenuScene());
+    }
+
+    /// <summary>
+    /// Converts a point in screen coordinates (such as the mouse position) to arena-localized coordinates with 0 at the arena's floor.
+    /// </summary>
+    /// <param name="pos"></param>
+    /// <returns></returns>
+    public static Vector2 ScreenToArenaPosition(Vector2 pos) {
+        float x = pos.X / Application.WorldToScreenMultiplierX - ARENA_OFFSET_X + ClassicGameMode.ARENA_WIDTH / 2;
+        float y = pos.Y / Application.WorldToScreenMultiplierY - ARENA_OFFSET_Y;
+        return new Vector2(x, y);
     }
 }

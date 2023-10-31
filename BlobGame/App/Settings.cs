@@ -55,7 +55,7 @@ internal sealed class Settings {
             _SoundVolume = Math.Clamp(value, 0, 100);
             Save();
 
-            AudioManager.SetSoundVolume(_MusicVolume);
+            AudioManager.SetSoundVolume(_SoundVolume);
         }
     }
 

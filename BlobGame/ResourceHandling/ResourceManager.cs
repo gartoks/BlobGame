@@ -36,7 +36,7 @@ internal static class ResourceManager {
     /// <summary>
     /// Text resources.
     /// </summary>
-    private static ConcurrentDictionary<string, (string? text, TextResource resource)> Texts { get; }
+    private static ConcurrentDictionary<string, (IReadOnlyDictionary<string, string>? text, TextResource resource)> Texts { get; }
 
     /// <summary>
     /// Default raylib font.
@@ -77,7 +77,7 @@ internal static class ResourceManager {
     /// <summary>
     /// Default text.
     /// </summary>
-    private static string _FallbackText { get; set; }
+    private static IReadOnlyDictionary<string, string> _FallbackText { get; set; }
     /// <summary>
     /// Default fallback text resource.
     /// </summary>
@@ -125,7 +125,7 @@ internal static class ResourceManager {
         _FallbackTexture = Raylib.LoadTextureFromImage(image);
         _FallbackSound = new Sound();
         _FallbackMusic = new Music();
-        _FallbackText = string.Empty;
+        _FallbackText = new Dictionary<string, string>();
 
         FallbackFont = new FontResource("fallback", _FallbackFont, TryGetFont);
         FallbackTexture = new TextureResource("fallback", _FallbackTexture, TryGetTexture);
@@ -246,12 +246,12 @@ internal static class ResourceManager {
 
             Music[key] = (music.Value, val.resource);
         } else if (type == typeof(string)) {
-            if (!Texts.TryGetValue(key, out (string? text, TextResource resource) val)) {
+            if (!Texts.TryGetValue(key, out (IReadOnlyDictionary<string, string>? text, TextResource resource) val)) {
                 Debug.WriteLine($"Unable to load text '{key}'.");
                 return;
             }
 
-            string? text = MainTheme.LoadText(key) ?? _DefaultTheme.LoadText(key);
+            IReadOnlyDictionary<string, string>? text = MainTheme.LoadText(key) ?? _DefaultTheme.LoadText(key);
             if (text == null) {
                 Debug.WriteLine($"The default theme doesn't contain a text for {key}");
                 return;
@@ -520,8 +520,8 @@ internal static class ResourceManager {
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    private static string? TryGetText(string key) {
-        if (Texts.TryGetValue(key, out (string? text, TextResource resource) text))
+    private static IReadOnlyDictionary<string, string>? TryGetText(string key) {
+        if (Texts.TryGetValue(key, out (IReadOnlyDictionary<string, string>? text, TextResource resource) text))
             return text.text;
 
         return null;
