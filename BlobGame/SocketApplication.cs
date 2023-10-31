@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using BlobGame.Game.GameControllers;
+﻿using BlobGame.Game.GameControllers;
 using BlobGame.Game.GameModes;
 
 namespace BlobGame;
@@ -111,10 +110,6 @@ internal static class SocketApplication {
         ClassicGameMode simulation = new ClassicGameMode(seed);
         SocketController controller = new SocketController(gameIndex, Port);
 
-        Stopwatch sw = new Stopwatch();
-        sw.Start();
-        int frameCounter = 1;
-
         simulation.Load();
         controller.Load();
 
@@ -126,7 +121,6 @@ internal static class SocketApplication {
                 t = Math.Clamp(t, 0, 1);
                 simulation.TrySpawnBlob(t);
             }
-            frameCounter++;
         }
         // send the game over state
         controller.Update(dT, simulation);
