@@ -1,4 +1,5 @@
-﻿using BlobGame.Game;
+﻿using System.Diagnostics;
+using BlobGame.Game;
 using BlobGame.Game.GameControllers;
 
 namespace BlobGame;
@@ -109,6 +110,10 @@ internal static class SocketApplication {
         Simulation simulation = new Simulation(seed);
         SocketController controller = new SocketController(gameIndex, Port);
 
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
+        int frameCounter = 1;
+
         simulation.Load();
 
         while (!simulation.IsGameOver && controller.IsConnected) {
@@ -119,6 +124,12 @@ internal static class SocketApplication {
                 t = Math.Clamp(t, 0, 1);
                 simulation.TrySpawnBlob(t, out _);
             }
+
+            if (frameCounter % 100 == 0){
+                Console.WriteLine($"100 Frames took {Math.Round(sw.Elapsed.TotalSeconds*1000.0, 5)}ms. Score: {simulation.Score}");
+                sw.Restart();
+            }
+            frameCounter++;
         }
         // send the game over state
         controller.Update(simulation);
