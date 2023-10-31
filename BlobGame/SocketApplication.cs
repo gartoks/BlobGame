@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using BlobGame.Game;
 using BlobGame.Game.GameControllers;
 using BlobGame.Game.GameModes;
 
@@ -76,8 +75,9 @@ internal static class SocketApplication {
 
         List<int> runningGames = Enumerable.Range(0, NumParallelGames).ToList();
 
-        foreach ((IGameMode simulation, var _) in Games!){
+        foreach ((IGameMode simulation, SocketController controller) in Games!){
             simulation.Load();
+            controller.Load();
         }
 
         while (runningGames.Count > 0) {
@@ -116,6 +116,7 @@ internal static class SocketApplication {
         int frameCounter = 1;
 
         simulation.Load();
+        controller.Load();
 
         while (!simulation.IsGameOver && controller.IsConnected) {
             simulation.Update(dT);

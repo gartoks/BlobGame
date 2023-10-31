@@ -37,7 +37,7 @@ class Agent:
             self.device = torch.device("cpu")
 
         # Mario's DNN to predict the most optimal action - we implement this in the Learn section
-        self.net = Model(self.image_dim, self.additional_dim, self.action_dim).float()
+        self.net = Model(self.image_dim, self.additional_dim, self.action_dim, self.device).float()
         self.net.to(self.device)
         
         if checkpoint is not None:

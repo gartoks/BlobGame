@@ -1,9 +1,9 @@
-import gym
+import gymnasium as gym
 import torch
 import random, datetime, numpy as np
 from skimage import transform
 
-from gym.spaces import Box
+from gymnasium.spaces import Box
 
 class ResizeObservation(gym.ObservationWrapper):
     def __init__(self, env, shape):

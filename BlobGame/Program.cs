@@ -25,7 +25,7 @@ try {
                 bool.TryParse(args[i + 2], out useSeparateThreads) &&
                 int.TryParse(args[i + 3], out seed) &&
                 int.TryParse(args[i + 4], out port)) {
-            Console.WriteLine($"Starting {numParallelGames} games in socket mode");
+                Console.WriteLine($"Starting {numParallelGames} games in socket mode");
                 socketMode = true;
             }
         }

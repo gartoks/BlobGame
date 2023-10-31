@@ -39,8 +39,9 @@ class Model(nn.Module):
     '''mini cnn structure
     input -> (conv2d + relu) x 3 -> flatten -> (dense + relu) x 2 -> output
     '''
-    def __init__(self, input_dim, additional_dim, output_dim):
+    def __init__(self, input_dim, additional_dim, output_dim, device):
         super().__init__()
+        self.device = device
         c, w, h = input_dim
 
         if c != 1:
@@ -64,9 +65,9 @@ class Model(nn.Module):
 
     def reset_feedback(self, model):
         if model == 'online':
-            self.online_feedback = torch.zeros(self.feedback_dim).to("cuda")
+            self.online_feedback = torch.zeros(self.feedback_dim).to(self.device)
         elif model == 'target':
-            self.target_feedback = torch.zeros(self.feedback_dim).to("cuda")
+            self.target_feedback = torch.zeros(self.feedback_dim).to(self.device)
 
     def forward(self, image, data, model, feedback=None):
         if model == 'online':
