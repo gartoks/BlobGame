@@ -1,6 +1,5 @@
 ﻿using BlobGame.Game.GameModes;
 using BlobGame.Game.GameObjects;
-using BlobGame.Game.Scenes;
 using System.Diagnostics;
 using System.Net.Sockets;
 
@@ -49,7 +48,8 @@ internal class SocketController : IGameController {
             Stream = null!;
             Debug.WriteLine("Controller stream was closed.");
         }
-        Debug.WriteLine($"Connected to localhost:{Port}");
+        if (Client != null)
+            Debug.WriteLine($"Connected to localhost:{Port}");
     }
 
     public void Close() {
@@ -109,18 +109,20 @@ internal class SocketController : IGameController {
         }
         buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.CurrentBlob));
         buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.NextBlob));
-        buffer = buffer.Concat(BitConverter.GetBytes(simulation.CanSpawnBlob));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.Score));
-        buffer = buffer.Concat(BitConverter.GetBytes(simulation.IsGameOver));
         buffer = buffer.Concat(BitConverter.GetBytes(GameIndex));
+        buffer = buffer.Concat(BitConverter.GetBytes(simulation.CanSpawnBlob));
+        buffer = buffer.Concat(BitConverter.GetBytes(simulation.IsGameOver));
         //buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.GameMode));
 
         bool failed = false;
         try {
-            Stream.Write(buffer.ToArray());
+            Stream?.Write(buffer.ToArray());
         } catch (SocketException) {
             failed = true;
         } catch (IOException) {
+            failed = true;
+        } catch (ObjectDisposedException) {
             failed = true;
         }
 
@@ -137,17 +139,18 @@ internal class SocketController : IGameController {
         byte[] buffer = new byte[5];
         bool failed = false;
         try {
-            Stream.ReadExactly(buffer, 0, 5);
+            Stream?.ReadExactly(buffer, 0, 5);
         } catch (EndOfStreamException) {
             failed = true;
         } catch (SocketException) {
             failed = true;
         } catch (IOException) {
             failed = true;
+        } catch (ObjectDisposedException) {
+            failed = true;
         }
         if (failed) {
             Debug.WriteLine("Controller input stream was closed.");
-            GameManager.SetScene(new MainMenuScene());
             return;
         }
 

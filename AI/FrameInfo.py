@@ -15,3 +15,6 @@ class FrameInfo:
     current_blob: int
     next_blob: int
     can_drop: bool
+    score: int
+    is_game_over: bool
+    game_index: int

@@ -1,0 +1,24 @@
+ARENA_WIDTH = 670
+ARENA_HEIGHT = 846
+ARENA_OFFSET_X = 670/2
+ARENA_ASPECT_RATIO = ARENA_WIDTH / ARENA_HEIGHT
+
+NN_VIEW_WIDTH = 300
+NN_VIEW_HEIGHT = NN_VIEW_WIDTH / ARENA_ASPECT_RATIO
+
+
+BLOB_RADII = [
+    22.5,
+    30,
+    41,
+    47,
+    61,
+    79,
+    90,
+    109.5,
+    123,
+    152.5,
+    180,
+]
+
+BLOB_COLORS = [(x, x, x) for x in range(0, 200, 200//11)]

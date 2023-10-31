@@ -19,6 +19,11 @@ class SocketController:
     def wait_for_connection(self):
         self.connection, addr = self.server.accept()
         print(f"Connection from {addr}")
+    
+    def close_connection(self):
+        self.connection.close()
+    def close_server(self):
+        self.server.close()
 
     def send_frame_info(self, t: float, shouldDrop: bool):
         buffer = struct.pack("f?", t, shouldDrop)
@@ -40,11 +45,12 @@ class SocketController:
         bytes_left = BLOB_SIZE * count
         buffer = self.receive_exact(bytes_left)
         
-        frame = FrameInfo([], -1, -1, False)
+        frame = FrameInfo([], -1, -1, False, 0, False, 0)
         for i in range(0, bytes_left, BLOB_SIZE):
             x, y, t = struct.unpack("ffi", buffer[i:i+BLOB_SIZE])
             frame.blobs.append(Blob(x, y, t))
         
-        frame.current_blob, frame.next_blob, frame.can_drop = struct.unpack("ii?", self.receive_exact(9))
+        frame.current_blob, frame.next_blob, frame.score, frame.game_index, frame.can_drop, frame.is_game_over = \
+            struct.unpack("iiii??", self.receive_exact(18))
         return frame
 
