@@ -113,7 +113,6 @@ internal class SocketController : IGameController {
         buffer = buffer.Concat(BitConverter.GetBytes(GameIndex));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.CanSpawnBlob));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.IsGameOver));
-        buffer = buffer.Concat(BitConverter.GetBytes(GameIndex));
         //buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.GameMode));
 
         bool failed = false;
