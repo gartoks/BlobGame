@@ -1,7 +1,23 @@
-import numpy as np
+from collections import defaultdict
+from typing import Optional
 
-import gymnasium as gym
-from gymnasium import spaces
+import numpy as np
+import torch
+import tqdm
+from tensordict.nn import TensorDictModule
+from tensordict.tensordict import TensorDict, TensorDictBase
+from torch import nn
+
+from torchrl.data import BoundedTensorSpec, CompositeSpec, UnboundedContinuousTensorSpec, OneHotDiscreteTensorSpec
+from torchrl.envs import (
+    CatTensors,
+    EnvBase,
+    Transform,
+    TransformedEnv,
+    UnsqueezeTransform,
+)
+from torchrl.envs.transforms.transforms import _apply_to_composite
+from torchrl.envs.utils import check_env_specs, step_mdp
 
 from Constants import *
 from SocketController import SocketController
@@ -9,19 +25,45 @@ from Renderer import Renderer
 
 import socket
 
-class BlobEnvironment(gym.Env):
-    metadata = {"render_modes": ["human", "grayscale_array"]}
-
-    def __init__(self, render_mode=None):
-        self.observation_space = spaces.Tuple((
-            spaces.Box(low=0, high=1, shape=(1, ARENA_WIDTH, ARENA_HEIGHT), dtype=np.float32),
-            spaces.Discrete(len(BLOB_RADII)),
-            spaces.Discrete(len(BLOB_RADII)),
-            spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
-        ))
+class BlobEnvironment(EnvBase):
+    def __init__(self, seed=None, device="cpu"):
+        super().__init__(device=device, batch_size=[])
+        self.observation_spec = CompositeSpec(
+            pixels=BoundedTensorSpec(
+                low=0,
+                high=1,
+                shape=(NN_VIEW_WIDTH, NN_VIEW_HEIGHT),
+                dtype=torch.float64,
+            ),
+            can_drop=BoundedTensorSpec(
+                low=0,
+                high=1,
+                shape=(),
+                dtype=torch.float64,
+            ),
+            current_t=BoundedTensorSpec(
+                low=0,
+                high=1,
+                shape=(),
+                dtype=torch.float64,
+            ),
+            current_blob=OneHotDiscreteTensorSpec(
+                n=len(BLOB_RADII),
+                dtype=torch.float64,
+            ),
+            next_blob=OneHotDiscreteTensorSpec(
+                n=len(BLOB_RADII),
+                dtype=torch.float64,
+            ),
+            shape=(),
+        )
 
         # We have 3 actions, corresponding to "right", "left", "drop"
-        self.action_space = spaces.Discrete(3)
+        self.action_spec = OneHotDiscreteTensorSpec(
+            n=3,
+            dtype=torch.float64,
+        )
+        self.reward_spec = UnboundedContinuousTensorSpec(shape=(1))
 
         """
         The following dictionary maps abstract actions from `self.action_space` to
@@ -34,33 +76,27 @@ class BlobEnvironment(gym.Env):
             2: 0
         }
 
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
-        self.render_mode = render_mode
-
-        self.renderer = Renderer((ARENA_WIDTH, ARENA_HEIGHT), never_display=(render_mode != "human"))
+        self.renderer = Renderer((ARENA_WIDTH, ARENA_HEIGHT), never_display=False)
 
         self.t = 0.5
-
         self.controller = None
 
-    def _get_obs(self):
+    def _get_obs(self, tensordict):
         self.renderer.render_frame(self.last_frame)
-        current_blob = np.zeros(len(BLOB_RADII))
-        current_blob[self.last_frame.current_blob] = 1
-        next_blob = np.zeros(len(BLOB_RADII))
-        next_blob[self.last_frame.next_blob] = 1
         
-        return (
-            np.array([np.array(self.renderer.get_pixels(), dtype=np.float32) / 255.0]),
-            current_blob,
-            next_blob,
-            np.array([self.t])
+        return TensorDict(
+            {
+                "pixels": torch.tensor(self.renderer.get_pixels(), dtype=torch.float64, device=self.device) / 255.0,
+                "current_blob": self.observation_spec["current_blob"].encode(self.last_frame.current_blob).to(self.device),
+                "next_blob": self.observation_spec["next_blob"].encode(self.last_frame.next_blob).to(self.device),
+                "current_t": torch.tensor(self.t, dtype=torch.float64),
+                "can_drop": torch.tensor(float(self.last_frame.can_drop), dtype=torch.float64),
+            },
+            batch_size=(),
+            device=self.device
         )
 
-    def reset(self, seed=None, options=None):
-        # We need the following line to seed self.np_random
-        super().reset(seed=seed)
-
+    def _reset(self, tensordict):
         if (not self.controller is None):
             self.controller.close_connection()
             self.controller.close_server()
@@ -70,18 +106,19 @@ class BlobEnvironment(gym.Env):
         self.controller.wait_for_connection()
         self.last_frame = self.controller.receive_frame_info()
 
-        observation = self._get_obs()
+        observation = self._get_obs(tensordict)
 
-        if self.render_mode == "human":
-            self.renderer.display_frame()
+        self.renderer.display_frame()
 
-        return observation, {}
+        return observation
 
-    def step(self, action):
+    def _step(self, action):
         # Map the action (element of {0,1,2,3}) to the direction we walk in
-        self.t = max(min(self.t + self._action_to_direction[action], 1), 0)
         
-        should_drop = action == 2
+        
+        self.t = (self.t + self._action_to_direction[torch.argmax(action["action"]).item()]) % 1.0
+        
+        should_drop = torch.argmax(action["action"]).item() == 2
         
         last_score = self.last_frame.score
         terminated = False
@@ -89,9 +126,6 @@ class BlobEnvironment(gym.Env):
         try:
             self.controller.send_frame_info(self.t, should_drop)
             self.last_frame = self.controller.receive_frame_info()
-            while not self.last_frame.can_drop:
-                self.controller.send_frame_info(self.t, False)
-                self.last_frame = self.controller.receive_frame_info()
         except socket.error:
             terminated = True
 
@@ -101,12 +135,14 @@ class BlobEnvironment(gym.Env):
 
         if (reward < -100):
             terminated = True
-        observation = self._get_obs()
+        observation = self._get_obs(action)
 
-        if self.render_mode == "human":
-            self.renderer.display_frame()
+        self.renderer.display_frame()
 
-        return observation, reward, terminated, False, {}
+        observation["reward"] = float(reward)
+        observation["done"] = terminated
+
+        return observation
 
     def close(self):
         if self.controller is not None:
@@ -114,3 +150,8 @@ class BlobEnvironment(gym.Env):
         
         if self.renderer is not None:
             self.renderer.close_window()
+
+    def _set_seed(self, seed: Optional[int]): pass
+    
+# env = BlobEnvironment()
+# check_env_specs(env)

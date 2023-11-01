@@ -1,6 +1,7 @@
 torch
 torchvision
-scikit-image
 pygame
 gymnasium
 matplotlib
+torchrl
+tqdm

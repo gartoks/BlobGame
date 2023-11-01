@@ -1,84 +1,276 @@
-import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+from collections import defaultdict
 
-import random, datetime
-from pathlib import Path
+import matplotlib.pyplot as plt
+import torch
+from tensordict.nn import TensorDictModule
+from tensordict.nn.distributions import NormalParamExtractor
+from torch import nn
 
-import gymnasium as gym
-from gymnasium.spaces import Box
-from gymnasium.wrappers import FrameStack
-
-from Metrics import MetricLogger
-from Agent import Agent
-from Wrappers import SkipFrame
-
-from Constants import *
-
-from gymnasium.envs.registration import register
-
-register(
-     id="BlobGame-v0",
-     entry_point="Environment:BlobEnvironment",
-     max_episode_steps=None,
-     nondeterministic=True,
+from torchrl.collectors import SyncDataCollector
+from torchrl.data.replay_buffers import ReplayBuffer
+from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
+from torchrl.data.replay_buffers.storages import LazyTensorStorage
+from torchrl.envs import (
+    Compose,
+    DoubleToFloat,
+    ObservationNorm,
+    StepCounter,
+    TransformedEnv,
+    FrameSkipTransform,
+    UnsqueezeTransform,
+    CatTensors,
+    FlattenObservation,
 )
-env = gym.make('BlobGame-v0', render_mode="human")
+from torchrl.envs.utils import check_env_specs, ExplorationType, set_exploration_type
+from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
+from torchrl.objectives import ClipPPOLoss
+from torchrl.objectives.value import GAE
+from tqdm import tqdm
 
-# env = SkipFrame(env, skip=4)
-# env = ResizeObservation(env, shape=84)
-# env = FrameStack(env, num_stack=4)
+from datetime import datetime
+import os
 
-env.reset()
 
-save_dir = Path('checkpoints') / datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
-save_dir.mkdir(parents=True)
+from Environment import BlobEnvironment
 
-checkpoint = None #Path('checkpoints/2023-10-30T00-37-29/mario_net_10.chkpt')
-agent = Agent(image_dim=(1, ARENA_WIDTH, ARENA_HEIGHT), additional_dim=(len(BLOB_RADII)*2 + 1), action_dim=env.action_space.n, save_dir=save_dir, checkpoint=None)
+device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+num_cells = 256  # number of cells in each layer i.e. output dim.
+lr = 3e-4
+max_grad_norm = 1.0
+save_every = 10000
+save_path = "checkpoints/" + str(datetime.now()) + "/"
+os.mkdir(save_path)
+save_path += "network_{}.ckpt"
 
-logger = MetricLogger(save_dir)
+frame_skip = 1
+frames_per_batch = 2000 // frame_skip
+# For a complete training, bring the number of frames up to 1M
+total_frames = 1_000_000 // frame_skip
 
-episodes = 40000
+sub_batch_size = 64  # cardinality of the sub-samples gathered from the current data in the inner loop
+num_epochs = 10  # optimisation steps per batch of data collected
+clip_epsilon = (
+    0.2  # clip value for PPO loss: see the equation in the intro for more context.
+)
+gamma = 0.99
+lmbda = 0.95
+entropy_eps = 1e-4
 
-### for Loop that train the model num_episodes times by playing the game
-for e in range(episodes):
+env = BlobEnvironment(device=device)
 
-    state, _ = env.reset()
-    agent.reset_feedback()
+env = TransformedEnv(
+    env,
+    Compose(
+        FlattenObservation(
+            first_dim=-2,
+            last_dim=-1,
+            in_keys=["pixels"],
+        ),
+        UnsqueezeTransform(
+            unsqueeze_dim=-1,
+            in_keys=["can_drop", "current_t"],
+            in_keys_inv=["can_drop", "current_t"],
+        ),
+        CatTensors(
+            in_keys=["pixels", "can_drop", "current_blob", "next_blob", "current_t"], dim=-1, out_key="observation", del_keys=False,
+        ),
+        # normalize observations
+        ObservationNorm(in_keys=["observation"]),
+        DoubleToFloat(
+            in_keys=["observation"],
+        ),
+        StepCounter(),
+        FrameSkipTransform(frame_skip=frame_skip),
+    ),
+)
 
-    # Play the game!
-    while True:
+print(env.observation_spec)
 
-        # 3. Show environment (the visual) [WIP]
-        # env.render()
+env.transform[3].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
 
-        # 4. Run agent on the state
-        action = agent.act(state)
+check_env_specs(env)
 
-        # 5. Agent performs action
-        next_state, reward, terminated, done, info = env.step(action)
+# print("normalization constant shape:", env.transform[0].loc.shape)
 
-        # 6. Remember
-        agent.cache(state, next_state, action, reward, done or terminated)
+# print("observation_spec:", env.observation_spec)
+# print("reward_spec:", env.reward_spec)
+# print("done_spec:", env.done_spec)
+# print("action_spec:", env.action_spec)
+# print("state_spec:", env.state_spec)
 
-        # 7. Learn
-        q, loss = agent.learn()
+check_env_specs(env)
 
-        # 8. Logging
-        logger.log_step(reward, loss, q)
+actor_net = nn.Sequential(
+    nn.LazyLinear(num_cells, device=device),
+    nn.Tanh(),
+    nn.LazyLinear(num_cells, device=device),
+    nn.Tanh(),
+    nn.LazyLinear(num_cells, device=device),
+    nn.Tanh(),
+    nn.LazyLinear(2 * env.action_spec.shape[-1], device=device),
+    NormalParamExtractor(),
+)
 
-        # 9. Update state
-        state = next_state
+policy_module = TensorDictModule(
+    actor_net, in_keys=["observation"], out_keys=["loc", "scale"]
+)
 
-        # 10. Check if end of game
-        if done or terminated:
-            break
+policy_module = ProbabilisticActor(
+    module=policy_module,
+    spec=env.action_spec,
+    in_keys=["loc", "scale"],
+    distribution_class=TanhNormal,
+    return_log_prob=True,
+)
 
-    logger.log_episode()
+value_net = nn.Sequential(
+    nn.LazyLinear(num_cells, device=device),
+    nn.Tanh(),
+    nn.LazyLinear(num_cells, device=device),
+    nn.Tanh(),
+    nn.LazyLinear(num_cells, device=device),
+    nn.Tanh(),
+    nn.LazyLinear(1, device=device),
+)
 
-    if e % 20 == 0:
-        logger.record(
-            episode=e,
-            epsilon=agent.exploration_rate,
-            step=agent.curr_step
+value_module = ValueOperator(
+    module=value_net,
+    in_keys=["observation"],
+)
+
+
+print("Running policy:", policy_module(env.reset()))
+print("Running value:", value_module(env.reset()))
+
+
+collector = SyncDataCollector(
+    env,
+    policy_module,
+    frames_per_batch=frames_per_batch,
+    total_frames=total_frames,
+    split_trajs=False,
+    device=device,
+)
+
+replay_buffer = ReplayBuffer(
+    storage=LazyTensorStorage(frames_per_batch),
+    sampler=SamplerWithoutReplacement(),
+)
+
+advantage_module = GAE(
+    gamma=gamma, lmbda=lmbda, value_network=value_module, average_gae=True
+)
+
+loss_module = ClipPPOLoss(
+    actor=policy_module,
+    critic=value_module,
+    clip_epsilon=clip_epsilon,
+    entropy_bonus=bool(entropy_eps),
+    entropy_coef=entropy_eps,
+    # these keys match by default but we set this for completeness
+    value_target_key=advantage_module.value_target_key,
+    critic_coef=1.0,
+    gamma=0.99,
+    loss_critic_type="smooth_l1",
+)
+
+optim = torch.optim.Adam(loss_module.parameters(), lr)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+    optim, total_frames // frames_per_batch, 0.0
+)
+
+
+logs = defaultdict(list)
+pbar = tqdm(total=total_frames * frame_skip)
+eval_str = ""
+
+# We iterate over the collector until it reaches the total number of frames it was
+# designed to collect:
+for i, tensordict_data in enumerate(collector):
+    # we now have a batch of data to work with. Let's learn something from it.
+    for epoch in range(num_epochs):
+        # We'll need an "advantage" signal to make PPO work.
+        # We re-compute it at each epoch as its value depends on the value
+        # network which is updated in the inner loop.
+        with torch.no_grad():
+            advantage_module(tensordict_data)
+        data_view = tensordict_data.reshape(-1)
+        replay_buffer.extend(data_view.cpu())
+        for _ in range(frames_per_batch // sub_batch_size):
+            subdata = replay_buffer.sample(sub_batch_size)
+            loss_vals = loss_module(subdata.to(device))
+            loss_value = (
+                loss_vals["loss_objective"]
+                + loss_vals["loss_critic"]
+                + loss_vals["loss_entropy"]
+            )
+
+            # Optimization: backward, grad clipping and optim step
+            loss_value.backward()
+            # this is not strictly mandatory but it's good practice to keep
+            # your gradient norm bounded
+            torch.nn.utils.clip_grad_norm_(loss_module.parameters(), max_grad_norm)
+            optim.step()
+            optim.zero_grad()
+
+    logs["reward"].append(tensordict_data["next", "reward"].mean().item())
+    pbar.update(tensordict_data.numel() * frame_skip)
+    cum_reward_str = (
+        f"⌀ reward={logs['reward'][-1]: 4.4f} ({logs['reward'][0]: 4.4f})"
+    )
+    logs["step_count"].append(tensordict_data["step_count"].max().item())
+    stepcount_str = f"steps (max): {logs['step_count'][-1]}"
+    logs["lr"].append(optim.param_groups[0]["lr"])
+    lr_str = f"lr: {logs['lr'][-1]: 4.4f}"
+    if i % 10 == 0:
+        # We evaluate the policy once every 10 batches of data.
+        # Evaluation is rather simple: execute the policy without exploration
+        # (take the expected value of the action distribution) for a given
+        # number of steps (1000, which is our env horizon).
+        # The ``rollout`` method of the env can take a policy as argument:
+        # it will then execute this policy at each step.
+        with set_exploration_type(ExplorationType.MEAN), torch.no_grad():
+            # execute a rollout with the trained policy
+            eval_rollout = env.rollout(1000, policy_module)
+            logs["eval reward"].append(eval_rollout["next", "reward"].mean().item())
+            logs["eval reward (sum)"].append(
+                eval_rollout["next", "reward"].sum().item()
+            )
+            logs["eval step_count"].append(eval_rollout["step_count"].max().item())
+            eval_str = (
+                f"∑ reward: {logs['eval reward (sum)'][-1]: 4.4f} "
+                f"({logs['eval reward (sum)'][0]: 4.4f}), "
+                f"steps: {logs['eval step_count'][-1]}"
+            )
+            del eval_rollout
+    pbar.set_description(", ".join([eval_str, cum_reward_str, stepcount_str, lr_str]))
+
+    # We're also using a learning rate scheduler. Like the gradient clipping,
+    # this is a nice-to-have but nothing necessary for PPO to work.
+    scheduler.step()
+
+    if (i % save_every == 0):
+        path = save_path.format(i)
+        torch.save(
+            {
+                "model": value_net.state_dict(),
+                "logs": logs
+            },
+            path
         )
+
+plt.figure(figsize=(10, 10))
+plt.subplot(2, 2, 1)
+plt.plot(logs["reward"])
+plt.title("training rewards (average)")
+plt.subplot(2, 2, 2)
+plt.plot(logs["step_count"])
+plt.title("Max step count (training)")
+plt.subplot(2, 2, 3)
+plt.plot(logs["eval reward (sum)"])
+plt.title("Return (test)")
+plt.subplot(2, 2, 4)
+plt.plot(logs["eval step_count"])
+plt.title("Max step count (test)")
+plt.show()
+
