@@ -29,23 +29,30 @@ from tqdm import tqdm
 
 from datetime import datetime
 import os
+import numpy as np
 
 
 from Environment import BlobEnvironment
+
+def moving_average(data, window_size):
+    window = np.ones(int(window_size))/float(window_size)
+    return np.convolve(data, window, "same")
+
 
 device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
 num_cells = 256  # number of cells in each layer i.e. output dim.
 lr = 3e-4
 max_grad_norm = 1.0
-save_every = 10000
+save_every = 100
+
 save_path = "checkpoints/" + str(datetime.now()) + "/"
-os.mkdir(save_path)
+os.makedirs(save_path)
 save_path += "network_{}.ckpt"
 
 frame_skip = 1
 frames_per_batch = 2000 // frame_skip
 # For a complete training, bring the number of frames up to 1M
-total_frames = 1_000_000 // frame_skip
+total_frames = 1_000_000_000 // frame_skip
 
 sub_batch_size = 64  # cardinality of the sub-samples gathered from the current data in the inner loop
 num_epochs = 10  # optimisation steps per batch of data collected
@@ -72,7 +79,7 @@ env = TransformedEnv(
             in_keys_inv=["can_drop", "current_t"],
         ),
         CatTensors(
-            in_keys=["pixels", "can_drop", "current_blob", "next_blob", "current_t"], dim=-1, out_key="observation", del_keys=False,
+            in_keys=["pixels", "top_blob", "top_distance", "can_drop", "current_blob", "next_blob", "current_t"], dim=-1, out_key="observation", del_keys=False,
         ),
         # normalize observations
         ObservationNorm(in_keys=["observation"]),
@@ -184,6 +191,15 @@ logs = defaultdict(list)
 pbar = tqdm(total=total_frames * frame_skip)
 eval_str = ""
 
+path = "checkpoints/non_existent"
+
+if (os.path.exists(path)):
+    loaded = torch.load(path)
+
+    logs = loaded["logs"]
+    value_net.load_state_dict(loaded["model"])
+
+
 # We iterate over the collector until it reaches the total number of frames it was
 # designed to collect:
 for i, tensordict_data in enumerate(collector):
@@ -249,6 +265,26 @@ for i, tensordict_data in enumerate(collector):
     # this is a nice-to-have but nothing necessary for PPO to work.
     scheduler.step()
 
+    plt.close()
+    plt.figure(figsize=(15, 10))
+    plt.subplot(3, 2, 1)
+    plt.plot(logs["reward"])
+    plt.title("training rewards (average)")
+    plt.subplot(3, 2, 2)
+    plt.plot(logs["step_count"])
+    plt.title("Max step count (training)")
+    plt.subplot(3, 2, 3)
+    plt.plot(logs["eval reward (sum)"])
+    plt.title("Return (test)")
+    plt.subplot(3, 2, 4)
+    plt.plot(logs["eval step_count"])
+    plt.title("Max step count (test)")
+    plt.subplot(3, 2, 5)
+    plt.plot(moving_average(logs["reward"], 100))
+    plt.title("Reward (moving average)")
+    plt.show(block=False)
+    plt.pause(0.01)
+
     if (i % save_every == 0):
         path = save_path.format(i)
         torch.save(
@@ -258,19 +294,15 @@ for i, tensordict_data in enumerate(collector):
             },
             path
         )
+        print("Saved")
 
-plt.figure(figsize=(10, 10))
-plt.subplot(2, 2, 1)
-plt.plot(logs["reward"])
-plt.title("training rewards (average)")
-plt.subplot(2, 2, 2)
-plt.plot(logs["step_count"])
-plt.title("Max step count (training)")
-plt.subplot(2, 2, 3)
-plt.plot(logs["eval reward (sum)"])
-plt.title("Return (test)")
-plt.subplot(2, 2, 4)
-plt.plot(logs["eval step_count"])
-plt.title("Max step count (test)")
 plt.show()
 
+path = save_path.format(i)
+torch.save(
+    {
+        "model": value_net.state_dict(),
+        "logs": logs
+    },
+    path
+)

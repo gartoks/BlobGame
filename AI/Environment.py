@@ -25,6 +25,12 @@ from Renderer import Renderer
 
 import socket
 
+from matplotlib import pyplot as plt
+
+def first_nonone(arr, axis, invalid_val=-1):
+    mask = arr!=1.0
+    return arr.take(np.where(mask.any(axis=axis), mask.argmax(axis=axis), invalid_val), axis)[0]
+
 class BlobEnvironment(EnvBase):
     def __init__(self, seed=None, device="cpu"):
         super().__init__(device=device, batch_size=[])
@@ -33,6 +39,18 @@ class BlobEnvironment(EnvBase):
                 low=0,
                 high=1,
                 shape=(NN_VIEW_WIDTH, NN_VIEW_HEIGHT),
+                dtype=torch.float64,
+            ),
+            top_blob=BoundedTensorSpec(
+                low=0,
+                high=1,
+                shape=(NN_VIEW_WIDTH),
+                dtype=torch.float64,
+            ),
+            top_distance=BoundedTensorSpec(
+                low=0,
+                high=1,
+                shape=(NN_VIEW_WIDTH),
                 dtype=torch.float64,
             ),
             can_drop=BoundedTensorSpec(
@@ -83,10 +101,24 @@ class BlobEnvironment(EnvBase):
 
     def _get_obs(self, tensordict):
         self.renderer.render_frame(self.last_frame)
+
+        pixels = self.renderer.get_pixels().astype(np.float32) / 255.0
+
+        rolled_pixels = np.roll(pixels, int(float(pixels.shape[-1]) * -self.t), -2)
+
+        top_blob = first_nonone(rolled_pixels, -1, 0)
+        top_distance = (1.0-(np.argmax(rolled_pixels!=1, -1) / float(NN_VIEW_HEIGHT-1))) % 1.0
+        
+        plt.imshow(np.moveaxis([np.concatenate([np.transpose(rolled_pixels), [top_distance]*50, [top_blob]*30])]*3, [0, 1, 2], [2, 0, 1]))
+        plt.show(block=False)
+        plt.pause(0.01)
+
         
         return TensorDict(
             {
-                "pixels": torch.tensor(self.renderer.get_pixels(), dtype=torch.float64, device=self.device) / 255.0,
+                "pixels": torch.tensor(rolled_pixels, dtype=torch.float64, device=self.device),
+                "top_blob": torch.tensor(top_blob, dtype=torch.float64, device=self.device),
+                "top_distance": torch.tensor(top_distance, dtype=torch.float64, device=self.device),
                 "current_blob": self.observation_spec["current_blob"].encode(self.last_frame.current_blob).to(self.device),
                 "next_blob": self.observation_spec["next_blob"].encode(self.last_frame.next_blob).to(self.device),
                 "current_t": torch.tensor(self.t, dtype=torch.float64),
