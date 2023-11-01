@@ -87,7 +87,7 @@ internal sealed class AnimatedTexture {
 
         Vector2 pos = Position + (PositionAnimator?.Invoke(t) ?? Vector2.Zero);
         Vector2 scale = Scale * (ScaleAnimator?.Invoke(t) ?? Vector2.One);
-        float rot = (/*Rotation + */(RotationAnimator?.Invoke(t) ?? 0)) * RayMath.RAD2DEG;
+        float rot = (/*Rotation + */(RotationAnimator?.Invoke(t) ?? Rotation)) * RayMath.RAD2DEG;
         Color color = ColorAnimator?.Invoke(t) ?? Color;
 
         Texture.Draw(pos, Pivot, scale, rot, color);

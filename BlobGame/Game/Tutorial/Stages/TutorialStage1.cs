@@ -1,6 +1,7 @@
 ﻿using BlobGame.Audio;
 using BlobGame.Drawing;
 using BlobGame.ResourceHandling;
+using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Tutorial.Stages;
@@ -9,6 +10,8 @@ internal class TutorialStage1 : TutorialStage {
 
     private AnimatedTexture AnimatedSpeechbubble { get; set; }
     private AnimatedTexture AnimatedAvatarFadeIn { get; set; }
+    private AnimatedTexture AnimatedPointer { get; set; }
+    private Vector2 PointerAnimationDirection { get; }
 
     internal override bool IsFadeInFinished => AnimatedAvatarFadeIn.IsFinished;
     internal override bool IsFadeOutFinished => true;
@@ -17,12 +20,13 @@ internal class TutorialStage1 : TutorialStage {
 
     public TutorialStage1() {
         PlayedSound = false;
+
+        PointerAnimationDirection = new Vector2(MathF.Cos(MathF.PI / 2f + -55 * RayMath.DEG2RAD), MathF.Sin(MathF.PI / 2 + -55 * RayMath.DEG2RAD));
     }
 
     internal override void Load() {
         base.Load();
         SpeechbubbleTexture = ResourceManager.GetTexture("speechbubble");
-        //SoundResource sound = ResourceManager.GetSound("tutorial_click_to_drop");
 
         AnimatedSpeechbubble = new AnimatedTexture(
             SpeechbubbleTexture,
@@ -39,6 +43,16 @@ internal class TutorialStage1 : TutorialStage {
             new Vector2(-100, Application.BASE_HEIGHT + AvatarTexture.Resource.height),
             new Vector2(0, 1)) {
             PositionAnimator = t => new Vector2(0, -GetAvatarPositionT(t) * AvatarTexture.Resource.height / 2f)
+        };
+
+        AnimatedPointer = new AnimatedTexture(
+            PointerTexture,
+            0.5f,
+            new Vector2(0.625f * Application.BASE_WIDTH, 0.19f * Application.BASE_HEIGHT),
+            Vector2.One / 2f,
+            Vector2.One / 2f,
+            -55f * RayMath.DEG2RAD) {
+            PositionAnimator = t => PointerAnimationDirection * 10 * -MathF.Sin(MathF.Tau * t)
         };
     }
 
@@ -59,6 +73,14 @@ internal class TutorialStage1 : TutorialStage {
         }
 
         AvatarTexture.Draw(new Vector2(-100, Application.BASE_HEIGHT - AvatarTexture.Resource.height / 2));
+
+        if (AnimatedPointer.IsReady)
+            AnimatedPointer.Start();
+
+        AnimatedPointer.Draw();
+
+        if (AnimatedPointer.IsFinished)
+            AnimatedPointer.Start();
 
         if (AnimatedAvatarFadeIn.IsFinished) {
             DrawSpeechBubble();

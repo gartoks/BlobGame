@@ -13,6 +13,10 @@ internal sealed class TextScroller {
     private static readonly Vector2 DIRECTION = new Vector2(MathF.Cos(-12.5f * RayMath.DEG2RAD), MathF.Sin(-12.5f * RayMath.DEG2RAD));
 
     /// <summary>
+    /// The time before the first scroll happens.
+    /// </summary>
+    private float InitialScrollInterval { get; }
+    /// <summary>
     /// The minimum time between two scrollers.
     /// </summary>
     private float MinScrollInterval { get; }
@@ -35,9 +39,10 @@ internal sealed class TextScroller {
     private float NextScrollTime { get; set; }
     private (string text, Vector2 size)? Scroller { get; set; }
 
-    public TextScroller(float minScrollInterval, float maxScrollInterval, float scrollTime) {
+    public TextScroller(float initialScrollInterval, float minScrollInterval, float maxScrollInterval, float scrollTime) {
         MinScrollInterval = minScrollInterval;
         MaxScrollInterval = maxScrollInterval;
+        InitialScrollInterval = initialScrollInterval;
         ScrollTime = scrollTime;
 
         Random = new Random();
@@ -46,7 +51,7 @@ internal sealed class TextScroller {
     internal void Load() {
         ScrollerTexts = ResourceManager.GetText("scrollers");
 
-        NextScrollTime = Renderer.Time + MinScrollInterval;// + Random.NextSingle() * (MaxScrollInterval - MinScrollInterval);
+        NextScrollTime = Renderer.Time + InitialScrollInterval;
     }
 
     internal void Draw() {

@@ -1,8 +1,7 @@
 ﻿using BlobGame.App;
 using BlobGame.Game.Tutorial.Stages;
-using BlobGame.ResourceHandling;
+using BlobGame.Util;
 using Raylib_CsLo;
-using System.Numerics;
 
 namespace BlobGame.Game.Tutorial;
 internal sealed class TutorialDisplay {
@@ -17,7 +16,7 @@ internal sealed class TutorialDisplay {
     private float HoldTime { get; set; }
     private bool AdvanceStage { get; set; }
 
-    private TextureResource OverlayTexture { get; set; }
+    //private TextureResource OverlayTexture { get; set; }
 
     public TutorialDisplay() {
         Stages = new TutorialStage[] {
@@ -37,7 +36,7 @@ internal sealed class TutorialDisplay {
     }
 
     internal void Load() {
-        OverlayTexture = ResourceManager.GetTexture("tutorial_stage_1_overlay");
+        //OverlayTexture = ResourceManager.GetTexture("tutorial_stage_1_overlay");
 
         CurrentStage?.Load();
     }
@@ -46,7 +45,7 @@ internal sealed class TutorialDisplay {
         if (IsFinished)
             return;
 
-        OverlayTexture.Draw(Vector2.Zero);
+        Raylib.DrawRectangleRec(new Rectangle(0, 0, Application.BASE_WIDTH, Application.BASE_HEIGHT), Raylib.WHITE.ChangeAlpha(64));
 
         if (!CurrentStage!.IsFadeInFinished)
             CurrentStage.DrawFadeIn();

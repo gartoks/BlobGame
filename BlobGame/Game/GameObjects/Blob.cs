@@ -73,16 +73,11 @@ internal sealed class Blob : GameObject {
     /// Custom draw logic for the blob.
     /// </summary>
     protected internal override void DrawInternal() {
-        float w = Texture.Resource.width;
-        float h = Texture.Resource.height;
-
-        Raylib.DrawTexturePro(
-            Texture.Resource,
-            new Rectangle(0, 0, w, h),
-            new Rectangle(0, 0, w, h),
-            new System.Numerics.Vector2(TextureOrigin.X * w, TextureOrigin.Y * h),
-            RayMath.RAD2DEG * Rotation,
-            Raylib.WHITE);
+        Texture.Draw(
+            System.Numerics.Vector2.Zero,
+            new System.Numerics.Vector2(TextureOrigin.X, TextureOrigin.Y),
+            new System.Numerics.Vector2(0.25f, 0.25f),
+            RayMath.RAD2DEG * Rotation);
 
         if (Application.DRAW_DEBUG) {
             Raylib.DrawCircleLines(0, 0, Radius, Raylib.BLUE);

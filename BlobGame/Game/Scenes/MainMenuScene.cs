@@ -21,7 +21,7 @@ internal sealed class MainMenuScene : Scene {
     private GuiTextButton QuitButton { get; }
 
     public MainMenuScene() {
-        Scroller = new TextScroller(15, 45, 15);
+        Scroller = new TextScroller(5, 15, 30, 15);
 
         PlayButton = new GuiTextButton(
             Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.45f,

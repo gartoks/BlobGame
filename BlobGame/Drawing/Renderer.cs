@@ -67,7 +67,11 @@ internal static class Renderer {
 
         if (Application.DRAW_DEBUG) {
             int fps = Raylib.GetFPS();
-            Raylib.DrawText(fps.ToString(), 10, 10, 12, Raylib.LIME);
+            Raylib.DrawText(fps.ToString(), 10, 10, 16, Raylib.LIME);
+
+            float x = Raylib.GetMouseX() / (float)Raylib.GetRenderWidth();
+            float y = Raylib.GetMouseY() / (float)Raylib.GetRenderHeight();
+            Raylib.DrawText($"{Raylib.GetMousePosition()}, ({x:0.000}, {y:0.000})", 30, 30, 16, Raylib.MAGENTA);
         }
 
         Raylib.EndDrawing();

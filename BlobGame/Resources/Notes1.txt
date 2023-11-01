@@ -6,13 +6,14 @@ get game to play like the original
 blob combining sound is low
 blob combining sound is delayed
 
-
 TODO:
-tutorial art
 scene unloading
 clean all references of melba in the files and code to make it generic for multiple themes
 back to menu in game scene
 blob combining shader
+melba popup in main menu
+
+logger
 
 NICE TO HAVE:
 localization
@@ -29,6 +30,10 @@ CREDITS:
 Code: gartoks, Robotino
 Art: Pixl, Troobs, _neuroFumo
 Music: Wiggle, Fibi
+
+NAME IDEAS:
+Toast
+Untitled Toast Game
 
 
 arena internal
@@ -54,10 +59,8 @@ peach + peach = 36
 melon + melon = 45
 honeydew + honeydew = 55
 
+speed multiplier for dropping pieces fast
 Banana: Strange shaped fruit that combines into a peach (or whatever fruit we change peaches to) when it touches another banana.
-
 Jam: A garbage fruit. The only way to get rid of it is to break the jar on the floor or with another jar. (or maybe a toast slice without jam?)
-
 Egg: Breaks when it hits walls or the floor, but combines with itself into an omelette that acts as a mid stage fruit (like a toast slice).
-
 Anyway, these 'fruits' can be put in another game mode, or maybe we have a "Classic Toast" game mode without them as an option.

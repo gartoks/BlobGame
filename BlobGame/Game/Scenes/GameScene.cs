@@ -251,9 +251,6 @@ internal sealed class GameScene : Scene {
     }
 
     internal void DrawNextBlob() {
-        float w = NextBlobTexture.Resource.width;
-        float h = NextBlobTexture.Resource.height;
-
         float mW = MarkerTexture.Resource.width;
         float mH = MarkerTexture.Resource.height;
 
@@ -268,13 +265,10 @@ internal sealed class GameScene : Scene {
             );
 
         // Blob
-        Raylib.DrawTexturePro(
-            NextBlobTexture.Resource,
-            new Rectangle(0, 0, w, h),
-            new Rectangle(ClassicGameMode.ARENA_WIDTH * 0.75f, 0, w, h),
-            new Vector2(w / 2, h / 2),
-            0,
-            Raylib.WHITE);
+        NextBlobTexture.Draw(
+            new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, 0),
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.25f, 0.25f));
 
         Vector2 textPos = new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, -310);
         Raylib.DrawTextPro(
@@ -287,16 +281,10 @@ internal sealed class GameScene : Scene {
     }
 
     internal void DrawDropper(float x) {
-        float w = DropperTexture.Resource.width;
-        float h = DropperTexture.Resource.height;
-
-        Raylib.DrawTexturePro(
-            DropperTexture.Resource,
-            new Rectangle(0, 0, w, h),
-            new Rectangle(x, ClassicGameMode.ARENA_SPAWN_Y_OFFSET - 0.65f * h, 1.5f * w, 1.5f * h),
-            new Vector2(w * 0.33f, h / 2),
-            0,
-            Raylib.WHITE);
+        DropperTexture.Draw(
+            new Vector2(x + 30, 3.5f * ClassicGameMode.ARENA_SPAWN_Y_OFFSET),
+            new Vector2(0.33f, 0.5f),
+            new Vector2(3f / 8f, 3f / 8f));
     }
 
     internal void DrawDropIndicator(float x) {
@@ -308,16 +296,10 @@ internal sealed class GameScene : Scene {
     }
 
     internal void DrawCurrentBlob(float x) {
-        float w = CurrentBlobTexture.Resource.width;
-        float h = CurrentBlobTexture.Resource.height;
-
-        Raylib.DrawTexturePro(
-            CurrentBlobTexture.Resource,
-            new Rectangle(0, 0, w, h),
-            new Rectangle(x, ClassicGameMode.ARENA_SPAWN_Y_OFFSET, w, h),
-            new Vector2(w / 2, h / 2),
-            0,
-            Raylib.WHITE);
+        CurrentBlobTexture.Draw(
+            new Vector2(x, ClassicGameMode.ARENA_SPAWN_Y_OFFSET),
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.25f, 0.25f));
     }
 
     private void DrawCurrentScore(float x, float y, float w) {
