@@ -48,8 +48,8 @@ internal class SocketController : IGameController {
             Stream = null!;
             Debug.WriteLine("Controller stream was closed.");
         }
-        if (Client != null)
-            Debug.WriteLine($"Connected to localhost:{Port}");
+        if (Client != null && Client.Connected)
+            Console.WriteLine($"Connected controller {GameIndex} to localhost:{Port}");
     }
 
     public void Close() {

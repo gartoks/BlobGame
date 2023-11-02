@@ -33,8 +33,8 @@ from datetime import datetime
 import os
 import numpy as np
 
-
 from Environment import BlobEnvironment
+from Renderer import Renderer
 
 def moving_average(data, window_size):
     window = np.ones(int(window_size))/float(window_size)
@@ -66,40 +66,40 @@ gamma = 0.99
 lmbda = 0.95
 entropy_eps = 1e-4
 
-env = BlobEnvironment(device=device)
+def create_environment():
+    env = BlobEnvironment(device=device)
 
-env = TransformedEnv(
-    env,
-    Compose(
-        FlattenObservation(
-            first_dim=-2,
-            last_dim=-1,
-            in_keys=["pixels"],
+    env = TransformedEnv(
+        env,
+        Compose(
+            FlattenObservation(
+                first_dim=-2,
+                last_dim=-1,
+                in_keys=["pixels"],
+            ),
+            UnsqueezeTransform(
+                unsqueeze_dim=-1,
+                in_keys=["can_drop", "current_t"],
+                in_keys_inv=["can_drop", "current_t"],
+            ),
+            CatTensors(
+                in_keys=["pixels", "top_blob", "top_distance", "can_drop", "current_blob", "next_blob", "current_t"], dim=-1, out_key="observation", del_keys=False,
+            ),
+            # normalize observations
+            # ObservationNorm(in_keys=["observation"]),
+            DoubleToFloat(
+                in_keys=["observation"],
+            ),
+            CatFrames(N=3, dim=-1, in_keys=["observation"]),
+            StepCounter(),
+            FrameSkipTransform(frame_skip=frame_skip),
         ),
-        UnsqueezeTransform(
-            unsqueeze_dim=-1,
-            in_keys=["can_drop", "current_t"],
-            in_keys_inv=["can_drop", "current_t"],
-        ),
-        CatTensors(
-            in_keys=["pixels", "top_blob", "top_distance", "can_drop", "current_blob", "next_blob", "current_t"], dim=-1, out_key="observation", del_keys=False,
-        ),
-        # normalize observations
-        ObservationNorm(in_keys=["observation"]),
-        DoubleToFloat(
-            in_keys=["observation"],
-        ),
-        CatFrames(N=3, dim=-1, in_keys=["observation"]),
-        StepCounter(),
-        FrameSkipTransform(frame_skip=frame_skip),
-    ),
-)
+    )
 
-print(env.observation_spec)
+    # env.transform[3].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
 
-env.transform[3].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
+    return env
 
-check_env_specs(env)
 
 def get_new_network(output_layers):
     return nn.Sequential(
@@ -111,6 +111,14 @@ def get_new_network(output_layers):
         nn.Tanh(),
         *output_layers
     )
+
+Renderer.init()
+env = create_environment()
+
+print(env.observation_spec)
+
+check_env_specs(env)
+
 
 actor_net = get_new_network([
     nn.LazyLinear(2 * env.action_spec.shape[-1], device=device),
@@ -142,14 +150,14 @@ value_module = ValueOperator(
 print("Running policy:", policy_module(env.reset()))
 print("Running value:", value_module(env.reset()))
 
-
 collector = SyncDataCollector(
     env,
-    policy_module,
+    policy = policy_module,
     frames_per_batch=frames_per_batch,
     total_frames=total_frames,
     split_trajs=False,
     device=device,
+    reset_at_each_iter=False,
 )
 
 replay_buffer = ReplayBuffer(
@@ -195,6 +203,7 @@ if (os.path.exists(path)):
 matplotlib.use("Qt5agg")
 plt.figure(figsize=(15, 10))
 plt.show(block=False)
+
 # We iterate over the collector until it reaches the total number of frames it was
 # designed to collect:
 for i, tensordict_data in enumerate(collector):
