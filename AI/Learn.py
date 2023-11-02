@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+import matplotlib
 import matplotlib.pyplot as plt
 import torch
 from tensordict.nn import TensorDictModule
@@ -20,6 +21,7 @@ from torchrl.envs import (
     UnsqueezeTransform,
     CatTensors,
     FlattenObservation,
+    CatFrames,
 )
 from torchrl.envs.utils import check_env_specs, ExplorationType, set_exploration_type
 from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
@@ -36,7 +38,7 @@ from Environment import BlobEnvironment
 
 def moving_average(data, window_size):
     window = np.ones(int(window_size))/float(window_size)
-    return np.convolve(data, window, "same")
+    return np.convolve(data, window, "valid")
 
 
 device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
@@ -50,7 +52,8 @@ os.makedirs(save_path)
 save_path += "network_{}.ckpt"
 
 frame_skip = 1
-frames_per_batch = 2000 // frame_skip
+# Adjust to fill VRAM
+frames_per_batch = 1000 // frame_skip
 # For a complete training, bring the number of frames up to 1M
 total_frames = 1_000_000_000 // frame_skip
 
@@ -86,6 +89,7 @@ env = TransformedEnv(
         DoubleToFloat(
             in_keys=["observation"],
         ),
+        CatFrames(N=3, dim=-1, in_keys=["observation"]),
         StepCounter(),
         FrameSkipTransform(frame_skip=frame_skip),
     ),
@@ -97,26 +101,21 @@ env.transform[3].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
 
 check_env_specs(env)
 
-# print("normalization constant shape:", env.transform[0].loc.shape)
+def get_new_network(output_layers):
+    return nn.Sequential(
+        nn.LazyLinear(512, device=device),
+        nn.Tanh(),
+        nn.LazyLinear(512, device=device),
+        nn.Tanh(),
+        nn.LazyLinear(256, device=device),
+        nn.Tanh(),
+        *output_layers
+    )
 
-# print("observation_spec:", env.observation_spec)
-# print("reward_spec:", env.reward_spec)
-# print("done_spec:", env.done_spec)
-# print("action_spec:", env.action_spec)
-# print("state_spec:", env.state_spec)
-
-check_env_specs(env)
-
-actor_net = nn.Sequential(
-    nn.LazyLinear(num_cells, device=device),
-    nn.Tanh(),
-    nn.LazyLinear(num_cells, device=device),
-    nn.Tanh(),
-    nn.LazyLinear(num_cells, device=device),
-    nn.Tanh(),
+actor_net = get_new_network([
     nn.LazyLinear(2 * env.action_spec.shape[-1], device=device),
     NormalParamExtractor(),
-)
+])
 
 policy_module = TensorDictModule(
     actor_net, in_keys=["observation"], out_keys=["loc", "scale"]
@@ -130,15 +129,9 @@ policy_module = ProbabilisticActor(
     return_log_prob=True,
 )
 
-value_net = nn.Sequential(
-    nn.LazyLinear(num_cells, device=device),
-    nn.Tanh(),
-    nn.LazyLinear(num_cells, device=device),
-    nn.Tanh(),
-    nn.LazyLinear(num_cells, device=device),
-    nn.Tanh(),
+value_net = get_new_network([
     nn.LazyLinear(1, device=device),
-)
+])
 
 value_module = ValueOperator(
     module=value_net,
@@ -199,7 +192,9 @@ if (os.path.exists(path)):
     logs = loaded["logs"]
     value_net.load_state_dict(loaded["model"])
 
-
+matplotlib.use("Qt5agg")
+plt.figure(figsize=(15, 10))
+plt.show(block=False)
 # We iterate over the collector until it reaches the total number of frames it was
 # designed to collect:
 for i, tensordict_data in enumerate(collector):
@@ -265,8 +260,7 @@ for i, tensordict_data in enumerate(collector):
     # this is a nice-to-have but nothing necessary for PPO to work.
     scheduler.step()
 
-    plt.close()
-    plt.figure(figsize=(15, 10))
+    plt.clf()
     plt.subplot(3, 2, 1)
     plt.plot(logs["reward"])
     plt.title("training rewards (average)")
@@ -282,7 +276,6 @@ for i, tensordict_data in enumerate(collector):
     plt.subplot(3, 2, 5)
     plt.plot(moving_average(logs["reward"], 100))
     plt.title("Reward (moving average)")
-    plt.show(block=False)
     plt.pause(0.01)
 
     if (i % save_every == 0):

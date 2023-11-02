@@ -27,9 +27,17 @@ import socket
 
 from matplotlib import pyplot as plt
 
-def first_nonone(arr, axis, invalid_val=-1):
-    mask = arr!=1.0
-    return arr.take(np.where(mask.any(axis=axis), mask.argmax(axis=axis), invalid_val), axis)[0]
+def first_nonone(arr, axis):
+    mask = arr != 1
+
+    result = np.full(arr.shape[axis], -1)
+
+    indices = np.argmax(mask, axis=axis)
+
+    result = np.take_along_axis(arr, np.expand_dims(indices, axis=axis), axis=axis)
+    result = np.squeeze(result, axis=axis)
+
+    return result
 
 class BlobEnvironment(EnvBase):
     def __init__(self, seed=None, device="cpu"):
@@ -106,12 +114,18 @@ class BlobEnvironment(EnvBase):
 
         rolled_pixels = np.roll(pixels, int(float(pixels.shape[-1]) * -self.t), -2)
 
-        top_blob = first_nonone(rolled_pixels, -1, 0)
-        top_distance = (1.0-(np.argmax(rolled_pixels!=1, -1) / float(NN_VIEW_HEIGHT-1))) % 1.0
+        top_blob = first_nonone(rolled_pixels, -1)
+        top_distance = (1.0-(np.argmax(rolled_pixels!=1, -1) / float(NN_VIEW_HEIGHT))) % 1.0
         
-        plt.imshow(np.moveaxis([np.concatenate([np.transpose(rolled_pixels), [top_distance]*50, [top_blob]*30])]*3, [0, 1, 2], [2, 0, 1]))
-        plt.show(block=False)
-        plt.pause(0.01)
+        # plt.imshow(np.moveaxis([np.concatenate([
+        #     np.transpose(rolled_pixels),
+        #     [[0]*100],
+        #     [top_distance]*50,
+        #     [[0]*100],
+        #     [top_blob]*30,
+        # ])]*3, [0, 1, 2], [2, 0, 1]))
+        # plt.show(block=False)
+        # plt.pause(0.01)
 
         
         return TensorDict(
