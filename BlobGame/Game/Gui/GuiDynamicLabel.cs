@@ -3,31 +3,27 @@ using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;
-internal sealed class GuiDynamicLabel {
-    private string Text { get; }
+internal sealed class GuiDynamicLabel : GuiElement {
+    public string Text { get; set; }
+
     private float FontSize { get; }
+    private float FontSpacing { get; }
 
     private Vector2 TextPosition { get; }
 
-    public GuiDynamicLabel(Vector2 pos, string text, float fontSize, Vector2? pivot = null)
-        : this(pos.X, pos.Y, text, fontSize, pivot) {
-    }
-
-    public GuiDynamicLabel(float x, float y, string text, float fontSize, Vector2? pivot = null) {
-        Vector2 textSize = Raylib.MeasureTextEx(Renderer.Font.Resource, text, FontSize, FontSize / 16f);
-
-        if (pivot != null) {
-            x += -textSize.X * pivot.Value.X;
-            y += -textSize.Y * pivot.Value.Y;
-        }
+    public GuiDynamicLabel(float x, float y, string text, float fontSize, Vector2? pivot = null)
+        : base(x, y,
+            Raylib.MeasureTextEx(Renderer.Font.Resource, text, fontSize, fontSize / 16f).X,
+            Raylib.MeasureTextEx(Renderer.Font.Resource, text, fontSize, fontSize / 16f).Y, pivot) {
 
         Text = text;
         FontSize = fontSize;
+        FontSpacing = FontSize / 16f;
         TextPosition = new Vector2(x, y);
     }
 
-    internal void Draw() {
-        Raylib.DrawTextEx(Renderer.Font.Resource, Text, TextPosition, FontSize, FontSize / 16f, Raylib.WHITE);
+    protected override void DrawInternal() {
+        Raylib.DrawTextEx(Renderer.Font.Resource, Text, TextPosition, FontSize, FontSpacing, Raylib.WHITE);
     }
 
 }

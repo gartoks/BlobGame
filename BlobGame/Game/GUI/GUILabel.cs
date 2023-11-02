@@ -1,32 +1,73 @@
 ﻿using BlobGame.Drawing;
+using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;
-internal sealed class GuiLabel {
-    private string Text { get; }
-    private float FontSize { get; }
 
-    private Vector2 TextPosition { get; }
+internal enum eTextAlignment { Left, Center, Right }
 
-    public GuiLabel(Vector2 pos, Vector2 size, string text, Vector2? pivot = null)
-        : this(pos.X, pos.Y, size.X, size.Y, text, pivot) {
-    }
-
-    public GuiLabel(float x, float y, float w, float h, string text, Vector2? pivot = null) {
-        if (pivot != null) {
-            x += -w * pivot.Value.X;
-            y += -h * pivot.Value.Y;
+internal sealed class GuiLabel : GuiElement {
+    private string _Text { get; set; }
+    public string Text {
+        get => _Text;
+        set {
+            _Text = value ?? string.Empty;
+            CalculateTextPosition();
         }
+    }
 
-        Text = text;
+    private eTextAlignment _TextAlignment { get; set; }
+    public eTextAlignment TextAlignment {
+        get => _TextAlignment;
+        set {
+            _TextAlignment = value;
+            CalculateTextPosition();
+        }
+    }
+
+    private float FontSize { get; }
+    private float FontSpacing { get; }
+
+    private Vector2 TextPosition { get; set; }
+
+    public GuiLabel(string boundsString, string text, Vector2? pivot = null)
+        : this(GuiBoundsParser.Parse(boundsString), text, pivot) {
+    }
+
+    public GuiLabel(Rectangle bounds, string text, Vector2? pivot = null)
+        : this(bounds.X, bounds.Y, bounds.width, bounds.height, text, pivot) {
+    }
+
+    public GuiLabel(float x, float y, float w, float h, string text, Vector2? pivot = null)
+        : base(x, y, w, h, pivot) {
+
+        _Text = text;
         FontSize = h * 0.6f;
-        Vector2 textSize = Raylib.MeasureTextEx(Renderer.Font.Resource, text, FontSize, FontSize / 16f);
-        TextPosition = new Vector2(x + w / 2 - textSize.X / 1.75f, y + h / 2 - FontSize / 2);
+        FontSpacing = FontSize / 16f;
+        TextAlignment = eTextAlignment.Center;
     }
 
-    internal void Draw() {
-        Raylib.DrawTextEx(Renderer.Font.Resource, Text, TextPosition, FontSize, FontSize / 16f, Raylib.WHITE);
+    protected override void DrawInternal() {
+        Raylib.DrawTextEx(Renderer.Font.Resource, Text, TextPosition, FontSize, FontSpacing, Raylib.WHITE);
     }
 
+    internal Vector2 GetTextSize() {
+        return Raylib.MeasureTextEx(Renderer.Font.Resource, Text, FontSize, FontSpacing);
+    }
+
+    private void CalculateTextPosition() {
+        Vector2 textSize = GetTextSize();
+        switch (_TextAlignment) {
+            case eTextAlignment.Center:
+                TextPosition = new Vector2(Bounds.X + (Bounds.width - textSize.X) / 2f, Bounds.Y + (Bounds.height - FontSize) / 2f);
+                break;
+            case eTextAlignment.Left:
+                TextPosition = new Vector2(Bounds.X, Bounds.Y + (Bounds.height - FontSize) / 2f);
+                break;
+            case eTextAlignment.Right:
+                TextPosition = new Vector2(Bounds.x + Bounds.width - textSize.X, Bounds.Y + (Bounds.height - FontSize) / 2f);
+                break;
+        }
+    }
 }

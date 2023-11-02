@@ -106,7 +106,6 @@ internal static class Application {
         AudioManager.Load();
         Input.Load();
         Renderer.Load();
-        //GUIHandler.Load();
         Game.GameManager.Load();
 
         GameThread.Start();

@@ -1,5 +1,4 @@
 ﻿using BlobGame.Game.Gui;
-using BlobGame.ResourceHandling;
 using System.Numerics;
 
 namespace BlobGame.Game.Scenes;
@@ -24,11 +23,7 @@ internal class CreditsScene : Scene {
             "Back",
             new Vector2(0, 1));
 
-        BackgroundPanel = new GuiPanel(
-                    Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.05f,
-                    Application.BASE_WIDTH * 0.9f, Application.BASE_HEIGHT * 0.8f,
-                    ResourceManager.GetColor("light_accent"),
-                    new Vector2(0, 0));
+        BackgroundPanel = new GuiPanel("0.05 0.05 0.9 0.8", new Vector2(0, 0));
 
         float yOffset = 0.1f;
         ProgrammingCaptionLabel = new GuiDynamicLabel(
@@ -90,6 +85,7 @@ internal class CreditsScene : Scene {
     }
 
     internal override void Load() {
+        LoadAllGuiElements();
     }
 
     internal override void Draw() {
@@ -105,7 +101,8 @@ internal class CreditsScene : Scene {
         MusiciansLabel.Draw();
         OthersLabel.Draw();
 
-        if (BackButton.Draw())
+        BackButton.Draw();
+        if (BackButton.IsClicked)
             GameManager.SetScene(new MainMenuScene());
     }
 }

@@ -85,15 +85,20 @@ internal sealed class ClassicGameMode : IGameMode {
     /// <summary>
     /// Event that is fired when a blob is spawned.
     /// </summary>
-    public event Action<eBlobType> OnBlobSpawned;
+    public event BlobEventHandler OnBlobSpawned;
     /// <summary>
     /// Event that is fired when a newly spawned blob collides for the first time.
     /// </summary>
-    public event Action<eBlobType> OnBlobPlaced;
+    public event BlobEventHandler OnBlobPlaced;
     /// <summary>
     /// Event that is fired when two blobs combine.
     /// </summary>
-    public event Action<eBlobType> OnBlobsCombined;
+    public event BlobEventHandler OnBlobsCombined;
+
+    /// <summary>
+    /// Event that is fired when the game is over.
+    /// </summary>
+    public event GameEventHandler OnGameOver;
 
     /// <summary>
     /// Creates a new simulation with the given seed.
@@ -166,7 +171,7 @@ internal sealed class ClassicGameMode : IGameMode {
         LastSpawned = CreateBlob(new Vector2(x, y), type);
         CanSpawnBlob = false;
 
-        OnBlobSpawned?.Invoke(type);
+        OnBlobSpawned?.Invoke(this, type);
 
         return true;
     }
@@ -182,7 +187,7 @@ internal sealed class ClassicGameMode : IGameMode {
             RemoveBlob(b0);
             RemoveBlob(b1);
             CreateBlob(midPoint, b0.Type + 1);
-            OnBlobsCombined?.Invoke(b0.Type + 1);
+            OnBlobsCombined?.Invoke(this, b0.Type + 1);
         }
         Collisions.Clear();
         CollidedBlobs.Clear();
@@ -223,6 +228,9 @@ internal sealed class ClassicGameMode : IGameMode {
             bool tmp = gO is Blob blob && blob.Position.Y <= 0 && blob != LastSpawned;
             IsGameOver |= tmp;
         });
+
+        if (IsGameOver)
+            OnGameOver?.Invoke(this);
     }
 
     /// <summary>
@@ -278,7 +286,7 @@ internal sealed class ClassicGameMode : IGameMode {
             CanSpawnBlob = true;
             LastSpawned = null;
 
-            OnBlobPlaced?.Invoke(lastSpawnedType);
+            OnBlobPlaced?.Invoke(this, lastSpawnedType);
         }
     }
 

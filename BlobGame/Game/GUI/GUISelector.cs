@@ -1,61 +1,90 @@
-﻿using BlobGame.Drawing;
+﻿using BlobGame.App;
+using BlobGame.Audio;
+using BlobGame.Drawing;
 using BlobGame.ResourceHandling;
+using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;
-internal class GuiSelector {
+internal class GuiSelector : InteractiveGuiElement {
+    private const float BUTTON_SPACING = 10;
+
     private IReadOnlyList<SelectionElement> Elements { get; }
 
-    private int FontSize { get; }
-    private Rectangle Bounds { get; }
+    public GuiPanel Panel { get; }
+    public GuiTextButton DecreaseButton { get; }
+    public GuiTextButton IncreaseButton { get; }
 
-    private GuiPanel Panel { get; }
-    private GuiTextButton DecreaseButton { get; }
-    private GuiTextButton IncreaseButton { get; }
+    private int FontSize { get; }
+    private float FontSpacing { get; }
 
     private int SelectedIndex { get; set; }
     public SelectionElement SelectedElement => Elements[SelectedIndex];
 
-    public GuiSelector(Vector2 pos, Vector2 size, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null)
-        : this(pos.X, pos.Y, size.X, size.Y, elements, selectedIndex, pivot) {
+    public bool IsClicked { get; private set; }
+
+    public GuiSelector(string boundsString, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null)
+        : this(GuiBoundsParser.Parse(boundsString), elements, selectedIndex, pivot) {
     }
 
-    public GuiSelector(float x, float y, float w, float h, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null) {
-        if (pivot != null) {
-            x += -w * pivot.Value.X;
-            y += -h * pivot.Value.Y;
-        }
+    private GuiSelector(Rectangle bounds, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null)
+        : this(bounds.X, bounds.Y, bounds.width, bounds.height, elements, selectedIndex, pivot) {
+    }
+
+    private GuiSelector(float x, float y, float w, float h, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null)
+        : base(x, y, w, h, pivot) {
         float buttonSize = MathF.Min(w, h);
 
         Elements = elements;
         FontSize = (int)(buttonSize * 0.7f);
-        Bounds = new Rectangle(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h);
+        FontSpacing = FontSize / 16f;
+        //Bounds = new Rectangle(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h);
 
-        Panel = new GuiPanel(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h, ResourceManager.GetColor("light_accent"), new Vector2(0, 0));
-        DecreaseButton = new GuiTextButton(x, y, buttonSize, buttonSize, "<", new Vector2(0, 0));
-        IncreaseButton = new GuiTextButton(x + w, y, buttonSize, buttonSize, ">", new Vector2(1, 0));
+        Panel = new GuiPanel(x + buttonSize + BUTTON_SPACING, y, w - 2 * buttonSize - 2 * BUTTON_SPACING, h, new Vector2(0, 0));
+        DecreaseButton = new GuiTextButton(Bounds.x, y, buttonSize, buttonSize, "<", new Vector2(0, 0));
+        IncreaseButton = new GuiTextButton(Bounds.x + Bounds.width, Bounds.y, buttonSize, buttonSize, ">", new Vector2(1, 0));
 
         SelectedIndex = selectedIndex;
     }
 
 
-    internal bool Draw() {
-        int textPosX = (int)(Bounds.x + Bounds.width / 2 - Raylib.MeasureText(SelectedElement.Text, FontSize) / 2);
-        int textPosY = (int)(Bounds.y + Bounds.height / 2 - FontSize / 2);
+    protected override void DrawInternal() {
+        bool shouldFocus = IsHovered && Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT);
+        if (shouldFocus)
+            Focus();
 
-        bool decreaseClicked = DecreaseButton.Draw();
-        bool increaseClicked = IncreaseButton.Draw();
+        ColorResource accentColor = ColorResource.WHITE;
+        if (HasFocus())
+            accentColor = ResourceManager.GetColor("highlight");
+        Panel.AccentColor = accentColor;
+        DecreaseButton.Panel.AccentColor = accentColor;
+        IncreaseButton.Panel.AccentColor = accentColor;
 
-        if (decreaseClicked)
+        DecreaseButton.Draw();
+        IncreaseButton.Draw();
+
+        bool decreaseClicked = DecreaseButton.IsClicked;
+        bool increaseClicked = IncreaseButton.IsClicked;
+        IsClicked = decreaseClicked || increaseClicked;
+
+        if (IsClicked)
+            Focus();
+
+        if (decreaseClicked || (HasFocus() && Input.IsHotkeyActive("previous_subItem"))) {
             SelectedIndex = (SelectedIndex - 1 + Elements.Count) % Elements.Count;
-        else if (increaseClicked)
+            AudioManager.PlaySound("ui_interaction");
+        } else if (increaseClicked || (HasFocus() && Input.IsHotkeyActive("next_subItem"))) {
             SelectedIndex = (SelectedIndex + 1) % Elements.Count;
+            AudioManager.PlaySound("ui_interaction");
+        }
 
         Panel.Draw();
-        Raylib.DrawTextEx(Renderer.Font.Resource, SelectedElement.Text, new Vector2(textPosX, textPosY), FontSize, FontSize / 16f, Raylib.WHITE);
 
-        return decreaseClicked || increaseClicked;
+        int textPosX = (int)(Bounds.x + Bounds.width / 2 - Raylib.MeasureText(SelectedElement.Text, FontSize) / 2);
+        int textPosY = (int)(Bounds.y + Bounds.height / 2 - FontSize / 2);
+        Raylib.DrawTextEx(Renderer.Font.Resource, SelectedElement.Text, new Vector2(textPosX, textPosY), FontSize, FontSpacing, Raylib.WHITE);
+
     }
 
     internal record SelectionElement(string Text, object Element);

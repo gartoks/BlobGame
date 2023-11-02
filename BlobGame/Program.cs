@@ -10,6 +10,8 @@ bool useSeparateThreads = false;
 int seed = 0;
 int port = 0;
 
+//TmpSerializeText();
+
 try {
     if (args.Length > 0) {
         for (int i = 0; i < args.Length; i++) {
@@ -56,18 +58,12 @@ try {
 
 
 
-void TmpSerializeText() {
-    Dictionary<string, string> scrolls = new Dictionary<string, string>();
-    scrolls.Add("0", "Say it back, Tutel!");
-    scrolls.Add("1", "Also check out Abandoned Archive on Steam!");
-    scrolls.Add("2", "Like Femboys? Every monday 7pm UTC on twitch.tv/vedal987");
-    scrolls.Add("3", "Happy birthday, Shiro!");
-    scrolls.Add("4", "It's toastin' time!");
-    scrolls.Add("5", "Let's get bready to crumble!");
-    scrolls.Add("6", "Elbo tsh! Elbo tsh! Elbo tsh!");
-    scrolls.Add("7", "Melba Toast loves me, she loves me, Melba loves meeeeeee");
+void DEBUG_SerializeText() {
+    Dictionary<string, string> scrolls = new Dictionary<string, string> {
+        { "Classic", "Play the classic mode!\nCombine pieces and gain points." },
+    };
     string json = JsonSerializer.Serialize(scrolls, new JsonSerializerOptions() { WriteIndented = true });
-    File.WriteAllText(@"G:\Coding\C#\BlobGame\BlobGame\Resources\References\Texts\scrollers.json", json);
+    File.WriteAllText(@"G:\Coding\C#\BlobGame\BlobGame\Resources\References\Texts\game_mode_descriptions.json", json);
 
-    Dictionary<string, string> d2 = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(@"G:\Coding\C#\BlobGame\BlobGame\Resources\References\Texts\scrollers.json"));
+    Dictionary<string, string> d2 = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(@"G:\Coding\C#\BlobGame\BlobGame\Resources\References\Texts\game_mode_descriptions.json"));
 }

@@ -40,7 +40,7 @@ internal interface IGameController {
     public static IReadOnlyDictionary<string, Type> ControllerTypes { get; } = new Dictionary<string, Type>() {
         { "Mouse", typeof(MouseController) },
         { "Keyboard", typeof(KeyboardController) },
-        //{ "Socket", typeof(SocketController) },   // TODO
+        { "Socket", typeof(SocketController) }
     };
 
     /// <summary>
@@ -49,7 +49,7 @@ internal interface IGameController {
     /// <param name="controllerType"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentException">If the given type is invalid or is missing a proper constructor.</exception>
-    public static IGameController CreateGameController(Type controllerType) {
+    public static IGameController CreateGameController(Type controllerType, params object[] args) {
         if (!typeof(IGameController).IsAssignableFrom(controllerType))
             throw new ArgumentException("Game mode type must implement IGameMode", nameof(controllerType));
 
@@ -59,9 +59,9 @@ internal interface IGameController {
         if (controllerType.IsAbstract)
             throw new ArgumentException("Game controller type must not be abstract", nameof(controllerType));
 
-        if (!controllerType.GetConstructors().Any(c => c.GetParameters().Length == 0))
+        if (!controllerType.GetConstructors().Any(c => c.GetParameters().Length == args.Length)) // Technically needs type checking too
             throw new ArgumentException("Game controller type must have a constructor with no parameters", nameof(controllerType));
 
-        return (IGameController)Activator.CreateInstance(controllerType)!;
+        return (IGameController)Activator.CreateInstance(controllerType, args)!;
     }
 }

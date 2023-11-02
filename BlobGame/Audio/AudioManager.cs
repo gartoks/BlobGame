@@ -8,6 +8,7 @@ namespace BlobGame.Audio;
 /// Class for managing sounds and music.
 /// </summary>
 internal static class AudioManager {
+    private const float MUSIC_VOLUME_MODIFIER = 0.4f;
 
     private static BlockingCollection<Action> SoundActionQueue { get; }
 
@@ -154,7 +155,7 @@ internal static class AudioManager {
             Debug.WriteLine($"Playing {name} ({Raylib.GetMusicTimeLength(music.Resource)}s)");
             PlayingMusic[name] = music;
             Raylib.PlayMusicStream(music.Resource);
-            Raylib.SetMusicVolume(music.Resource, Application.Settings.MusicVolume / 100f);
+            Raylib.SetMusicVolume(music.Resource, MUSIC_VOLUME_MODIFIER * Application.Settings.MusicVolume / 100f);
         });
     }
 
@@ -194,7 +195,7 @@ internal static class AudioManager {
 
         MusicActionQueue.Add(() => {
             foreach (string item in PlayingMusic.Keys.ToList())
-                Raylib.SetMusicVolume(PlayingMusic[item].Resource, v / 100f);
+                Raylib.SetMusicVolume(PlayingMusic[item].Resource, MUSIC_VOLUME_MODIFIER * v / 100f);
         });
     }
 

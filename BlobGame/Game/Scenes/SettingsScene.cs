@@ -1,6 +1,5 @@
 ﻿using BlobGame.App;
 using BlobGame.Game.Gui;
-using BlobGame.ResourceHandling;
 using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
@@ -11,19 +10,11 @@ namespace BlobGame.Game.Scenes;
 internal class SettingsScene : Scene {
     private GuiPanel BackgroundPanel { get; }
 
-    private GuiTextButton BackButton { get; }
-    private GuiTextButton ApplyButton { get; }
-
     private GuiLabel ScreenModeLabel { get; }
     private GuiSelector ScreenModeSelector { get; }
 
     private GuiLabel ResolutionLabel { get; }
     private GuiSelector ResolutionSelector { get; }
-
-    private GuiLabel MonitorLabel { get; }
-    private GuiSelector MonitorSelector { get; }
-    private GuiLabel ThemeLabel { get; }
-    private GuiSelector ThemeSelector { get; }
 
     private GuiLabel MusicVolumeLabel { get; }
     private GuiSelector MusicVolumeSelector { get; }
@@ -31,19 +22,21 @@ internal class SettingsScene : Scene {
     private GuiLabel SoundVolumeLabel { get; }
     private GuiSelector SoundVolumeSelector { get; }
 
+    //private GuiLabel MonitorLabel { get; }
+    //private GuiSelector MonitorSelector { get; }
+
+    private GuiLabel ThemeLabel { get; }
+    private GuiSelector ThemeSelector { get; }
+
     private GuiTextButton ResetScoreButton { get; }
     private GuiTextButton ResetTutorialButton { get; }
 
+    private GuiTextButton ApplyButton { get; }
+    private GuiTextButton BackButton { get; }
 
-    internal override void Load() {
-    }
 
     public SettingsScene() {
-        BackgroundPanel = new GuiPanel(
-            Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.05f,
-            Application.BASE_WIDTH * 0.9f, Application.BASE_HEIGHT * 0.8f,
-            ResourceManager.GetColor("light_accent"),
-            new Vector2(0, 0));
+        BackgroundPanel = new GuiPanel("0.05 0.05 0.9 0.8", new Vector2(0, 0));
 
         BackButton = new GuiTextButton(
             Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.95f,
@@ -58,12 +51,12 @@ internal class SettingsScene : Scene {
             new Vector2(1, 1));
 
         float xOffset = 0.1f;
-        (GuiSelector monitorSelector, GuiLabel monitorLabel) = CreateSettingsEntry(
+        /*(GuiSelector monitorSelector, GuiLabel monitorLabel) = CreateSettingsEntry(
             "Monitor", xOffset,
             Application.Settings.GetMonitors().Select(m => new SelectionElement($"{m.monitor}: {m.name}", m.monitor)).ToArray(),
             Array.FindIndex(Application.Settings.GetMonitors(), m => m.monitor == Application.Settings.GetCurrentMonitor()));
         MonitorLabel = monitorLabel;
-        MonitorSelector = monitorSelector;
+        MonitorSelector = monitorSelector; */
         //xOffset += 0.1f;
 
         (GuiSelector screenModeSelector, GuiLabel screenModeLabel) = CreateSettingsEntry(
@@ -111,32 +104,25 @@ internal class SettingsScene : Scene {
         ThemeLabel = themeLabel;
         xOffset += 0.1f;
 
-        ResetScoreButton = new GuiTextButton(
-            new Vector2(Application.BASE_WIDTH * 0.1f, Application.BASE_HEIGHT * 0.8f),
-            new Vector2(Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 16f),
-            "Reset Score",
-            new Vector2(0, 1));
+        ResetScoreButton = new GuiTextButton("0.1 0.8 0.25 0.0625", "Reset Score", new Vector2(0, 1));
+        ResetTutorialButton = new GuiTextButton("0.85 0.8 0.25 0.0625", "Reset Tutorial", new Vector2(1, 1));
+    }
 
-        ResetTutorialButton = new GuiTextButton(
-            new Vector2(Application.BASE_WIDTH * 0.85f, Application.BASE_HEIGHT * 0.8f),
-            new Vector2(Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 16f),
-            "Reset Tutorial",
-            new Vector2(1, 1));
+    internal override void Load() {
+        LoadAllGuiElements();
     }
 
     internal override void Draw() {
         BackgroundPanel.Draw();
+        BackButton.Draw();
+        ApplyButton.Draw();
+
         //MonitorLabel.Draw(); // TODO: Currently disabled because it is not working.
         ScreenModeLabel.Draw();
         ResolutionLabel.Draw();
         MusicVolumeLabel.Draw();
         SoundVolumeLabel.Draw();
         ThemeLabel.Draw();
-
-        if (BackButton.Draw())
-            GameManager.SetScene(new MainMenuScene());
-        if (ApplyButton.Draw())
-            ApplySettings();
 
         //MonitorSelector.Draw();   // TODO: Currently disabled because it is not working.
         ScreenModeSelector.Draw();
@@ -145,14 +131,22 @@ internal class SettingsScene : Scene {
         SoundVolumeSelector.Draw();
         ThemeSelector.Draw();
 
-        if (ResetScoreButton.Draw())
+        ResetScoreButton.Draw();
+        ResetTutorialButton.Draw();
+
+        if (BackButton.IsClicked)
+            GameManager.SetScene(new MainMenuScene());
+        if (ApplyButton.IsClicked)
+            ApplySettings();
+
+        if (ResetScoreButton.IsClicked)
             GameManager.Scoreboard.Reset();
-        if (ResetTutorialButton.Draw())
+        if (ResetTutorialButton.IsClicked)
             Application.Settings.IsTutorialEnabled = true;
     }
 
     private void ApplySettings() {
-        int monitor = (int)MonitorSelector.SelectedElement.Element;
+        //int monitor = (int)MonitorSelector.SelectedElement.Element;
         eScreenMode screenMode = (eScreenMode)ScreenModeSelector.SelectedElement.Element;
         (int w, int h) resolution = ((int w, int h))ResolutionSelector.SelectedElement.Element;
         int soundVolume = (int)SoundVolumeSelector.SelectedElement.Element;
@@ -168,10 +162,10 @@ internal class SettingsScene : Scene {
             Application.Settings.SetScreenMode(screenMode);
             needsRestart = true;
         }
-        if (monitor != Application.Settings.GetCurrentMonitor()) {
-            Application.Settings.SetMonitor(monitor);
-            needsRestart = true;
-        }
+        //if (monitor != Application.Settings.GetCurrentMonitor()) {
+        //    Application.Settings.SetMonitor(monitor);
+        //    needsRestart = true;
+        //}
         if (soundVolume != Application.Settings.SoundVolume)
             Application.Settings.SoundVolume = soundVolume;
         if (musicVolume != Application.Settings.MusicVolume)
@@ -192,15 +186,10 @@ internal class SettingsScene : Scene {
     }
 
     private (GuiSelector, GuiLabel) CreateSettingsEntry(string title, float xOffset, SelectionElement[] selectionElements, int selectedIndex) {
-        GuiLabel label = new GuiLabel(
-            Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * xOffset,
-            Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 16f,
-            title,
-            new Vector2(0, 0));
+        GuiLabel label = new GuiLabel($"0.05 {xOffset} 0.25 {1f / 16f}", title, new Vector2(0, 0));
+        label.TextAlignment = eTextAlignment.Center;
 
-        GuiSelector selector = new GuiSelector(
-            Application.BASE_WIDTH * 0.35f, Application.BASE_HEIGHT * xOffset,
-            Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT / 16f,
+        GuiSelector selector = new GuiSelector($"0.35 {xOffset} 0.5 {1f / 16f}",
             selectionElements, selectedIndex < 0 ? 0 : selectedIndex,
             new Vector2(0, 0));
 

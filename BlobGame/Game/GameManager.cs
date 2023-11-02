@@ -1,5 +1,6 @@
 ﻿using BlobGame.Audio;
 using BlobGame.Drawing;
+using BlobGame.Game.Gui;
 using BlobGame.Game.Scenes;
 using BlobGame.Game.Util;
 using BlobGame.ResourceHandling;
@@ -44,8 +45,9 @@ public static class GameManager {
 
         WasSceneLoaded = false;
         WasMusicQueued = false;
-    }
 
+        GuiManager.Initialize();
+    }
 
     /// <summary>
     /// Loads the game. Loads the initial scene.
@@ -65,6 +67,8 @@ public static class GameManager {
             ResourceManager.GetMusic("synthyupdated"),
         };
 
+        GuiManager.Load();
+
         Scene = new MainMenuScene();
     }
 
@@ -83,6 +87,8 @@ public static class GameManager {
         } else {
             WasMusicQueued = false;
         }
+
+        GuiManager.Update(dT);
 
         // The scene is loaded in the update method to ensure scene drawing doesn't access unloaded resources.
         if (!WasSceneLoaded) {
@@ -110,10 +116,12 @@ public static class GameManager {
     /// </summary>
     internal static void Unload() {
         Scene.Unload();
+        GuiManager.Unload();
     }
 
     internal static void SetScene(Scene scene) {
         Scene.Unload();
+        GuiManager.ResetElements();
         WasSceneLoaded = false;
         Scene = scene;
     }

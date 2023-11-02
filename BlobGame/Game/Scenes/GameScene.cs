@@ -43,6 +43,7 @@ internal sealed class GameScene : Scene {
         Controller = controller;
         Game = gameMode;
         Game.OnBlobsCombined += Game_OnBlobsCombined;
+        Game.OnGameOver += Game_OnGameOver;
 
         RetryButton = new GuiTextButton(
             Application.BASE_WIDTH * 0.37f, Application.BASE_HEIGHT * 0.625f,
@@ -54,19 +55,11 @@ internal sealed class GameScene : Scene {
             Application.BASE_WIDTH * 0.2f, 100,
             "To Menu",
             new Vector2(0.5f, 0.5f));
-        GameOverPanel = new GuiPanel(
-            new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT / 2f),
-            new Vector2(1100, 500),
-            ResourceManager.GetColor("light_accent"),
-            new Vector2(0.5f, 0.5f));
-        GameOverLabel = new GuiLabel(
-            new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.35f),
-            new Vector2(1100, 120),
-            "Game over",
-            new Vector2(0.5f, 0.5f));
+        GameOverPanel = new GuiPanel("0.5 0.5 1100px 500px", new Vector2(0.5f, 0.5f));
+        GameOverLabel = new GuiLabel("0.5 0.35 1100px 120px", "Game over", new Vector2(0.5f, 0.5f));
 
-        //if (Application.Settings.IsTutorialEnabled)   // TODO re-enable
-        Tutorial = new TutorialDisplay();
+        if (Application.Settings.IsTutorialEnabled)
+            Tutorial = new TutorialDisplay();
     }
 
     /// <summary>
@@ -78,6 +71,8 @@ internal sealed class GameScene : Scene {
             ResourceManager.GetTexture($"{i}");
             ResourceManager.GetTexture($"{i}_shadow");
         }
+
+        LoadAllGuiElements();
 
         Game.Load();
         Controller.Load();
@@ -100,6 +95,9 @@ internal sealed class GameScene : Scene {
     internal override void Update(float dT) {
         if (Tutorial != null && !Tutorial.IsFinished) {
             Tutorial.Update(dT);
+
+            if (Tutorial.IsFinished)
+                Application.Settings.IsTutorialEnabled = false;
         } else {
             Game.Update(dT);
             Controller.Update(dT, Game);
@@ -172,7 +170,7 @@ internal sealed class GameScene : Scene {
     /// Called when two blobs combine.
     /// </summary>
     /// <param name="newType">The type of newly created blob.</param>
-    private void Game_OnBlobsCombined(eBlobType newType) {
+    private void Game_OnBlobsCombined(IGameMode sender, eBlobType newType) {
         AudioManager.PlaySound("piece_combination");
         Debug.WriteLine($"Blobs combined. New type: {newType}");
     }
@@ -188,6 +186,13 @@ internal sealed class GameScene : Scene {
             new Vector2(0, 0),
             -12.5f,
             Raylib.WHITE);
+    }
+
+    private void Game_OnGameOver(IGameMode sender) {
+        if (sender.Score > GameManager.Scoreboard.GlobalHighscore)
+            AudioManager.PlaySound("new_highscore");
+        else
+            AudioManager.PlaySound("game_loss");
     }
 
     internal void DrawRankupChart() {
@@ -339,17 +344,18 @@ internal sealed class GameScene : Scene {
         GameOverPanel.Draw();
         GameOverLabel.Draw();
 
+        RetryButton.Draw();
+        ToMainMenuButton.Draw();
+
         bool isNewHighscore = Game.Score > GameManager.Scoreboard.GlobalHighscore;
-        GuiLabel ScoreLabel = new GuiLabel(
-            new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.45f),
-            new Vector2(1100, 90),
+        GuiLabel ScoreLabel = new GuiLabel("0.5 0.45 1100px 90px",
             $"{(isNewHighscore ? "New Highscore!\n" : "")}Score: {Game.Score}",
             new Vector2(0.5f, 0.5f));
         ScoreLabel.Draw();
 
-        if (RetryButton.Draw())
+        if (RetryButton.IsClicked)
             GameManager.SetScene(new GameScene(Controller, IGameMode.CreateGameMode(Game.GetType(), new Random().Next())));
-        if (ToMainMenuButton.Draw())
+        if (ToMainMenuButton.IsClicked)
             GameManager.SetScene(new MainMenuScene());
     }
 

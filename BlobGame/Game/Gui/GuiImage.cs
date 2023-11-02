@@ -1,43 +1,31 @@
 ﻿using BlobGame.ResourceHandling;
-using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;
-internal sealed class GUIImage {
+internal sealed class GUIImage : GuiElement {
     public TextureResource Texture { get; set; }
     public ColorResource Tint { get; set; }
 
     public float Scale { get; set; }
-    private Vector2 Position { get; }
-    private Vector2 Pivot { get; }
 
-    public GUIImage(Vector2 pos, float scale, TextureResource texture, Vector2? pivot = null)
-        : this(pos.X, pos.Y, scale, texture, pivot) {
-    }
-
-    public GUIImage(float x, float y, float scale, TextureResource texture, Vector2? pivot = null) {
-        Position = new Vector2(x, y);
-        Pivot = pivot ?? new Vector2(0, 0);
+    public GUIImage(float x, float y, float scale, TextureResource texture, Vector2? pivot = null)
+        : base(x, y, scale * texture.Resource.width, scale * texture.Resource.height, pivot) {
 
         Scale = scale;
         Texture = texture;
         Tint = ColorResource.WHITE;
     }
 
-    internal void Draw() {
-        float w = Texture.Resource.width * Scale;
-        float h = Texture.Resource.height * Scale;
+    protected override void DrawInternal() {
+        Texture.Draw(new Vector2(Bounds.x, Bounds.y), Pivot, new Vector2(Scale, Scale), 0, Tint.Resource);
 
-        float x = Position.X - w * Pivot.X;
-        float y = Position.Y - h * Pivot.Y;
-
-        Raylib.DrawTexturePro(
-            Texture.Resource,
-                new Rectangle(0, 0, Texture.Resource.width, Texture.Resource.height),
-                new Rectangle(x, y, w, h),
-                new Vector2(0, 0),
-                0,
-                Tint.Resource);
+        //Raylib.DrawTexturePro(
+        //    Texture.Resource,
+        //        new Rectangle(0, 0, Texture.Resource.width, Texture.Resource.height),
+        //        Bounds,
+        //        Pivot,
+        //        0,
+        //        Tint.Resource);
     }
 
 }

@@ -3,6 +3,9 @@ using BlobGame.Game.Util;
 
 namespace BlobGame.Game.GameModes;
 
+internal delegate void BlobEventHandler(IGameMode sender, eBlobType type);
+internal delegate void GameEventHandler(IGameMode sender);
+
 /// <summary>
 /// Interface which exposes the game's simulation logic to allow outside control and getting the state of the game.
 /// </summary>
@@ -35,17 +38,22 @@ internal interface IGameMode {
     /// <summary>
     /// Event that is fired when a blob is spawned.
     /// </summary>
-    event Action<eBlobType> OnBlobSpawned;
+    event BlobEventHandler OnBlobSpawned;
 
     /// <summary>
     /// Event that is fired when a newly spawned blob collides for the first time.
     /// </summary>
-    event Action<eBlobType> OnBlobPlaced;
+    event BlobEventHandler OnBlobPlaced;
 
     /// <summary>
     /// Event that is fired when two blobs combine. The argument is the type of the blob that was created.
     /// </summary>
-    event Action<eBlobType> OnBlobsCombined;
+    event BlobEventHandler OnBlobsCombined;
+
+    /// <summary>
+    /// Event that is fired when the game is over.
+    /// </summary>
+    event GameEventHandler OnGameOver;
 
     /// <summary>
     /// Loads the game mode. This is called when the game is started. Should be used to initialize the game mode and load resources.

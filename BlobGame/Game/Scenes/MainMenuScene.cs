@@ -56,6 +56,8 @@ internal sealed class MainMenuScene : Scene {
         TitleTexture = ResourceManager.GetTexture("title_logo");
         AvatarTexture = ResourceManager.GetTexture("melba_avatar");
 
+        LoadAllGuiElements();
+
         Scroller.Load();
 
         TitleImage.Texture = TitleTexture;
@@ -67,13 +69,18 @@ internal sealed class MainMenuScene : Scene {
     internal override void Draw() {
         Scroller.Draw();
 
-        if (PlayButton.Draw())
+        PlayButton.Draw();
+        SettingsButton.Draw();
+        CreditsButton.Draw();
+        QuitButton.Draw();
+
+        if (PlayButton.IsClicked)
             GameManager.SetScene(new GameModeSelectionScene());
-        if (SettingsButton.Draw())
+        if (SettingsButton.IsClicked)
             GameManager.SetScene(new SettingsScene());
-        if (CreditsButton.Draw())
+        if (CreditsButton.IsClicked)
             GameManager.SetScene(new CreditsScene());
-        if (QuitButton.Draw())
+        if (QuitButton.IsClicked)
             Application.Exit();
 
         float t = MathF.Sin(Renderer.Time * 4);

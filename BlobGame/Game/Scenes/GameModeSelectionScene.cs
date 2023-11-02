@@ -7,54 +7,62 @@ using static BlobGame.Game.Gui.GuiSelector;
 
 namespace BlobGame.Game.Scenes;
 internal class GameModeSelectionScene : Scene {
-    private GuiPanel BackgroundPanel { get; }
+    private TextResource GameModeDescriptionsText { get; set; }
 
-    private GuiTextButton BackButton { get; }
-    private GuiTextButton PlayButton { get; }
+    private GuiPanel BackgroundPanel { get; }
 
     private GuiLabel GameModeLabel { get; }
     private GuiSelector GameModeSelector { get; }
     private GuiLabel GameControllerLabel { get; }
     private GuiSelector GameControllerSelector { get; }
 
+    private GuiDynamicLabel GameModeDescriptionLabel { get; }
+
+    private GuiLabel PortLabel { get; }
+    private GuiTextbox PortTextBox { get; }
+
+    private GuiTextButton PlayButton { get; }
+    private GuiTextButton BackButton { get; }
+
     public GameModeSelectionScene() {
-        BackgroundPanel = new GuiPanel(
-                Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.05f,
-                Application.BASE_WIDTH * 0.9f, Application.BASE_HEIGHT * 0.8f,
-                ResourceManager.GetColor("light_accent"),
-                new Vector2(0, 0));
+        BackgroundPanel = new GuiPanel("0.05 0.05 0.9 0.8", new Vector2(0, 0));
 
-        BackButton = new GuiTextButton(
-            Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.95f,
-            Application.BASE_WIDTH / 8f, Application.BASE_HEIGHT / 16f,
-            "Back",
-            new Vector2(0, 1));
+        BackButton = new GuiTextButton("0.05 0.95 0.125 0.0625", "Back", new Vector2(0, 1));
+        PlayButton = new GuiTextButton("0.95 0.95 0.125 0.0625", "Play", new Vector2(1, 1));
 
-        PlayButton = new GuiTextButton(
-            Application.BASE_WIDTH * 0.95f, Application.BASE_HEIGHT * 0.95f,
-            Application.BASE_WIDTH / 8f, Application.BASE_HEIGHT / 16f,
-            "Play",
-            new Vector2(1, 1));
-
-        float xOffset = 0.1f;
-        (GuiSelector gameModeSelector, GuiLabel gameModeLabel) = CreateGameSetting(
-            "Game Mode", xOffset,
+        float yOffset = 0.1f;
+        (GuiSelector gameModeSelector, GuiLabel gameModeLabel) = CreateSelectionElement(
+            "Game Mode", yOffset,
             IGameMode.GameModeTypes.Select(i => new SelectionElement(i.Key, i.Value)).ToArray(),
             0);
         GameModeLabel = gameModeLabel;
         GameModeSelector = gameModeSelector;
-        xOffset += 0.1f;
+        yOffset += 0.1f;
 
-        (GuiSelector gameControllerSelector, GuiLabel gameControllerLabel) = CreateGameSetting(
-            "Game Controller", xOffset,
+        (GuiSelector gameControllerSelector, GuiLabel gameControllerLabel) = CreateSelectionElement(
+            "Game Controller", yOffset,
             IGameController.ControllerTypes.Select(i => new SelectionElement(i.Key, i.Value)).ToArray(),
             0);
         GameControllerLabel = gameControllerLabel;
         GameControllerSelector = gameControllerSelector;
-        xOffset += 0.1f;
+        yOffset += 0.1f;
+
+        PortLabel = new GuiLabel($"0.05 {yOffset} 0.25 0.0625", "Port", new Vector2(0, 0));
+        PortLabel.Enabled = false;
+        PortTextBox = new GuiTextbox($"0.35 {yOffset} 0.125 0.0625", new Vector2(0, 0.5f)) {
+            CharFilter = char.IsDigit
+        };
+        PortTextBox.Text = "1337";
+        PortTextBox.Enabled = false;
+        yOffset += 0.1f;
+
+        GameModeDescriptionLabel = new GuiDynamicLabel(Application.BASE_WIDTH * 0.1f, (yOffset + 0.025f) * Application.BASE_HEIGHT, string.Empty, 60);
     }
 
     internal override void Load() {
+        GameModeDescriptionsText = ResourceManager.GetText("game_mode_descriptions");
+
+        LoadAllGuiElements();
     }
 
     internal override void Draw() {
@@ -66,29 +74,40 @@ internal class GameModeSelectionScene : Scene {
         GameModeSelector.Draw();
         GameControllerSelector.Draw();
 
-        if (BackButton.Draw())
+        GameModeDescriptionLabel.Text = GameModeDescriptionsText.Resource[GameModeSelector.SelectedElement.Text];
+        GameModeDescriptionLabel.Draw();
+
+        PortLabel.Draw();
+        PortTextBox.Enabled = (Type)GameControllerSelector.SelectedElement.Element == typeof(SocketController);
+        PortLabel.Enabled = PortTextBox.Enabled;
+        PortTextBox.Draw();
+
+        BackButton.Draw();
+        PlayButton.Draw();
+
+        if (BackButton.IsClicked)
             GameManager.SetScene(new MainMenuScene());
-        if (PlayButton.Draw()) {
+        if (PlayButton.IsClicked) {
             IGameMode gameMode = IGameMode.CreateGameMode((Type)GameModeSelector.SelectedElement.Element, new Random().Next());
-            IGameController controller = IGameController.CreateGameController((Type)GameControllerSelector.SelectedElement.Element);
+
+            IGameController controller;
+            if ((Type)GameControllerSelector.SelectedElement.Element == typeof(SocketController))
+                controller = IGameController.CreateGameController((Type)GameControllerSelector.SelectedElement.Element, 0, int.Parse(PortTextBox.Text));
+            else
+                controller = IGameController.CreateGameController((Type)GameControllerSelector.SelectedElement.Element);
+
             GameManager.SetScene(new GameScene(controller, gameMode));
         }
-
     }
 
     internal override void Unload() {
     }
 
-    private (GuiSelector, GuiLabel) CreateGameSetting(string title, float xOffset, SelectionElement[] selectionElements, int selectedIndex) {
-        GuiLabel label = new GuiLabel(
-            Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * xOffset,
-            Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 16f,
-            title,
-            new Vector2(0, 0));
+    private (GuiSelector, GuiLabel) CreateSelectionElement(string title, float yOffset, SelectionElement[] selectionElements, int selectedIndex) {
+        GuiLabel label = new GuiLabel($"0.05 {yOffset} 0.25 0.0625", title, new Vector2(0, 0));
+        label.TextAlignment = eTextAlignment.Center;
 
-        GuiSelector selector = new GuiSelector(
-            Application.BASE_WIDTH * 0.35f, Application.BASE_HEIGHT * xOffset,
-            Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT / 16f,
+        GuiSelector selector = new GuiSelector($"0.35 {yOffset} 0.5 {1f / 16f}",
             selectionElements, selectedIndex < 0 ? 0 : selectedIndex,
             new Vector2(0, 0));
 

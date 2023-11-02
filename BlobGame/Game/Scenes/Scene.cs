@@ -1,4 +1,7 @@
-﻿namespace BlobGame.Game.Scenes;
+﻿using BlobGame.Game.Gui;
+using System.Reflection;
+
+namespace BlobGame.Game.Scenes;
 /// <summary>
 /// Represents a base class for game scenes. Provides methods for scene lifecycle including loading, updating, drawing, and unloading.
 /// </summary>
@@ -24,4 +27,16 @@ internal abstract class Scene {
     /// </summary>
     internal virtual void Unload() { }
 
+    /// <summary>
+    /// Load all gui elements that are defined as properties in the scene.
+    /// </summary>
+    protected void LoadAllGuiElements() {
+        PropertyInfo[] properties = GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        IEnumerable<PropertyInfo> guiElements = properties.Where(p => p.PropertyType.IsSubclassOf(typeof(GuiElement)));
+
+        foreach (PropertyInfo p in guiElements) {
+            GuiElement? element = p.GetValue(this) as GuiElement;
+            element?.Load();
+        }
+    }
 }
