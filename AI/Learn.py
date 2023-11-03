@@ -22,9 +22,11 @@ from torchrl.envs import (
     CatTensors,
     FlattenObservation,
     CatFrames,
+    DTypeCastTransform,
 )
 from torchrl.envs.utils import check_env_specs, ExplorationType, set_exploration_type
-from torchrl.modules import ProbabilisticActor, TanhNormal, ValueOperator
+from torchrl.envs import GymEnv
+from torchrl.modules import ProbabilisticActor, OneHotCategorical, ValueOperator
 from torchrl.objectives import ClipPPOLoss
 from torchrl.objectives.value import GAE
 from tqdm import tqdm
@@ -67,7 +69,10 @@ lmbda = 0.95
 entropy_eps = 1e-4
 
 def create_environment():
-    env = BlobEnvironment(device=device)
+    env = GymEnv("ALE/Tetris-v5", obs_type="grayscale", render_mode="human", device=device)
+
+    print("observetion:", env.observation_spec)
+    print("action:", env.action_spec)
 
     env = TransformedEnv(
         env,
@@ -75,18 +80,21 @@ def create_environment():
             FlattenObservation(
                 first_dim=-2,
                 last_dim=-1,
-                in_keys=["pixels"],
+                in_keys=["observation"],
             ),
-            UnsqueezeTransform(
-                unsqueeze_dim=-1,
-                in_keys=["can_drop", "current_t"],
-                in_keys_inv=["can_drop", "current_t"],
-            ),
-            CatTensors(
-                in_keys=["pixels", "top_blob", "top_distance", "can_drop", "current_blob", "next_blob", "current_t"], dim=-1, out_key="observation", del_keys=False,
-            ),
+            DTypeCastTransform(dtype_in=torch.uint8, dtype_out=torch.float64, in_keys=["observation"]),
+            
+            # UnsqueezeTransform(
+            #     unsqueeze_dim=-1,
+            #     in_keys=["can_drop", "current_t"],
+            #     in_keys_inv=["can_drop", "current_t"],
+            # ),
+            # CatTensors(
+            #     in_keys=["pixels", "top_blob", "top_distance", "can_drop", "current_blob", "next_blob", "current_t"], dim=-1, out_key="observation", del_keys=False,
+            # ),
             # normalize observations
-            # ObservationNorm(in_keys=["observation"]),
+
+            ObservationNorm(in_keys=["observation"]),
             DoubleToFloat(
                 in_keys=["observation"],
             ),
@@ -96,16 +104,16 @@ def create_environment():
         ),
     )
 
-    # env.transform[3].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
+    env.transform[2].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
 
     return env
 
 
 def get_new_network(output_layers):
     return nn.Sequential(
-        nn.LazyLinear(512, device=device),
+        nn.LazyLinear(256, device=device),
         nn.Tanh(),
-        nn.LazyLinear(512, device=device),
+        nn.LazyLinear(256, device=device),
         nn.Tanh(),
         nn.LazyLinear(256, device=device),
         nn.Tanh(),
@@ -126,14 +134,14 @@ actor_net = get_new_network([
 ])
 
 policy_module = TensorDictModule(
-    actor_net, in_keys=["observation"], out_keys=["loc", "scale"]
+    actor_net, in_keys=["observation"], out_keys=["logits"]
 )
 
 policy_module = ProbabilisticActor(
     module=policy_module,
     spec=env.action_spec,
-    in_keys=["loc", "scale"],
-    distribution_class=TanhNormal,
+    in_keys=["logits"],
+    distribution_class=OneHotCategorical,
     return_log_prob=True,
 )
 
