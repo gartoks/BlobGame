@@ -260,14 +260,7 @@ internal sealed class GameScene : Scene {
         float mH = MarkerTexture.Resource.height;
 
         // Hightlight
-        Raylib.DrawTexturePro(
-            MarkerTexture.Resource,
-            new Rectangle(0, 0, mW, mH),
-            new Rectangle(ClassicGameMode.ARENA_WIDTH * 0.75f, 0, mW, mH),
-            new Vector2(mW / 2, mH / 2),
-            0,
-            ResourceManager.GetColor("light_accent").Resource
-            );
+        MarkerTexture.Draw(new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, 0), new Vector2(0.5f, 0.5f), null, 0, ResourceManager.GetColor("light_accent").Resource);
 
         // Blob
         NextBlobTexture.Draw(
@@ -277,7 +270,7 @@ internal sealed class GameScene : Scene {
 
         Vector2 textPos = new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, -310);
         Raylib.DrawTextPro(
-            Renderer.Font.Resource,
+            Renderer.MainFont.Resource,
             "NEXT",
             textPos,
             textPos / 2f,
@@ -330,9 +323,9 @@ internal sealed class GameScene : Scene {
 
     private void DrawScoreValue(float x, float y, float w, int score) {
         string scoreStr = $"{score}";
-        Vector2 scoreTextSize = Raylib.MeasureTextEx(Renderer.Font.Resource, scoreStr, 100, 10);
+        Vector2 scoreTextSize = Raylib.MeasureTextEx(Renderer.MainFont.Resource, scoreStr, 100, 10);
         Raylib.DrawTextEx(
-            Renderer.Font.Resource,
+            Renderer.MainFont.Resource,
             scoreStr,
             new Vector2(x + w - 50 - scoreTextSize.X, y),
             100,

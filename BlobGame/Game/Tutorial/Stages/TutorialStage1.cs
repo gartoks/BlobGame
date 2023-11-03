@@ -85,7 +85,7 @@ internal class TutorialStage1 : TutorialStage {
         if (AnimatedAvatarFadeIn.IsFinished) {
             DrawSpeechBubble();
 
-            Renderer.Font.Draw(
+            Renderer.GuiFont.Draw(
                 "Move your mouse to decide\nwhere to drop a piece!",
                 50,
                 ResourceManager.GetColor("dark_accent"),

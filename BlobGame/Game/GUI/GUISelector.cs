@@ -38,7 +38,7 @@ internal class GuiSelector : InteractiveGuiElement {
 
         Elements = elements;
         FontSize = (int)(buttonSize * 0.7f);
-        FontSpacing = FontSize / 16f;
+        FontSpacing = FontSize / 64f;
         //Bounds = new Rectangle(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h);
 
         Panel = new GuiPanel(x + buttonSize + BUTTON_SPACING, y, w - 2 * buttonSize - 2 * BUTTON_SPACING, h, new Vector2(0, 0));
@@ -83,7 +83,7 @@ internal class GuiSelector : InteractiveGuiElement {
 
         int textPosX = (int)(Bounds.x + Bounds.width / 2 - Raylib.MeasureText(SelectedElement.Text, FontSize) / 2);
         int textPosY = (int)(Bounds.y + Bounds.height / 2 - FontSize / 2);
-        Raylib.DrawTextEx(Renderer.Font.Resource, SelectedElement.Text, new Vector2(textPosX, textPosY), FontSize, FontSpacing, Raylib.WHITE);
+        Raylib.DrawTextEx(Renderer.GuiFont.Resource, SelectedElement.Text, new Vector2(textPosX, textPosY), FontSize, FontSpacing, Raylib.WHITE);
 
     }
 

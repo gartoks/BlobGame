@@ -87,7 +87,7 @@ internal class TutorialStage5 : TutorialStage {
         if (AnimatedAvatarFadeIn.IsFinished) {
             DrawSpeechBubble();
 
-            Renderer.Font.Draw(
+            Renderer.GuiFont.Draw(
                 "Here is your current\nhighscore!",
                 50,
                 ResourceManager.GetColor("dark_accent"),

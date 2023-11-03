@@ -73,7 +73,7 @@ internal class TutorialStage2 : TutorialStage {
 
         DrawSpeechBubble();
 
-        Renderer.Font.Draw(
+        Renderer.GuiFont.Draw(
             "Click to drop!",
             50,
             ResourceManager.GetColor("dark_accent"),

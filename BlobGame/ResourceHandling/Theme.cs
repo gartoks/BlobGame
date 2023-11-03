@@ -120,6 +120,11 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         ZipArchiveEntry? zippedFont = ThemeArchive!.GetEntry(path);
 
         if (zippedFont == null) {
+            path = $"Fonts/{key}.otf";
+            zippedFont = ThemeArchive!.GetEntry(path);
+        }
+
+        if (zippedFont == null) {
             Debug.WriteLine($"Font {key} doesn't exist in this theme");
             return null;
         }

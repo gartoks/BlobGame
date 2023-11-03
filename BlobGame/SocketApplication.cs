@@ -10,6 +10,8 @@ internal static class SocketApplication {
     /// The base seed for the games.
     /// </summary>
     private static int Seed { get; set; }
+
+    private static Type GameModeType { get; set; }
     /// <summary>
     /// The number of parallel games to run.
     /// </summary>
@@ -26,10 +28,11 @@ internal static class SocketApplication {
 
     private static IReadOnlyList<Thread>? Threads { get; set; }
 
-    private static IReadOnlyList<(ClassicGameMode simulation, SocketController controller)>? Games { get; set; }
+    private static IReadOnlyList<(IGameMode simulation, SocketController controller)>? Games { get; set; }
 
-    internal static void Initialize(int numParallelGames, bool useSeparateThreads, int seed, int port) {
+    internal static void Initialize(int numParallelGames, bool useSeparateThreads, int port, int seed, string gameModeKey) {
         Seed = seed;
+        GameModeType = IGameMode.GameModeTypes[gameModeKey];
         NumParallelGames = numParallelGames;
         UseSeparateThreads = useSeparateThreads;
         Port = port;
@@ -50,7 +53,7 @@ internal static class SocketApplication {
     private static void InitializeWithoutThreads() {
         Random random = new Random(Seed);
         Games = Enumerable.Range(0, NumParallelGames)
-            .Select(i => (new ClassicGameMode(random.Next()), new SocketController(i, Port)))
+            .Select(i => ((IGameMode)new ClassicGameMode(random.Next()), new SocketController(i, Port)))
             .ToList();
     }
 
@@ -74,7 +77,7 @@ internal static class SocketApplication {
 
         List<int> runningGames = Enumerable.Range(0, NumParallelGames).ToList();
 
-        foreach ((IGameMode simulation, SocketController controller) in Games!){
+        foreach ((IGameMode simulation, SocketController controller) in Games!) {
             simulation.Load();
             controller.Load();
         }
@@ -84,7 +87,7 @@ internal static class SocketApplication {
                 if (!runningGames.Contains(i))
                     continue;
 
-                (ClassicGameMode simulation, SocketController controller) = Games[i];
+                (IGameMode simulation, SocketController controller) = Games[i];
 
                 simulation.Update(dT);
                 controller.Update(dT, simulation);

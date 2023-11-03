@@ -68,7 +68,7 @@ internal sealed class TextScroller {
         float traversedDistance = (Renderer.Time - NextScrollTime) * speed;
         Vector2 pos = START_POS + (-Scroller.Value.size.X + (distance - traversedDistance)) * DIRECTION;
 
-        Renderer.Font.Draw(
+        Renderer.MainFont.Draw(
             Scroller.Value.text, 200,
             ResourceManager.GetColor("background"),
             pos, -12.5f);
@@ -87,7 +87,7 @@ internal sealed class TextScroller {
         int idx = Random.Next(ScrollerTexts.Resource.Count);
         string scrollerText = ScrollerTexts.Resource.Values.Skip(idx).First().Trim();
 
-        Vector2 size = Raylib.MeasureTextEx(Renderer.Font.Resource, scrollerText, 200, 200 / 16f);
+        Vector2 size = Raylib.MeasureTextEx(Renderer.MainFont.Resource, scrollerText, 200, 200 / 16f);
 
         Scroller = (scrollerText, size);
     }

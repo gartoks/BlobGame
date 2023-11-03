@@ -81,7 +81,7 @@ internal class TutorialStage4 : TutorialStage {
 
         DrawSpeechBubble();
 
-        Renderer.Font.Draw(
+        Renderer.GuiFont.Draw(
             "Pieces will combine like this!",
             50,
             ResourceManager.GetColor("dark_accent"),

@@ -44,16 +44,16 @@ internal sealed class GuiLabel : GuiElement {
 
         _Text = text;
         FontSize = h * 0.6f;
-        FontSpacing = FontSize / 16f;
+        FontSpacing = FontSize / 64f;
         TextAlignment = eTextAlignment.Center;
     }
 
     protected override void DrawInternal() {
-        Raylib.DrawTextEx(Renderer.Font.Resource, Text, TextPosition, FontSize, FontSpacing, Raylib.WHITE);
+        Raylib.DrawTextEx(Renderer.GuiFont.Resource, Text, TextPosition, FontSize, FontSpacing, Raylib.WHITE);
     }
 
     internal Vector2 GetTextSize() {
-        return Raylib.MeasureTextEx(Renderer.Font.Resource, Text, FontSize, FontSpacing);
+        return Raylib.MeasureTextEx(Renderer.GuiFont.Resource, Text, FontSize, FontSpacing);
     }
 
     private void CalculateTextPosition() {

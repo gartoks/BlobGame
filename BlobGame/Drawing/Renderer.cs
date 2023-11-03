@@ -14,9 +14,13 @@ internal static class Renderer {
     private static Stopwatch UpdateStopwatch { get; }
 
     /// <summary>
-    /// The default font to use for drawing text.
+    /// The default font for buttons and ingame text
     /// </summary>
-    internal static FontResource Font { get; private set; }
+    internal static FontResource MainFont { get; private set; }
+    /// <summary>
+    /// The default font to use for the ui.
+    /// </summary>
+    internal static FontResource GuiFont { get; private set; }
 
     /// <summary>
     /// Keeps trakc of the time since the game started.
@@ -41,7 +45,8 @@ internal static class Renderer {
     /// Loads global resources.
     /// </summary>
     internal static void Load() {
-        Font = ResourceManager.GetFont("NewBread");
+        MainFont = ResourceManager.GetFont("main");
+        GuiFont = ResourceManager.GetFont("gui");
     }
 
     /// <summary>

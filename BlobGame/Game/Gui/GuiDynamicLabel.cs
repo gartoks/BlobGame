@@ -13,17 +13,17 @@ internal sealed class GuiDynamicLabel : GuiElement {
 
     public GuiDynamicLabel(float x, float y, string text, float fontSize, Vector2? pivot = null)
         : base(x, y,
-            Raylib.MeasureTextEx(Renderer.Font.Resource, text, fontSize, fontSize / 16f).X,
-            Raylib.MeasureTextEx(Renderer.Font.Resource, text, fontSize, fontSize / 16f).Y, pivot) {
+            Raylib.MeasureTextEx(Renderer.GuiFont.Resource, text, fontSize, fontSize / 16f).X,
+            Raylib.MeasureTextEx(Renderer.GuiFont.Resource, text, fontSize, fontSize / 16f).Y, pivot) {
 
         Text = text;
         FontSize = fontSize;
-        FontSpacing = FontSize / 16f;
+        FontSpacing = FontSize / 64f;
         TextPosition = new Vector2(x, y);
     }
 
     protected override void DrawInternal() {
-        Raylib.DrawTextEx(Renderer.Font.Resource, Text, TextPosition, FontSize, FontSpacing, Raylib.WHITE);
+        Raylib.DrawTextEx(Renderer.GuiFont.Resource, Text, TextPosition, FontSize, FontSpacing, Raylib.WHITE);
     }
 
 }

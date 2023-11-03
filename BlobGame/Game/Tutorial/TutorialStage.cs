@@ -35,7 +35,7 @@ internal abstract class TutorialStage {
             new Vector2(0, 1),
             new Vector2(0.4f, 0.4f));
 
-        Renderer.Font.Draw(
+        Renderer.GuiFont.Draw(
             "Hold LMB to continue!",
             80,
             ResourceManager.GetColor("dark_accent"),

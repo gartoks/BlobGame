@@ -59,7 +59,7 @@ internal class TutorialStage7 : TutorialStage {
         AvatarTexture.Draw(new Vector2(AVATAR_X, Application.BASE_HEIGHT - AvatarTexture.Resource.height / 2));
         DrawSpeechBubble();
 
-        Renderer.Font.Draw(
+        Renderer.GuiFont.Draw(
             "Have fun!",
             50,
             ResourceManager.GetColor("dark_accent"),
