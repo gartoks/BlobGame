@@ -48,39 +48,39 @@ class BlobEnvironment(EnvBase):
                 low=0,
                 high=1,
                 shape=(NN_VIEW_WIDTH, NN_VIEW_HEIGHT),
-                dtype=torch.float64,
+                dtype=torch.float32,
             ),
             top_blob=BoundedTensorSpec(
                 low=0,
                 high=1,
                 shape=(NN_VIEW_WIDTH),
-                dtype=torch.float64,
+                dtype=torch.float32,
             ),
             top_distance=BoundedTensorSpec(
                 low=0,
                 high=1,
                 shape=(NN_VIEW_WIDTH),
-                dtype=torch.float64,
+                dtype=torch.float32,
             ),
             can_drop=BoundedTensorSpec(
                 low=0,
                 high=1,
                 shape=(),
-                dtype=torch.float64,
+                dtype=torch.float32,
             ),
             current_t=BoundedTensorSpec(
                 low=0,
                 high=1,
                 shape=(),
-                dtype=torch.float64,
+                dtype=torch.float32,
             ),
             current_blob=OneHotDiscreteTensorSpec(
                 n=len(BLOB_RADII),
-                dtype=torch.float64,
+                dtype=torch.float32,
             ),
             next_blob=OneHotDiscreteTensorSpec(
                 n=len(BLOB_RADII),
-                dtype=torch.float64,
+                dtype=torch.float32,
             ),
             shape=(),
         )
@@ -88,7 +88,7 @@ class BlobEnvironment(EnvBase):
         # We have 3 actions, corresponding to "right", "left", "drop"
         self.action_spec = OneHotDiscreteTensorSpec(
             n=3,
-            dtype=torch.float64,
+            dtype=torch.float32,
         )
         self.reward_spec = UnboundedContinuousTensorSpec(shape=(1))
 
@@ -98,9 +98,9 @@ class BlobEnvironment(EnvBase):
         I.e. 0 corresponds to "right", 1 to "up" etc.
         """
         self._action_to_direction = {
-            0: -0.01,
-            1: +0.01,
-            2: 0
+            0: 0,
+            1: -0.01,
+            2: +0.01,
         }
 
         self.renderer = Renderer((ARENA_WIDTH, ARENA_HEIGHT), never_display=False)
@@ -133,13 +133,13 @@ class BlobEnvironment(EnvBase):
         
         return TensorDict(
             {
-                "pixels": torch.tensor(rolled_pixels, dtype=torch.float64, device=self.device),
-                "top_blob": torch.tensor(top_blob, dtype=torch.float64, device=self.device),
-                "top_distance": torch.tensor(top_distance, dtype=torch.float64, device=self.device),
+                "pixels": torch.tensor(rolled_pixels, dtype=torch.float32, device=self.device),
+                "top_blob": torch.tensor(top_blob, dtype=torch.float32, device=self.device),
+                "top_distance": torch.tensor(top_distance, dtype=torch.float32, device=self.device),
                 "current_blob": self.observation_spec["current_blob"].encode(self.last_frame.current_blob).to(self.device),
                 "next_blob": self.observation_spec["next_blob"].encode(self.last_frame.next_blob).to(self.device),
-                "current_t": torch.tensor(self.t, dtype=torch.float64),
-                "can_drop": torch.tensor(float(self.last_frame.can_drop), dtype=torch.float64),
+                "current_t": torch.tensor(self.t, dtype=torch.float32),
+                "can_drop": torch.tensor(float(self.last_frame.can_drop), dtype=torch.float32),
             },
             batch_size=(),
             device=self.device
@@ -163,7 +163,7 @@ class BlobEnvironment(EnvBase):
         
         self.t = (self.t + self._action_to_direction[torch.argmax(action["action"]).item()]) % 1.0
         
-        should_drop = torch.argmax(action["action"]).item() == 2
+        should_drop = torch.argmax(action["action"]).item() == 0
         
         last_score = self.last_frame.score
         terminated = False
@@ -176,9 +176,9 @@ class BlobEnvironment(EnvBase):
 
         # An episode is done if the agent has reached the target
         terminated = terminated or self.last_frame.is_game_over
-        reward = self.last_frame.score - last_score if not terminated else -500
+        reward = self.last_frame.score - last_score if not terminated else -10
 
-        if (reward < -100):
+        if (reward < 0):
             terminated = True
         observation = self._get_obs(action)
 

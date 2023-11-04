@@ -25,7 +25,6 @@ from torchrl.envs import (
     DTypeCastTransform,
 )
 from torchrl.envs.utils import check_env_specs, ExplorationType, set_exploration_type
-from torchrl.envs import GymEnv
 from torchrl.modules import ProbabilisticActor, OneHotCategorical, ValueOperator
 from torchrl.objectives import ClipPPOLoss
 from torchrl.objectives.value import GAE
@@ -37,14 +36,15 @@ import numpy as np
 
 from Environment import BlobEnvironment
 from Renderer import Renderer
+from Model import Model
 
 def moving_average(data, window_size):
     window = np.ones(int(window_size))/float(window_size)
     return np.convolve(data, window, "valid")
 
+torch.set_default_dtype(torch.float32)
 
 device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
-num_cells = 256  # number of cells in each layer i.e. output dim.
 lr = 3e-4
 max_grad_norm = 1.0
 save_every = 100
@@ -52,10 +52,11 @@ save_every = 100
 save_path = "checkpoints/" + str(datetime.now()) + "/"
 os.makedirs(save_path)
 save_path += "network_{}.ckpt"
+CHECKPOINT_PATH = "checkpoints/non_existent"
 
-frame_skip = 1
+frame_skip = 2
 # Adjust to fill VRAM
-frames_per_batch = 1000 // frame_skip
+frames_per_batch = 2000 // frame_skip
 # For a complete training, bring the number of frames up to 1M
 total_frames = 1_000_000_000 // frame_skip
 
@@ -69,56 +70,48 @@ lmbda = 0.95
 entropy_eps = 1e-4
 
 def create_environment():
-    env = GymEnv("ALE/Tetris-v5", obs_type="grayscale", render_mode="human", device=device)
-
-    print("observetion:", env.observation_spec)
-    print("action:", env.action_spec)
+    env = BlobEnvironment(device=device)
 
     env = TransformedEnv(
         env,
         Compose(
-            FlattenObservation(
-                first_dim=-2,
-                last_dim=-1,
-                in_keys=["observation"],
+            FrameSkipTransform(frame_skip=frame_skip),
+            # FlattenObservation(-2, -1, in_keys=["pixels"]),
+            UnsqueezeTransform(
+                unsqueeze_dim=-1,
+                in_keys=["can_drop", "current_t"],
             ),
-            DTypeCastTransform(dtype_in=torch.uint8, dtype_out=torch.float64, in_keys=["observation"]),
-            
-            # UnsqueezeTransform(
-            #     unsqueeze_dim=-1,
-            #     in_keys=["can_drop", "current_t"],
-            #     in_keys_inv=["can_drop", "current_t"],
-            # ),
-            # CatTensors(
-            #     in_keys=["pixels", "top_blob", "top_distance", "can_drop", "current_blob", "next_blob", "current_t"], dim=-1, out_key="observation", del_keys=False,
-            # ),
+            CatTensors(
+                in_keys=["top_blob", "top_distance", "can_drop", "current_blob", "next_blob", "current_t"], dim=-1, out_key="linear_data",
+            ),
             # normalize observations
 
-            ObservationNorm(in_keys=["observation"]),
-            DoubleToFloat(
-                in_keys=["observation"],
+            # ObservationNorm(in_keys=["observation"]),
+            # DoubleToFloat(
+            #     in_keys=["observation"],
+            # ),
+            # UnsqueezeTransform(
+            #     unsqueeze_dim=-2,
+            #     in_keys=["observation"],
+            #     in_keys_inv=["observation"],
+            # ),
+            UnsqueezeTransform(
+                unsqueeze_dim=-1,
+                in_keys=["linear_data"],
             ),
-            CatFrames(N=3, dim=-1, in_keys=["observation"]),
+            UnsqueezeTransform(
+                unsqueeze_dim=-3,
+                in_keys=["pixels"],
+            ),
+            CatFrames(N=3, dim=-1, in_keys=["linear_data"]),
+            CatFrames(N=3, dim=-3, in_keys=["pixels"]),
             StepCounter(),
-            FrameSkipTransform(frame_skip=frame_skip),
         ),
     )
 
-    env.transform[2].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
+    # env.transform[2].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
 
     return env
-
-
-def get_new_network(output_layers):
-    return nn.Sequential(
-        nn.LazyLinear(256, device=device),
-        nn.Tanh(),
-        nn.LazyLinear(256, device=device),
-        nn.Tanh(),
-        nn.LazyLinear(256, device=device),
-        nn.Tanh(),
-        *output_layers
-    )
 
 Renderer.init()
 env = create_environment()
@@ -128,13 +121,12 @@ print(env.observation_spec)
 check_env_specs(env)
 
 
-actor_net = get_new_network([
-    nn.LazyLinear(2 * env.action_spec.shape[-1], device=device),
-    NormalParamExtractor(),
-])
+actor_net = Model([
+    nn.LazyLinear(env.action_spec.shape[-1], device=device),
+]).to(device)
 
 policy_module = TensorDictModule(
-    actor_net, in_keys=["observation"], out_keys=["logits"]
+    actor_net, in_keys=["pixels", "linear_data"], out_keys=["logits"],
 )
 
 policy_module = ProbabilisticActor(
@@ -145,13 +137,13 @@ policy_module = ProbabilisticActor(
     return_log_prob=True,
 )
 
-value_net = get_new_network([
+value_net = Model([
     nn.LazyLinear(1, device=device),
-])
+]).to(device)
 
 value_module = ValueOperator(
     module=value_net,
-    in_keys=["observation"],
+    in_keys=["pixels", "linear_data"],
 )
 
 
@@ -169,7 +161,7 @@ collector = SyncDataCollector(
 )
 
 replay_buffer = ReplayBuffer(
-    storage=LazyTensorStorage(frames_per_batch),
+    storage=LazyTensorStorage(frames_per_batch, device="cpu"),
     sampler=SamplerWithoutReplacement(),
 )
 
@@ -200,13 +192,48 @@ logs = defaultdict(list)
 pbar = tqdm(total=total_frames * frame_skip)
 eval_str = ""
 
-path = "checkpoints/non_existent"
+def save_state(epoch):
+    global policy_module, actor_net, optim, logs, loss_module, advantage_module, collector, value_net, value_module, replay_buffer, scheduler
+    path = save_path.format(epoch)
+    torch.save(
+        {
+            "policy_module": policy_module.state_dict(),
+            "actor_net": actor_net.state_dict(),
+            "optim": optim.state_dict(),
+            "logs": logs,
+            "loss_module": loss_module.state_dict(),
+            "advantage_module": advantage_module.state_dict(),
+            "collector": collector.state_dict(),
+            "value_net": value_net.state_dict(),
+            "value_module": value_module.state_dict(),
+            "replay_buffer": replay_buffer.state_dict(),
+            "scheduler": scheduler.state_dict(),
+            "epoch": epoch
+        },
+        path
+    )
+    print("Saved")
+def load_state(path):
+    global policy_module, actor_net, optim, logs, loss_module, advantage_module, collector, value_net, value_module, replay_buffer, scheduler
+    loaded_state = torch.load(path)
+    
+    policy_module.load_state_dict(load_state["policy_module"])
+    actor_net.load_state_dict(loaded_state["actor_net"])
+    optim.load_state_dict(loaded_state["optim"])
+    logs = loaded_state["logs"]
+    loss_module.load_state_dict(loaded_state["loss_module"])
+    advantage_module.load_state_dict(loaded_state["advantage_module"])
+    collector.load_state_dict(loaded_state["collector"])
+    value_net.load_state_dict(loaded_state["value_net"])
+    value_module.load_state_dict(loaded_state["value_module"])
+    replay_buffer.load_state_dict(loaded_state["replay_buffer"])
+    scheduler.load_state_dict(loaded_state["scheduler"])
+    epoch = loaded_state["epoch"]
 
-if (os.path.exists(path)):
-    loaded = torch.load(path)
+    print(f"Loaded epoch {epoch}")
 
-    logs = loaded["logs"]
-    value_net.load_state_dict(loaded["model"])
+if (os.path.exists(CHECKPOINT_PATH)):
+    load_state(CHECKPOINT_PATH)
 
 matplotlib.use("Qt5agg")
 plt.figure(figsize=(15, 10))
@@ -296,23 +323,7 @@ for i, tensordict_data in enumerate(collector):
     plt.pause(0.01)
 
     if (i % save_every == 0):
-        path = save_path.format(i)
-        torch.save(
-            {
-                "model": value_net.state_dict(),
-                "logs": logs
-            },
-            path
-        )
-        print("Saved")
+        save_state(i)
 
 plt.show()
-
-path = save_path.format(i)
-torch.save(
-    {
-        "model": value_net.state_dict(),
-        "logs": logs
-    },
-    path
-)
+save_state("final")
