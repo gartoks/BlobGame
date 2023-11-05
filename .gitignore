@@ -6,6 +6,9 @@
 BlobGame/Resources/References/*
 BlobGame/Resources/Themes/*
 
+checkpointsDQN/
+checkpointsPPO/
+
 # User-specific files
 *.rsuser
 *.suo

@@ -3,7 +3,7 @@ from collections import defaultdict
 import matplotlib
 import matplotlib.pyplot as plt
 import torch
-from tensordict.nn import TensorDictModule
+from tensordict.nn import TensorDictModule, InteractionType
 from tensordict.nn.distributions import NormalParamExtractor
 from torch import nn
 
@@ -11,19 +11,7 @@ from torchrl.collectors import SyncDataCollector
 from torchrl.data.replay_buffers import ReplayBuffer
 from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
 from torchrl.data.replay_buffers.storages import LazyTensorStorage
-from torchrl.envs import (
-    Compose,
-    DoubleToFloat,
-    ObservationNorm,
-    StepCounter,
-    TransformedEnv,
-    FrameSkipTransform,
-    UnsqueezeTransform,
-    CatTensors,
-    FlattenObservation,
-    CatFrames,
-    DTypeCastTransform,
-)
+
 from torchrl.envs.utils import check_env_specs, ExplorationType, set_exploration_type
 from torchrl.modules import ProbabilisticActor, OneHotCategorical, ValueOperator
 from torchrl.objectives import ClipPPOLoss
@@ -34,7 +22,7 @@ from datetime import datetime
 import os
 import numpy as np
 
-from Environment import BlobEnvironment
+from CommonLearning import *
 from Renderer import Renderer
 from Model import Model
 
@@ -42,17 +30,17 @@ def moving_average(data, window_size):
     window = np.ones(int(window_size))/float(window_size)
     return np.convolve(data, window, "valid")
 
-torch.set_default_dtype(torch.float32)
-
+torch.set_default_dtype(torch.float16)
 device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
-lr = 3e-4
-max_grad_norm = 1.0
-save_every = 100
 
-save_path = "checkpoints/" + str(datetime.now()) + "/"
+lr = 1e-5
+max_grad_norm = 1.0
+save_every = 10
+
+save_path = "checkpointsPPO/" + str(datetime.now()) + "/"
 os.makedirs(save_path)
 save_path += "network_{}.ckpt"
-CHECKPOINT_PATH = "checkpoints/non_existent"
+CHECKPOINT_PATH = "checkpointsPPO/2023-11-05 17:49:32.178158/network_180.ckpt"
 
 frame_skip = 2
 # Adjust to fill VRAM
@@ -61,67 +49,23 @@ frames_per_batch = 2000 // frame_skip
 total_frames = 1_000_000_000 // frame_skip
 
 sub_batch_size = 64  # cardinality of the sub-samples gathered from the current data in the inner loop
-num_epochs = 10  # optimisation steps per batch of data collected
+num_epochs = 3  # optimisation steps per batch of data collected
 clip_epsilon = (
-    0.2  # clip value for PPO loss: see the equation in the intro for more context.
+    0.1  # clip value for PPO loss: see the equation in the intro for more context.
 )
 gamma = 0.99
 lmbda = 0.95
 entropy_eps = 1e-4
 
-def create_environment():
-    env = BlobEnvironment(device=device)
-
-    env = TransformedEnv(
-        env,
-        Compose(
-            FrameSkipTransform(frame_skip=frame_skip),
-            # FlattenObservation(-2, -1, in_keys=["pixels"]),
-            UnsqueezeTransform(
-                unsqueeze_dim=-1,
-                in_keys=["can_drop", "current_t"],
-            ),
-            CatTensors(
-                in_keys=["top_blob", "top_distance", "can_drop", "current_blob", "next_blob", "current_t"], dim=-1, out_key="linear_data",
-            ),
-            # normalize observations
-
-            # ObservationNorm(in_keys=["observation"]),
-            # DoubleToFloat(
-            #     in_keys=["observation"],
-            # ),
-            # UnsqueezeTransform(
-            #     unsqueeze_dim=-2,
-            #     in_keys=["observation"],
-            #     in_keys_inv=["observation"],
-            # ),
-            UnsqueezeTransform(
-                unsqueeze_dim=-1,
-                in_keys=["linear_data"],
-            ),
-            UnsqueezeTransform(
-                unsqueeze_dim=-3,
-                in_keys=["pixels"],
-            ),
-            CatFrames(N=3, dim=-1, in_keys=["linear_data"]),
-            CatFrames(N=3, dim=-3, in_keys=["pixels"]),
-            StepCounter(),
-        ),
-    )
-
-    # env.transform[2].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
-
-    return env
-
 Renderer.init()
-env = create_environment()
+env = create_environment(device, dtype=torch.float16, frame_skip=frame_skip)
 
 print(env.observation_spec)
 
 check_env_specs(env)
 
 
-actor_net = Model([
+actor_net = Model(device, [
     nn.LazyLinear(env.action_spec.shape[-1], device=device),
 ]).to(device)
 
@@ -135,6 +79,7 @@ policy_module = ProbabilisticActor(
     in_keys=["logits"],
     distribution_class=OneHotCategorical,
     return_log_prob=True,
+    default_interaction_type=InteractionType.RANDOM,
 )
 
 value_net = Model([
@@ -180,9 +125,14 @@ loss_module = ClipPPOLoss(
     critic_coef=1.0,
     gamma=0.99,
     loss_critic_type="smooth_l1",
+    normalize_advantage=True,
 )
 
-optim = torch.optim.Adam(loss_module.parameters(), lr)
+optim = torch.optim.Adam(
+    loss_module.parameters(), 
+    lr=lr,
+    foreach=False
+)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
     optim, total_frames // frames_per_batch, 0.0
 )
@@ -217,7 +167,7 @@ def load_state(path):
     global policy_module, actor_net, optim, logs, loss_module, advantage_module, collector, value_net, value_module, replay_buffer, scheduler
     loaded_state = torch.load(path)
     
-    policy_module.load_state_dict(load_state["policy_module"])
+    policy_module.load_state_dict(loaded_state["policy_module"])
     actor_net.load_state_dict(loaded_state["actor_net"])
     optim.load_state_dict(loaded_state["optim"])
     logs = loaded_state["logs"]
@@ -236,7 +186,7 @@ if (os.path.exists(CHECKPOINT_PATH)):
     load_state(CHECKPOINT_PATH)
 
 matplotlib.use("Qt5agg")
-plt.figure(figsize=(15, 10))
+plot_figure = plt.figure(figsize=(15, 10))
 plt.show(block=False)
 
 # We iterate over the collector until it reaches the total number of frames it was
@@ -286,7 +236,8 @@ for i, tensordict_data in enumerate(collector):
         # it will then execute this policy at each step.
         with set_exploration_type(ExplorationType.MEAN), torch.no_grad():
             # execute a rollout with the trained policy
-            eval_rollout = env.rollout(1000, policy_module)
+            env.reset()
+            eval_rollout = env.rollout(5000, policy_module)
             logs["eval reward"].append(eval_rollout["next", "reward"].mean().item())
             logs["eval reward (sum)"].append(
                 eval_rollout["next", "reward"].sum().item()
@@ -304,23 +255,25 @@ for i, tensordict_data in enumerate(collector):
     # this is a nice-to-have but nothing necessary for PPO to work.
     scheduler.step()
 
-    plt.clf()
-    plt.subplot(3, 2, 1)
-    plt.plot(logs["reward"])
-    plt.title("training rewards (average)")
-    plt.subplot(3, 2, 2)
-    plt.plot(logs["step_count"])
-    plt.title("Max step count (training)")
-    plt.subplot(3, 2, 3)
-    plt.plot(logs["eval reward (sum)"])
-    plt.title("Return (test)")
-    plt.subplot(3, 2, 4)
-    plt.plot(logs["eval step_count"])
-    plt.title("Max step count (test)")
-    plt.subplot(3, 2, 5)
-    plt.plot(moving_average(logs["reward"], 100))
-    plt.title("Reward (moving average)")
-    plt.pause(0.01)
+    plot_figure.clf()
+    plot = plot_figure.add_subplot(3, 2, 1)
+    plot.plot(logs["reward"])
+    plot.set_title("training rewards (average)")
+    plot = plot_figure.add_subplot(3, 2, 2)
+    plot.plot(logs["step_count"])
+    plot.set_title("Max step count (training)")
+    plot = plot_figure.add_subplot(3, 2, 3)
+    plot.plot(logs["eval reward (sum)"])
+    plot.set_title("Return (test)")
+    plot = plot_figure.add_subplot(3, 2, 4)
+    plot.plot(logs["eval step_count"])
+    plot.set_title("Max step count (test)")
+    plot = plot_figure.add_subplot(3, 2, 5)
+    plot.plot(moving_average(logs["reward"], 100))
+    plot.set_title("Reward (moving average)")
+    
+    plot_figure.canvas.draw_idle()
+    plot_figure.canvas.flush_events()
 
     if (i % save_every == 0):
         save_state(i)

@@ -41,46 +41,47 @@ def first_nonone(arr, axis):
     return result
 
 class BlobEnvironment(EnvBase):
-    def __init__(self, seed=None, device="cpu"):
+    def __init__(self, dtype, seed=None, device="cpu"):
         super().__init__(device=device, batch_size=[])
+        self.custom_dtype = dtype
         self.observation_spec = CompositeSpec(
             pixels=BoundedTensorSpec(
                 low=0,
                 high=1,
                 shape=(NN_VIEW_WIDTH, NN_VIEW_HEIGHT),
-                dtype=torch.float32,
+                dtype=self.custom_dtype,
             ),
             top_blob=BoundedTensorSpec(
                 low=0,
                 high=1,
                 shape=(NN_VIEW_WIDTH),
-                dtype=torch.float32,
+                dtype=self.custom_dtype,
             ),
             top_distance=BoundedTensorSpec(
                 low=0,
                 high=1,
                 shape=(NN_VIEW_WIDTH),
-                dtype=torch.float32,
+                dtype=self.custom_dtype,
             ),
             can_drop=BoundedTensorSpec(
                 low=0,
                 high=1,
                 shape=(),
-                dtype=torch.float32,
+                dtype=self.custom_dtype,
             ),
             current_t=BoundedTensorSpec(
                 low=0,
                 high=1,
                 shape=(),
-                dtype=torch.float32,
+                dtype=self.custom_dtype,
             ),
             current_blob=OneHotDiscreteTensorSpec(
                 n=len(BLOB_RADII),
-                dtype=torch.float32,
+                dtype=self.custom_dtype,
             ),
             next_blob=OneHotDiscreteTensorSpec(
                 n=len(BLOB_RADII),
-                dtype=torch.float32,
+                dtype=self.custom_dtype,
             ),
             shape=(),
         )
@@ -88,7 +89,7 @@ class BlobEnvironment(EnvBase):
         # We have 3 actions, corresponding to "right", "left", "drop"
         self.action_spec = OneHotDiscreteTensorSpec(
             n=3,
-            dtype=torch.float32,
+            dtype=self.custom_dtype,
         )
         self.reward_spec = UnboundedContinuousTensorSpec(shape=(1))
 
@@ -113,7 +114,7 @@ class BlobEnvironment(EnvBase):
     def _get_obs(self, tensordict):
         self.renderer.render_frame(self.last_frame)
 
-        pixels = self.renderer.get_pixels().astype(np.float32) / 255.0
+        pixels = self.renderer.get_pixels().astype(np.float16) / 255.0
 
         rolled_pixels = np.roll(pixels, int(float(pixels.shape[-1]) * -self.t), -2)
 
@@ -133,13 +134,13 @@ class BlobEnvironment(EnvBase):
         
         return TensorDict(
             {
-                "pixels": torch.tensor(rolled_pixels, dtype=torch.float32, device=self.device),
-                "top_blob": torch.tensor(top_blob, dtype=torch.float32, device=self.device),
-                "top_distance": torch.tensor(top_distance, dtype=torch.float32, device=self.device),
+                "pixels": torch.tensor(rolled_pixels, dtype=self.custom_dtype, device=self.device),
+                "top_blob": torch.tensor(top_blob, dtype=self.custom_dtype, device=self.device),
+                "top_distance": torch.tensor(top_distance, dtype=self.custom_dtype, device=self.device),
                 "current_blob": self.observation_spec["current_blob"].encode(self.last_frame.current_blob).to(self.device),
                 "next_blob": self.observation_spec["next_blob"].encode(self.last_frame.next_blob).to(self.device),
-                "current_t": torch.tensor(self.t, dtype=torch.float32),
-                "can_drop": torch.tensor(float(self.last_frame.can_drop), dtype=torch.float32),
+                "current_t": torch.tensor(self.t, dtype=self.custom_dtype),
+                "can_drop": torch.tensor(float(self.last_frame.can_drop), dtype=self.custom_dtype),
             },
             batch_size=(),
             device=self.device
@@ -190,8 +191,9 @@ class BlobEnvironment(EnvBase):
         return observation
 
     def close(self):
-        self.controller.close_connection()
-        self.server.close_server()
+        # self.controller.close_connection()
+        # self.server.close_server()
+        pass
 
     def _set_seed(self, seed: Optional[int]): pass
     
