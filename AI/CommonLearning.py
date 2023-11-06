@@ -56,3 +56,10 @@ def create_environment(device, dtype, frame_skip=2):
     # env.transform[2].init_stats(num_iter=1000, reduce_dim=0, cat_dim=0)
 
     return env
+
+def get_exp_name(
+        type,
+        date,
+        ):
+    return f"{type=} {date}"
+

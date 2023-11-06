@@ -18,6 +18,8 @@ from torchrl.objectives import ClipPPOLoss
 from torchrl.objectives.value import GAE
 from tqdm import tqdm
 
+from torchrl.record.loggers.tensorboard import TensorboardLogger
+
 from datetime import datetime
 import os
 import numpy as np
@@ -33,16 +35,22 @@ def moving_average(data, window_size):
 torch.set_default_dtype(torch.float16)
 device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
 
+# ---- Optimizer
 lr = 1e-5
 max_grad_norm = 1.0
+weight_decay = 0.0
+betas = (0.9, 0.999)
+
+# ---- Saving/Loading
 save_every = 10
 
 save_path = "checkpointsPPO/" + str(datetime.now()) + "/"
 os.makedirs(save_path)
 save_path += "network_{}.ckpt"
-CHECKPOINT_PATH = "checkpointsPPO/2023-11-05 17:49:32.178158/network_180.ckpt"
+CHECKPOINT_PATH = "checkpointsPPO/non_existent"
 
-frame_skip = 2
+
+frame_skip = 5
 # Adjust to fill VRAM
 frames_per_batch = 2000 // frame_skip
 # For a complete training, bring the number of frames up to 1M
@@ -56,6 +64,9 @@ clip_epsilon = (
 gamma = 0.99
 lmbda = 0.95
 entropy_eps = 1e-4
+
+# ---- Replay
+replay_size = frames_per_batch
 
 Renderer.init()
 env = create_environment(device, dtype=torch.float16, frame_skip=frame_skip)
@@ -82,7 +93,7 @@ policy_module = ProbabilisticActor(
     default_interaction_type=InteractionType.RANDOM,
 )
 
-value_net = Model([
+value_net = Model(device, [
     nn.LazyLinear(1, device=device),
 ]).to(device)
 
@@ -106,7 +117,7 @@ collector = SyncDataCollector(
 )
 
 replay_buffer = ReplayBuffer(
-    storage=LazyTensorStorage(frames_per_batch, device="cpu"),
+    storage=LazyTensorStorage(replay_size, device="cpu"),
     sampler=SamplerWithoutReplacement(),
 )
 
@@ -131,6 +142,8 @@ loss_module = ClipPPOLoss(
 optim = torch.optim.Adam(
     loss_module.parameters(), 
     lr=lr,
+    weight_decay=weight_decay,
+    betas=betas,
     foreach=False
 )
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -138,9 +151,32 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
 )
 
 
-logs = defaultdict(list)
 pbar = tqdm(total=total_frames * frame_skip)
 eval_str = ""
+
+if not os.path.exists("checkpointsPPO/tensorboard/"):
+    os.makedirs("checkpointsPPO/tensorboard/")
+logger = TensorboardLogger(get_exp_name(
+    type="ppo",
+    date=datetime.now(),
+), "checkpointsPPO/tensorboard/")
+
+logger.log_hparams({
+    "lr": lr,
+    "max_grad_norm": max_grad_norm,
+    "frame_skip": frame_skip,
+    "frames_per_batch": frames_per_batch,
+    "sub_batch_size": sub_batch_size,
+    "num_epochs": num_epochs,
+    "clip_epsilon": clip_epsilon,
+    "gamma": gamma,
+    "lmbda": lmbda,
+    "entropy_eps": entropy_eps,
+    "weight_decay": weight_decay,
+    "beta0": betas[0],
+    "beta1": betas[1],
+    "replay_size": replay_size,
+})
 
 def save_state(epoch):
     global policy_module, actor_net, optim, logs, loss_module, advantage_module, collector, value_net, value_module, replay_buffer, scheduler
@@ -150,7 +186,6 @@ def save_state(epoch):
             "policy_module": policy_module.state_dict(),
             "actor_net": actor_net.state_dict(),
             "optim": optim.state_dict(),
-            "logs": logs,
             "loss_module": loss_module.state_dict(),
             "advantage_module": advantage_module.state_dict(),
             "collector": collector.state_dict(),
@@ -170,7 +205,6 @@ def load_state(path):
     policy_module.load_state_dict(loaded_state["policy_module"])
     actor_net.load_state_dict(loaded_state["actor_net"])
     optim.load_state_dict(loaded_state["optim"])
-    logs = loaded_state["logs"]
     loss_module.load_state_dict(loaded_state["loss_module"])
     advantage_module.load_state_dict(loaded_state["advantage_module"])
     collector.load_state_dict(loaded_state["collector"])
@@ -185,9 +219,6 @@ def load_state(path):
 if (os.path.exists(CHECKPOINT_PATH)):
     load_state(CHECKPOINT_PATH)
 
-matplotlib.use("Qt5agg")
-plot_figure = plt.figure(figsize=(15, 10))
-plt.show(block=False)
 
 # We iterate over the collector until it reaches the total number of frames it was
 # designed to collect:
@@ -218,15 +249,10 @@ for i, tensordict_data in enumerate(collector):
             optim.step()
             optim.zero_grad()
 
-    logs["reward"].append(tensordict_data["next", "reward"].mean().item())
+    logger.log_scalar("reward", tensordict_data["next", "reward"].mean().item(), i)
     pbar.update(tensordict_data.numel() * frame_skip)
-    cum_reward_str = (
-        f"⌀ reward={logs['reward'][-1]: 4.4f} ({logs['reward'][0]: 4.4f})"
-    )
-    logs["step_count"].append(tensordict_data["step_count"].max().item())
-    stepcount_str = f"steps (max): {logs['step_count'][-1]}"
-    logs["lr"].append(optim.param_groups[0]["lr"])
-    lr_str = f"lr: {logs['lr'][-1]: 4.4f}"
+    logger.log_scalar("step count", tensordict_data["step_count"].max().item(), i)
+    logger.log_scalar("lr", optim.param_groups[0]["lr"], i)
     if i % 10 == 0:
         # We evaluate the policy once every 10 batches of data.
         # Evaluation is rather simple: execute the policy without exploration
@@ -238,45 +264,18 @@ for i, tensordict_data in enumerate(collector):
             # execute a rollout with the trained policy
             env.reset()
             eval_rollout = env.rollout(5000, policy_module)
-            logs["eval reward"].append(eval_rollout["next", "reward"].mean().item())
-            logs["eval reward (sum)"].append(
-                eval_rollout["next", "reward"].sum().item()
+            logger.log_scalar("eval reward", eval_rollout["next", "reward"].mean().item(), i)
+            logger.log_scalar("eval reward (sum)",
+                eval_rollout["next", "reward"].sum().item(),
+                i
             )
-            logs["eval step_count"].append(eval_rollout["step_count"].max().item())
-            eval_str = (
-                f"∑ reward: {logs['eval reward (sum)'][-1]: 4.4f} "
-                f"({logs['eval reward (sum)'][0]: 4.4f}), "
-                f"steps: {logs['eval step_count'][-1]}"
-            )
+            logger.log_scalar("eval step count", eval_rollout["step_count"].max().item(), i)
             del eval_rollout
-    pbar.set_description(", ".join([eval_str, cum_reward_str, stepcount_str, lr_str]))
-
     # We're also using a learning rate scheduler. Like the gradient clipping,
     # this is a nice-to-have but nothing necessary for PPO to work.
     scheduler.step()
 
-    plot_figure.clf()
-    plot = plot_figure.add_subplot(3, 2, 1)
-    plot.plot(logs["reward"])
-    plot.set_title("training rewards (average)")
-    plot = plot_figure.add_subplot(3, 2, 2)
-    plot.plot(logs["step_count"])
-    plot.set_title("Max step count (training)")
-    plot = plot_figure.add_subplot(3, 2, 3)
-    plot.plot(logs["eval reward (sum)"])
-    plot.set_title("Return (test)")
-    plot = plot_figure.add_subplot(3, 2, 4)
-    plot.plot(logs["eval step_count"])
-    plot.set_title("Max step count (test)")
-    plot = plot_figure.add_subplot(3, 2, 5)
-    plot.plot(moving_average(logs["reward"], 100))
-    plot.set_title("Reward (moving average)")
-    
-    plot_figure.canvas.draw_idle()
-    plot_figure.canvas.flush_events()
-
     if (i % save_every == 0):
         save_state(i)
 
-plt.show()
 save_state("final")

@@ -5,7 +5,7 @@ from torch import nn
 from torchrl.collectors import SyncDataCollector
 from torchrl.data import LazyMemmapStorage, MultiStep, TensorDictReplayBuffer
 
-from torchrl.modules import DuelingCnnDQNet, EGreedyWrapper, QValueActor
+from torchrl.modules import DuelingCnnDQNet, QValueActor, EGreedyWrapper
 
 from torchrl.objectives import DQNLoss, SoftUpdate
 from torchrl.record.loggers.tensorboard import TensorboardLogger
@@ -41,7 +41,6 @@ betas = (0.9, 0.999)
 n_optim = 8
 
 gamma = 0.99
-tau = 0.02
 
 total_frames = 100_000
 frame_skip = 5
@@ -133,11 +132,30 @@ optimizer = torch.optim.Adam(
     loss_module.parameters(), lr=lr, weight_decay=wd, betas=betas
 )
 
-save_path = "checkpointsDQN/" + str(datetime.now()) + "/"
-os.makedirs(save_path)
+save_path = "checkpointsDQN/tensorboard/"
 
-logger = TensorboardLogger(exp_name="dqn_exp", log_dir=save_path)
+if not os.path.exists(save_path):
+    os.makedirs(save_path)
+logger = TensorboardLogger(exp_name=get_exp_name(
+    type="dqn",
+    date=datetime.now()
+), log_dir=save_path)
 log_interval = 500
+logger.log_hparams({
+    "lr": lr,
+    "frame_skip": frame_skip,
+    "frames_per_batch": frames_per_batch,
+    "sub_batch_size": batch_size,
+    "num_epochs": n_optim,
+    "gamma": gamma,
+    "weight_decay": wd,
+    "beta0": betas[0],
+    "beta1": betas[1],
+    "initial_random_frames": init_random_frames,
+    "replay_size": buffer_size,
+    "eps_init": eps_greedy_val,
+    "eps_env": eps_greedy_val_env
+})
 
 trainer = Trainer(
     collector=collector,
