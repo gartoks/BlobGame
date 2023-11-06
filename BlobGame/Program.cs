@@ -4,8 +4,14 @@ using BlobGame;
 using System.Text;
 using System.Text.Json;
 
+string usage_text = $"""
+usage: 
+    {System.Reflection.Assembly.GetExecutingAssembly().Location}
+    OR
+    {System.Reflection.Assembly.GetExecutingAssembly().Location} --sockets [use_threads] [seed] [port]
+""";
+
 bool socketMode = false;
-int numParallelGames = 1;
 bool useSeparateThreads = false;
 int seed = 0;
 int port = 0;
@@ -19,19 +25,24 @@ try {
             if (args[i] == "--debug")
                 Application.DRAW_DEBUG = true;
 
-            if (args[i] == "--sockets" &&
-                i + 4 < args.Length &&
-                int.TryParse(args[i + 1], out numParallelGames) &&
-                bool.TryParse(args[i + 2], out useSeparateThreads) &&
-                int.TryParse(args[i + 3], out seed) &&
-                int.TryParse(args[i + 4], out port)) {
+            else if (args[i] == "--sockets" &&
+                i + 3 < args.Length &&
+                bool.TryParse(args[i + 1], out useSeparateThreads) &&
+                int.TryParse(args[i + 2], out seed) &&
+                int.TryParse(args[i + 3], out port)) {
                 socketMode = true;
+                i += 3;
+            }
+            else{
+                Console.WriteLine($"Unknown argument: {args[i]}");
+                Console.WriteLine(usage_text);
+                Environment.Exit(1);
             }
         }
     }
 
     if (socketMode) {
-        SocketApplication.Initialize(numParallelGames, useSeparateThreads, seed, port);
+        SocketApplication.Initialize(useSeparateThreads, seed, port);
         SocketApplication.Start();
     } else {
         Application.Initialize();

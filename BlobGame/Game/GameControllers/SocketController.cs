@@ -1,6 +1,7 @@
 ﻿using BlobGame.Game.GameModes;
 using BlobGame.Game.GameObjects;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 
 namespace BlobGame.Game.GameControllers;
@@ -11,11 +12,6 @@ internal class SocketController : IGameController {
     /// The index of the running game.
     /// </summary>
     private int GameIndex { get; }
-
-    /// <summary>
-    /// The port used to connect.
-    /// </summary>
-    private int Port { get; }
 
     /// <summary>
     /// The tcp client used to control this controller.
@@ -30,30 +26,46 @@ internal class SocketController : IGameController {
 
     private (float t, bool shouldDrop)? FrameInputs { get; set; }
 
-    public SocketController(int gameIndex, int port) {
+    /// <summary>
+    /// The global listener waiting for clients to connect.
+    /// </summary>
+    private static TcpListener Listener;
+
+    public static void Load(int port){
+        if (Listener == null){
+            Listener = new TcpListener(IPAddress.Loopback, port);
+        
+            Listener.Start();
+        }
+    }
+
+    public static bool HasPendingConnections => Listener.Pending();
+    
+    public static void Unload(){
+        if (Listener != null)
+            Listener.Stop();
+    }
+
+    public SocketController(int gameIndex) {
         GameIndex = gameIndex;
-        Port = port;
+    }
+
+    public void Load(){
+        Client = Listener.AcceptTcpClient();
+
+        if (Client != null && Client.Connected)
+            Console.WriteLine($"Got connection for game {GameIndex}");
+     
+        Stream = Client?.GetStream();
     }
 
     ~SocketController() {
         Close();
     }
 
-    public void Load() {
-        try {
-            Client = new TcpClient("localhost", Port);
-            Stream = Client.GetStream();
-        } catch (SocketException) {
-            Client = null;
-            Stream = null!;
-            Debug.WriteLine("Controller stream was closed.");
-        }
-        if (Client != null && Client.Connected)
-            Console.WriteLine($"Connected controller {GameIndex} to localhost:{Port}");
-    }
-
     public void Close() {
         Debug.WriteLine("Closing tcp socket");
+        Stream?.Close();
         Client?.Close();
     }
 

@@ -4,10 +4,12 @@ import struct
 from FrameInfo import FrameInfo, Blob, BLOB_SIZE
 
 class SocketController:
-    def __init__(self, connection: socket.socket, addr) -> None:
-        self.connection = connection
-        self.address = addr
-    
+    def __init__(self, host_tuple) -> None:
+        self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.connection.connect(host_tuple)
+        print(f"Connected to {host_tuple}")
+
     def close_connection(self):
         self.connection.close()
 

@@ -1,5 +1,4 @@
 from SocketController import SocketController
-from SocketServer import SocketServer
 from Renderer import Renderer
 from Constants import *
 
@@ -7,16 +6,13 @@ import socket
 import struct
 import random
 
-server = SocketServer(("localhost", 1234))
 Renderer.init()
 renderer = Renderer((ARENA_WIDTH, ARENA_HEIGHT))
-
-server.start_listening()
 
 try:
     while True:
         try:
-            controller = server.wait_for_connection()
+            controller = SocketController(("localhost", 1234))
 
             t = -1
             shouldDrop = False
@@ -46,7 +42,7 @@ try:
 
                 if (frame.is_game_over):
                     controller.close_connection()
-                    controller = server.wait_for_connection()
+                    controller = SocketController(("localhost", 1234))
                     continue
 
                 controller.send_frame_info(t, shouldDrop)
@@ -64,4 +60,3 @@ except KeyboardInterrupt:
     pass
 renderer.quit()
 controller.close_connection()
-server.close_server()
