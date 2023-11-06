@@ -7,3 +7,8 @@ for a cpu only installation use
 ```sh
 pip3 install -U torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 ```
+
+tensorboard can be started using this command in the project root.
+```sh
+tensorboard --logdir=. --host localhost --port 8888
+```

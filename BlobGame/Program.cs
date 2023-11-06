@@ -32,13 +32,13 @@ try {
             if (args[i] == "--sockets" &&
                 i + 4 < args.Length &&
                 bool.TryParse(args[i + 1], out useSeparateThreads) &&
-                int.TryParse(args[i + 2], out port) &&
-                int.TryParse(args[i + 3], out seed) &&
+                int.TryParse(args[i + 2], out seed) &&
+                int.TryParse(args[i + 3], out port) &&
                 IGameMode.GameModeTypes.ContainsKey(args[i + 4])
                 ) {
                 socketMode = true;
+                gameModeKey = args[i + 4];
                 i += 4;
-                gameModeKey = args[i + 5];
             }
             else{
                 Console.WriteLine($"Unknown argument: {args[i]}");

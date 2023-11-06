@@ -21,7 +21,6 @@ from torchrl.envs.utils import check_env_specs, step_mdp
 
 from Constants import *
 from SocketController import SocketController
-from SocketServer import SocketServer
 from Renderer import Renderer
 
 import socket
@@ -107,9 +106,7 @@ class BlobEnvironment(EnvBase):
         self.renderer = Renderer((ARENA_WIDTH, ARENA_HEIGHT), never_display=False)
 
         self.t = 0.5
-        self.server = SocketServer(("localhost", 1337))
-        self.server.start_listening()
-        self.controller = self.server.wait_for_connection()
+        self.controller = SocketController(("localhost", 1337))
 
     def _get_obs(self, tensordict):
         self.renderer.render_frame(self.last_frame)
@@ -149,7 +146,7 @@ class BlobEnvironment(EnvBase):
     def _reset(self, tensordict):
         self.controller.close_connection()
 
-        self.controller = self.server.wait_for_connection()
+        self.controller = SocketController(("localhost", 1337))
         self.last_frame = self.controller.receive_frame_info()
 
         observation = self._get_obs(tensordict)

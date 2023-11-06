@@ -50,6 +50,7 @@ internal static class SocketApplication {
             Thread thread = new(() => RunGameThread((int)numGames, Random.Shared.Next(), controller));
             threads.Add(thread);
             thread.Start();
+            numGames++;
 
             for (int i = threads.Count-1; i>=0; i--){
                 if (!thread.IsAlive){
