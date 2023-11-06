@@ -348,8 +348,11 @@ internal sealed class GameScene : Scene {
 
         if (RetryButton.IsClicked)
             GameManager.SetScene(new GameScene(Controller, IGameMode.CreateGameMode(Game.GetType(), new Random().Next())));
-        if (ToMainMenuButton.IsClicked)
+        if (ToMainMenuButton.IsClicked){
+            // does nothing if not loaded
+            SocketController.Unload();
             GameManager.SetScene(new MainMenuScene());
+        }
     }
 
     /// <summary>

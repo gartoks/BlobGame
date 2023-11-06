@@ -13,10 +13,6 @@ internal static class SocketApplication {
 
     private static Type GameModeType { get; set; }
     /// <summary>
-    /// The number of parallel games to run.
-    /// </summary>
-    private static int NumParallelGames { get; set; }
-    /// <summary>
     /// Wether or not to run each game on a separate thread or interleave them.
     /// </summary>
     private static bool UseSeparateThreads { get; set; }
@@ -26,35 +22,11 @@ internal static class SocketApplication {
     /// </summary>
     private static int Port { get; set; }
 
-    private static IReadOnlyList<Thread>? Threads { get; set; }
-
-    private static IReadOnlyList<(IGameMode simulation, SocketController controller)>? Games { get; set; }
-
-    internal static void Initialize(int numParallelGames, bool useSeparateThreads, int port, int seed, string gameModeKey) {
+    internal static void Initialize(bool useSeparateThreads, int seed, int port, string gameModeKey) {
         Seed = seed;
         GameModeType = IGameMode.GameModeTypes[gameModeKey];
-        NumParallelGames = numParallelGames;
         UseSeparateThreads = useSeparateThreads;
         Port = port;
-
-        if (UseSeparateThreads)
-            InitializeWithThreads();
-        else
-            InitializeWithoutThreads();
-    }
-
-    private static void InitializeWithThreads() {
-        Random random = new Random(Seed);
-        Threads = Enumerable.Range(0, NumParallelGames)
-            .Select(i => new Thread(() => RunGameThread(i, random.Next())))
-            .ToList();
-    }
-
-    private static void InitializeWithoutThreads() {
-        Random random = new Random(Seed);
-        Games = Enumerable.Range(0, NumParallelGames)
-            .Select(i => ((IGameMode)new ClassicGameMode(random.Next()), new SocketController(i, Port)))
-            .ToList();
     }
 
     internal static void Start() {
@@ -65,29 +37,54 @@ internal static class SocketApplication {
     }
 
     private static void StartWithThreads() {
-        foreach (Thread thread in Threads!)
+        List<Thread> threads = new();
+
+        Console.WriteLine($"Starting socket mode on port {Port}...");
+        SocketController.Load(Port);
+
+        ulong numGames = 0;
+
+        while (true){
+            SocketController controller = new((int)numGames);
+            controller.Load();
+            Thread thread = new(() => RunGameThread((int)numGames, Random.Shared.Next(), controller));
+            threads.Add(thread);
             thread.Start();
 
-        foreach (Thread thread in Threads)
-            thread.Join();
+            for (int i = threads.Count-1; i>=0; i--){
+                if (!thread.IsAlive){
+                    thread.Join();
+                    threads.RemoveAt(i);
+                }
+            }
+
+        }
+
+        SocketController.Unload();
     }
 
     private static void StartWithoutThreads() {
         const float dT = 1f / 60f;
 
-        List<int> runningGames = Enumerable.Range(0, NumParallelGames).ToList();
+        Console.WriteLine($"Starting socket mode on port {Port}...");
+        SocketController.Load(Port);
 
-        foreach ((IGameMode simulation, SocketController controller) in Games!) {
-            simulation.Load();
-            controller.Load();
-        }
+        List<(IGameMode simulation, SocketController controller, ulong i)> runningGames = new();
+        ulong numGames = 0;
 
-        while (runningGames.Count > 0) {
-            for (int i = 0; i < Games!.Count; i++) {
-                if (!runningGames.Contains(i))
-                    continue;
+        while (true){
+            while (SocketController.HasPendingConnections){
+                IGameMode simulation = new ClassicGameMode(Random.Shared.Next());
+                SocketController controller = new SocketController((int)numGames);
 
-                (IGameMode simulation, SocketController controller) = Games[i];
+                simulation.Load();
+                controller.Load();
+                runningGames.Add((simulation, controller, numGames));
+                numGames++;
+            }
+
+            foreach (var game in runningGames){
+                (IGameMode simulation, SocketController controller, ulong i) = game;
 
                 simulation.Update(dT);
                 controller.Update(dT, simulation);
@@ -96,25 +93,29 @@ internal static class SocketApplication {
                     t = Math.Clamp(t, 0, 1);
                     simulation.TrySpawnBlob(t);
                 }
+            }
 
+
+            for (int i = runningGames.Count-1; i>=0; i--){
+                (IGameMode simulation, SocketController controller, ulong gameIndex) = runningGames[i];
                 if (simulation.IsGameOver || !controller.IsConnected) {
-                    runningGames.Remove(i);
+                    runningGames.RemoveAt(i);
                     // send the game over state
                     controller.Update(dT, simulation);
-                    Console.WriteLine($"Game {i} ended with score {simulation.Score}. {runningGames.Count} games running.");
+                    Console.WriteLine($"Game {gameIndex} ended with score {simulation.Score}.");
+                    controller.Close();
                 }
             }
         }
+
+        SocketController.Unload();
     }
 
-    private static void RunGameThread(int gameIndex, int seed) {
+    private static void RunGameThread(int gameIndex, int seed, SocketController controller) {
         const float dT = 1f / 60f;
 
         ClassicGameMode simulation = new ClassicGameMode(seed);
-        SocketController controller = new SocketController(gameIndex, Port);
-
         simulation.Load();
-        controller.Load();
 
         while (!simulation.IsGameOver && controller.IsConnected) {
             simulation.Update(dT);
@@ -129,5 +130,6 @@ internal static class SocketApplication {
         controller.Update(dT, simulation);
 
         Console.WriteLine($"Game {gameIndex} has finished with {simulation.Score} points");
+        controller.Close();
     }
 }

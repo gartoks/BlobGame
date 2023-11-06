@@ -91,8 +91,10 @@ internal class GameModeSelectionScene : Scene {
             IGameMode gameMode = IGameMode.CreateGameMode((Type)GameModeSelector.SelectedElement.Element, new Random().Next());
 
             IGameController controller;
-            if ((Type)GameControllerSelector.SelectedElement.Element == typeof(SocketController))
-                controller = IGameController.CreateGameController((Type)GameControllerSelector.SelectedElement.Element, 0, int.Parse(PortTextBox.Text));
+            if ((Type)GameControllerSelector.SelectedElement.Element == typeof(SocketController)){
+                SocketController.Load(int.Parse(PortTextBox.Text));
+                controller = IGameController.CreateGameController((Type)GameControllerSelector.SelectedElement.Element, 0);
+            }
             else
                 controller = IGameController.CreateGameController((Type)GameControllerSelector.SelectedElement.Element);
 

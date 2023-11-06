@@ -5,8 +5,14 @@ using BlobGame.Game.GameModes;
 using System.Text;
 using System.Text.Json;
 
+string usage_text = $"""
+usage: 
+    {System.Reflection.Assembly.GetExecutingAssembly().Location}
+    OR
+    {System.Reflection.Assembly.GetExecutingAssembly().Location} --sockets [use_threads] [seed] [port] [gamemode]
+""";
+
 bool socketMode = false;
-int numParallelGames = 1;
 bool useSeparateThreads = false;
 int port = 0;
 int seed = 0;
@@ -25,20 +31,25 @@ try {
 
             if (args[i] == "--sockets" &&
                 i + 4 < args.Length &&
-                int.TryParse(args[i + 1], out numParallelGames) &&
-                bool.TryParse(args[i + 2], out useSeparateThreads) &&
-                int.TryParse(args[i + 3], out port) &&
-                int.TryParse(args[i + 4], out seed) &&
-                IGameMode.GameModeTypes.ContainsKey(args[i + 5])
+                bool.TryParse(args[i + 1], out useSeparateThreads) &&
+                int.TryParse(args[i + 2], out port) &&
+                int.TryParse(args[i + 3], out seed) &&
+                IGameMode.GameModeTypes.ContainsKey(args[i + 4])
                 ) {
                 socketMode = true;
+                i += 4;
                 gameModeKey = args[i + 5];
+            }
+            else{
+                Console.WriteLine($"Unknown argument: {args[i]}");
+                Console.WriteLine(usage_text);
+                Environment.Exit(1);
             }
         }
     }
 
     if (socketMode) {
-        SocketApplication.Initialize(numParallelGames, useSeparateThreads, port, seed, gameModeKey);
+        SocketApplication.Initialize(useSeparateThreads, seed, port, gameModeKey);
         SocketApplication.Start();
     } else {
         Application.Initialize();
