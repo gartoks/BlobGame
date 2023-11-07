@@ -40,9 +40,10 @@ def first_nonone(arr, axis):
     return result
 
 class BlobEnvironment(EnvBase):
-    def __init__(self, dtype, seed=None, device="cpu"):
+    def __init__(self, dtype, worker_id, seed=None, device="cpu"):
         super().__init__(device=device, batch_size=[])
         self.custom_dtype = dtype
+        self.worker_id = worker_id
         self.observation_spec = CompositeSpec(
             pixels=BoundedTensorSpec(
                 low=0,
@@ -85,18 +86,13 @@ class BlobEnvironment(EnvBase):
             shape=(),
         )
 
-        # We have 3 actions, corresponding to "right", "left", "drop"
+        # We have 3 actions, corresponding to "drop", "right", "left"
         self.action_spec = OneHotDiscreteTensorSpec(
             n=3,
             dtype=self.custom_dtype,
         )
         self.reward_spec = UnboundedContinuousTensorSpec(shape=(1))
 
-        """
-        The following dictionary maps abstract actions from `self.action_space` to
-        the direction we will walk in if that action is taken.
-        I.e. 0 corresponds to "right", 1 to "up" etc.
-        """
         self._action_to_direction = {
             0: 0,
             1: -0.01,
@@ -106,7 +102,7 @@ class BlobEnvironment(EnvBase):
         self.renderer = Renderer((ARENA_WIDTH, ARENA_HEIGHT), never_display=False)
 
         self.t = 0.5
-        self.controller = SocketController(("localhost", 1337))
+        self.controller = SocketController(("localhost", 1337), worker_id)
 
     def _get_obs(self, tensordict):
         self.renderer.render_frame(self.last_frame)
@@ -146,7 +142,7 @@ class BlobEnvironment(EnvBase):
     def _reset(self, tensordict):
         self.controller.close_connection()
 
-        self.controller = SocketController(("localhost", 1337))
+        self.controller = SocketController(("localhost", 1337), self.worker_id)
         self.last_frame = self.controller.receive_frame_info()
 
         observation = self._get_obs(tensordict)

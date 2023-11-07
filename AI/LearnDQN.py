@@ -116,7 +116,7 @@ def get_loss_module(actor, gamma):
     target_updater = SoftUpdate(loss_module, eps=0.995)
     return loss_module, target_updater
 
-test_env = create_environment(device, dtype=torch.float32, frame_skip=frame_skip)
+test_env = create_environment(device, id=0, dtype=torch.float32, frame_skip=frame_skip)
 # Get model
 actor, actor_explore = make_model(test_env)
 loss_module, target_net_updater = get_loss_module(actor, gamma)
