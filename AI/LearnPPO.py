@@ -28,7 +28,7 @@ torch.set_default_dtype(torch.float16)
 device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
 
 # ---- Optimizer
-lr = 1e-5
+lr = 1e-4
 max_grad_norm = 1.0
 weight_decay = 0.0
 betas = (0.9, 0.999)
@@ -36,9 +36,9 @@ betas = (0.9, 0.999)
 # ---- Saving/Loading
 save_every = 10
 
-save_path = "checkpointsPPO/" + str(datetime.now()) + "/"
-os.makedirs(save_path)
-save_path += "network_{}.ckpt"
+save_dir = f"checkpointsPPO/{datetime.now():%m%d%Y %H:%M:%S}/"
+save_filename = save_dir + "network_{}.ckpt"
+run_name = f"ppo {datetime.now():%m-%d%Y %H:%M:%S}"
 CHECKPOINT_PATH = "checkpointsPPO/non_existent"
 
 # ---- Data collection
@@ -46,7 +46,7 @@ num_workers = 8
 
 frame_skip = 5
 # Adjust to fill VRAM
-frames_per_batch = 2000 // frame_skip
+frames_per_batch = 1000
 # For a complete training, bring the number of frames up to 1M
 total_frames = 1_000_000_000 // frame_skip
 
@@ -65,8 +65,10 @@ entropy_eps = 1e-4
 replay_size = frames_per_batch
 
 if __name__ == "__main__":
+    os.makedirs(save_filename)
+
     Renderer.init()
-    env = create_environment(device, id="Eval", dtype=torch.get_default_dtype(), frame_skip=frame_skip)
+    env = create_environment(device, id="Eval", dtype=torch.get_default_dtype(), frame_skip=frame_skip, should_render=True)
 
     print(env.observation_spec)
 
@@ -79,6 +81,7 @@ if __name__ == "__main__":
 
     policy_module = TensorDictModule(
         actor_net, in_keys=["pixels", "linear_data"], out_keys=["logits"],
+        
     )
 
     policy_module = ProbabilisticActor(
@@ -87,7 +90,6 @@ if __name__ == "__main__":
         in_keys=["logits"],
         distribution_class=OneHotCategorical,
         return_log_prob=True,
-        default_interaction_type=InteractionType.RANDOM,
     )
 
     value_net = Model(device, [
@@ -104,13 +106,13 @@ if __name__ == "__main__":
     print("Running value:", value_module(env.reset()))
 
     collector = MultiSyncDataCollector(
-        [functools.partial(create_environment, device, dtype=torch.get_default_dtype(), frame_skip=frame_skip, id=i) for i in range(num_workers)],
+        [functools.partial(create_environment, device=device, dtype=torch.get_default_dtype(), frame_skip=frame_skip, id=i) for i in range(num_workers)],
         policy = policy_module,
         frames_per_batch=frames_per_batch,
         total_frames=total_frames,
         split_trajs=False,
-        devices=device,
-        storing_devices="cpu",
+        device=device,
+        storing_device="cpu",
         reset_at_each_iter=False,
     )
 
@@ -154,10 +156,7 @@ if __name__ == "__main__":
 
     if not os.path.exists("checkpointsPPO/tensorboard/"):
         os.makedirs("checkpointsPPO/tensorboard/")
-    logger = TensorboardLogger(get_exp_name(
-        type="ppo",
-        date=datetime.now(),
-    ), "checkpointsPPO/tensorboard/")
+    logger = TensorboardLogger(run_name, "checkpointsPPO/tensorboard/")
 
     logger.log_hparams({
         "lr": lr,
@@ -178,7 +177,7 @@ if __name__ == "__main__":
 
     def save_state(epoch):
         global policy_module, actor_net, optim, logs, loss_module, advantage_module, collector, value_net, value_module, replay_buffer, scheduler
-        path = save_path.format(epoch)
+        path = save_filename.format(epoch)
         torch.save(
             {
                 "policy_module": policy_module.state_dict(),
@@ -221,6 +220,7 @@ if __name__ == "__main__":
     # We iterate over the collector until it reaches the total number of frames it was
     # designed to collect:
     for i, tensordict_data in enumerate(collector):
+        tensordict_data = tensordict_data.to(device)
         # we now have a batch of data to work with. Let's learn something from it.
         for epoch in range(num_epochs):
             # We'll need an "advantage" signal to make PPO work.
@@ -248,11 +248,9 @@ if __name__ == "__main__":
                 optim.zero_grad()
 
         logger.log_scalar("reward", tensordict_data["next", "reward"].mean().item(), i)
-        pbar.update(tensordict_data.numel() * frame_skip)
         logger.log_scalar("step count", tensordict_data["step_count"].max().item(), i)
         logger.log_scalar("lr", optim.param_groups[0]["lr"], i)
-
-        collector.update_policy_weights_()
+        pbar.update(tensordict_data.numel() * frame_skip)
 
         if i % 10 == 0:
             # We evaluate the policy once every 10 batches of data.
@@ -263,7 +261,6 @@ if __name__ == "__main__":
             # it will then execute this policy at each step.
             with set_exploration_type(ExplorationType.MEAN), torch.no_grad():
                 # execute a rollout with the trained policy
-                env.reset()
                 eval_rollout = env.rollout(5000, policy_module)
                 logger.log_scalar("eval reward", eval_rollout["next", "reward"].mean().item(), i)
                 logger.log_scalar("eval reward (sum)",

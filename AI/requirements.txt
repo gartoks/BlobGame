@@ -6,3 +6,4 @@ matplotlib
 torchrl
 tqdm
 tensorboard
+torchsnapshot

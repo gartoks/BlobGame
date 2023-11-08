@@ -40,7 +40,7 @@ def first_nonone(arr, axis):
     return result
 
 class BlobEnvironment(EnvBase):
-    def __init__(self, dtype, worker_id, seed=None, device="cpu"):
+    def __init__(self, dtype, worker_id, never_display, seed=None, device="cpu"):
         super().__init__(device=device, batch_size=[])
         self.custom_dtype = dtype
         self.worker_id = worker_id
@@ -99,7 +99,7 @@ class BlobEnvironment(EnvBase):
             2: +0.01,
         }
 
-        self.renderer = Renderer((ARENA_WIDTH, ARENA_HEIGHT), never_display=False)
+        self.renderer = Renderer((ARENA_WIDTH, ARENA_HEIGHT), never_display=never_display)
 
         self.t = 0.5
         self.controller = SocketController(("localhost", 1337), worker_id)
