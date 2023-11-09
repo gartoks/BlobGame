@@ -11,6 +11,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
+
+from torchrl.data import LazyTensorStorage, TensorDictReplayBuffer
+from tensordict import TensorDict
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # env = gym.make("CartPole-v1", render_mode="human")
@@ -21,21 +25,6 @@ env.metadata["render_fps"] = 999999
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 plt.ion()
-
-class ReplayMemory(object):
-
-    def __init__(self, capacity):
-        self.memory = deque([], maxlen=capacity)
-
-    def push(self, *args):
-        """Save a transition"""
-        self.memory.append(Transition(*args))
-
-    def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
-
-    def __len__(self):
-        return len(self.memory)
 
 class DQN(nn.Module):
 
@@ -68,6 +57,8 @@ EPS_DECAY = 1000
 TAU = 0.005
 LR = 1e-4
 
+OPTIM_STEPS = 1
+
 # Get number of actions from gym action space
 n_actions = env.action_space.n
 # Get the number of state observations
@@ -79,7 +70,12 @@ target_net = DQN(n_observations, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
-memory = ReplayMemory(10000)
+
+replay_buffer = TensorDictReplayBuffer(
+    batch_size=BATCH_SIZE,
+    storage=LazyTensorStorage(10000, device=device),
+    prefetch=OPTIM_STEPS,
+)
 
 
 steps_done = 0
@@ -101,7 +97,6 @@ def select_action(state):
 
 
 episode_durations = []
-rewards = []
 
 
 def plot_durations(show_result=False):
@@ -124,23 +119,18 @@ def plot_durations(show_result=False):
     plt.pause(0.001)  # pause a bit so that plots are updated
 
 def optimize_model():
-    if len(memory) < BATCH_SIZE:
+    if len(replay_buffer) < BATCH_SIZE:
         return
-    transitions = memory.sample(BATCH_SIZE)
-    # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
-    # detailed explanation). This converts batch-array of Transitions
-    # to Transition of batch-arrays.
-    batch = Transition(*zip(*transitions))
-
+    batch = replay_buffer.sample(BATCH_SIZE)
     # Compute a mask of non-final states and concatenate the batch elements
     # (a final state would've been the one after which simulation ended)
-    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                          batch.next_state)), device=device, dtype=torch.bool)
-    non_final_next_states = torch.cat([s for s in batch.next_state
-                                                if s is not None])
-    state_batch = torch.cat(batch.state)
-    action_batch = torch.cat(batch.action)
-    reward_batch = torch.cat(batch.reward)
+    is_state_not_terminated = lambda s: (s != 0).sum() > 0
+
+    non_final_mask = torch.tensor(tuple(map(is_state_not_terminated, batch["next_state"])), device=device, dtype=torch.bool)
+    non_final_next_states = batch["next_state"][non_final_mask]
+    state_batch = batch["state"]
+    action_batch = batch["action"]
+    reward_batch = batch["reward"]
 
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
@@ -160,7 +150,7 @@ def optimize_model():
 
     # Compute Huber loss
     criterion = nn.SmoothL1Loss()
-    loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+    loss = criterion(state_action_values, expected_state_action_values.unsqueeze(-1))
 
     # Optimize the model
     optimizer.zero_grad()
@@ -175,27 +165,26 @@ for i_episode in range(num_episodes):
     # Initialize the environment and get it's state
     state, info = env.reset()
     state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-    reward_sum = 0
     for t in count():
         action = select_action(state)
         observation, reward, terminated, truncated, _ = env.step(action.item())
-        reward = torch.tensor([reward], device=device)
-        reward_sum += reward.item()
+        reward = torch.tensor(reward, device=device)
         done = terminated or truncated
 
         if terminated:
-            next_state = None
+            next_state = torch.zeros_like(torch.tensor(observation), dtype=torch.float32, device=device)
         else:
-            next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
+            next_state = torch.tensor(observation, dtype=torch.float32, device=device)
 
         # Store the transition in memory
-        memory.push(state, action, next_state, reward)
+        replay_buffer.add(TensorDict({"state": state.squeeze(0), "action": action.squeeze(0), "next_state": next_state, "reward": reward}, batch_size=()))
 
         # Move to the next state
-        state = next_state
+        state = next_state.unsqueeze(0)
 
         # Perform one step of the optimization (on the policy network)
-        optimize_model()
+        for i in range(OPTIM_STEPS):
+            optimize_model()
 
         # Soft update of the target network's weights
         # θ′ ← τ θ + (1 −τ )θ′
@@ -207,8 +196,6 @@ for i_episode in range(num_episodes):
 
         if done:
             episode_durations.append(t + 1)
-            rewards.append(reward_sum)
-            reward_sum = 0
             plot_durations()
             break
 
