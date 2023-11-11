@@ -76,7 +76,7 @@ optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True, weight_dec
 
 replay_buffer = TensorDictReplayBuffer(
     batch_size=BATCH_SIZE,
-    storage=LazyTensorStorage(REPLAY_SIZE, device=device),
+    storage=LazyTensorStorage(REPLAY_SIZE),
     prefetch=OPTIM_STEPS,
 )
 
@@ -120,7 +120,7 @@ def select_action(state):
 def optimize_model():
     if len(replay_buffer) < BATCH_SIZE:
         return
-    batch = replay_buffer.sample(BATCH_SIZE)
+    batch = replay_buffer.sample(BATCH_SIZE).to(device)
     # Compute a mask of non-final states and concatenate the batch elements
     # (a final state would've been the one after which simulation ended)
     is_state_not_terminated = lambda s: (s != 0).sum() > 0
