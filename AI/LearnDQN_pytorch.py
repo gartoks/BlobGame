@@ -17,21 +17,21 @@ from torchrl.record.loggers.tensorboard import TensorboardLogger
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# env = gym.make("CartPole-v1", render_mode="human")
-env = gym.make("CartPole-v1")
+env = gym.make("CartPole-v1", render_mode="human")
+# env = gym.make("CartPole-v1")
 env.metadata["render_fps"] = 999999
 # if GPU is to be used
 
 class DQN(nn.Module):
-    def __init__(self, n_observations, n_actions):
+    def __init__(self, n_actions):
         super(DQN, self).__init__()
 
         self.pipeline = nn.Sequential(
-            nn.Linear(n_observations, 128),
+            nn.LazyLinear(128),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.LazyLinear(128),
             nn.ReLU(),
-            nn.Linear(128, n_actions),
+            nn.LazyLinear(n_actions),
         )
 
     # Called with either one element to determine next action, or a batch
@@ -65,8 +65,11 @@ n_actions = env.action_space.n
 state, info = env.reset()
 n_observations = len(state)
 
-policy_net = DQN(n_observations, n_actions).to(device)
-target_net = DQN(n_observations, n_actions).to(device)
+policy_net = DQN(n_actions).to(device)
+target_net = DQN(n_actions).to(device)
+policy_net(torch.tensor(state, device=device))
+target_net(torch.tensor(state, device=device))
+
 target_net.load_state_dict(policy_net.state_dict())
 
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True, weight_decay=WEIGHT_DECAY)
@@ -78,7 +81,7 @@ replay_buffer = TensorDictReplayBuffer(
 )
 
 
-run_name = f"ppo {datetime.now():%m-%d%Y %H:%M:%S}"
+run_name = f"dqn {datetime.now():%m-%d%Y %H:%M:%S}"
 
 if not os.path.exists("checkpointsDQN/tensorboard/"):
     os.makedirs("checkpointsDQN/tensorboard/")
