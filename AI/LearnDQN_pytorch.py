@@ -14,12 +14,12 @@ from torchrl.data import LazyTensorStorage, TensorDictReplayBuffer
 from tensordict import TensorDict
 
 from torchrl.record.loggers.tensorboard import TensorboardLogger
+from torchrl.envs import GymEnv
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-env = gym.make("CartPole-v1", render_mode="human")
-# env = gym.make("CartPole-v1")
-env.metadata["render_fps"] = 999999
+env = GymEnv("CartPole-v1", render_mode="human").to(device)
+env._env.env.env.metadata["render_fps"] = 999999
 # if GPU is to be used
 
 class DQN(nn.Module):
@@ -37,7 +37,7 @@ class DQN(nn.Module):
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
-        return self.pipeline(x)
+        return self.pipeline(x["observation"])
     
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
@@ -60,19 +60,19 @@ OPTIM_STEPS = 1
 REPLAY_SIZE = 10000
 
 # Get number of actions from gym action space
-n_actions = env.action_space.n
+n_actions = env.action_spec.zero().flatten().shape[0]
 # Get the number of state observations
-state, info = env.reset()
-n_observations = len(state)
+state = env.reset()
+n_observations = env.observation_spec.zero()["observation"].flatten().shape[0]
 
 policy_net = DQN(n_actions).to(device)
 target_net = DQN(n_actions).to(device)
-policy_net(torch.tensor(state, device=device))
-target_net(torch.tensor(state, device=device))
+policy_net(state)
+target_net(state)
 
 target_net.load_state_dict(policy_net.state_dict())
 
-optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True, weight_decay=WEIGHT_DECAY)
+optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True, weight_decay=WEIGHT_DECAY, foreach=False)
 
 replay_buffer = TensorDictReplayBuffer(
     batch_size=BATCH_SIZE,
@@ -113,9 +113,10 @@ def select_action(state):
             # t.max(1) will return the largest column value of each row.
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
-            return policy_net(state).max(1)[1].view(1, 1)
+            state["action"] = env.action_spec.zero().scatter(0, torch.argmax(policy_net(state)), torch.ones((1), dtype=torch.int64, device=device))
     else:
-        return torch.tensor([[env.action_space.sample()]], device=device, dtype=torch.long)
+        state["action"] = env.action_spec.rand()
+    return state
 
 def optimize_model():
     if len(replay_buffer) < BATCH_SIZE:
@@ -123,18 +124,15 @@ def optimize_model():
     batch = replay_buffer.sample(BATCH_SIZE).to(device)
     # Compute a mask of non-final states and concatenate the batch elements
     # (a final state would've been the one after which simulation ended)
-    is_state_not_terminated = lambda s: (s != 0).sum() > 0
+    is_state_not_terminated = lambda s: not (s["done"] or s["terminated"])
 
-    non_final_mask = torch.tensor(tuple(map(is_state_not_terminated, batch["next_state"])), device=device, dtype=torch.bool)
-    non_final_next_states = batch["next_state"][non_final_mask]
-    state_batch = batch["state"]
-    action_batch = batch["action"]
-    reward_batch = batch["reward"]
+    non_final_mask = torch.tensor(tuple(map(is_state_not_terminated, batch["next"])), device=device, dtype=torch.bool)
+    non_final_next_states = batch["next"][non_final_mask]
 
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
     # for each batch state according to policy_net
-    state_action_values = policy_net(state_batch).gather(1, action_batch)
+    state_action_values = policy_net(batch).gather(1, torch.argmax(batch["action"], dim=1, keepdim=True))
 
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
@@ -145,7 +143,7 @@ def optimize_model():
     with torch.no_grad():
         next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0]
     # Compute the expected Q values
-    expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+    expected_state_action_values = (next_state_values * GAMMA) + state["reward"]
 
     # Compute Huber loss
     criterion = nn.SmoothL1Loss()
@@ -162,26 +160,20 @@ num_episodes = 600
 
 for i_episode in range(num_episodes):
     # Initialize the environment and get it's state
-    state, info = env.reset()
-    state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
+    state = env.reset()
     reward_sum = 0
     for t in count():
-        action = select_action(state)
-        observation, reward, terminated, truncated, _ = env.step(action.item())
-        reward = torch.tensor(reward, device=device)
+        state = select_action(state)
+        state = env.step(state)
+        reward = state["next", "reward"]
         reward_sum += reward.item()
-        done = terminated or truncated
-
-        if terminated:
-            next_state = torch.zeros_like(torch.tensor(observation), dtype=torch.float32, device=device)
-        else:
-            next_state = torch.tensor(observation, dtype=torch.float32, device=device)
+        done = state["next", "done"] or state["next", "terminated"]
 
         # Store the transition in memory
-        replay_buffer.add(TensorDict({"state": state.squeeze(0), "action": action.squeeze(0), "next_state": next_state, "reward": reward}, batch_size=()))
+        replay_buffer.add(state)
 
         # Move to the next state
-        state = next_state.unsqueeze(0)
+        state = state["next"]
 
         # Perform one step of the optimization (on the policy network)
         for i in range(OPTIM_STEPS):
