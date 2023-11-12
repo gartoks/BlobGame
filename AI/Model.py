@@ -2,10 +2,11 @@ import torch.nn as nn
 import torch
 
 class Model(nn.Module):
-    def __init__(self, device, additional_layers=[]):
+    def __init__(self, additional_layers=[]):
         super().__init__()
-        self.device = device
-
+        if (isinstance(additional_layers, int)):
+            additional_layers = [nn.LazyLinear(additional_layers)]
+        
         self.linear_pipeline = nn.Sequential(
             nn.LazyLinear(256),
             nn.Tanh(),
@@ -29,13 +30,8 @@ class Model(nn.Module):
             *additional_layers
         )
     
-
-    def forward(self, pixel_data, linear_data):
-        if (pixel_data.device.type != self.device.type):
-            pixel_data = pixel_data.to(self.device)
-            linear_data = linear_data.to(self.device)
-
-        image_transformed = self.pixel_pipeline(pixel_data)
+    def forward(self, pixels, linear_data):
+        image_transformed = self.pixel_pipeline(pixels)
         linear_transformed = self.linear_pipeline(linear_data)
         combined = torch.concat((image_transformed, linear_transformed), dim=-1)
         combined_transformed = self.combined_pipeline(combined)
