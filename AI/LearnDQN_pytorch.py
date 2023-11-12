@@ -1,7 +1,5 @@
-import gymnasium as gym
 import math
 import random
-from collections import namedtuple, deque
 from itertools import count
 from datetime import datetime
 import os
@@ -12,6 +10,9 @@ import torch.optim as optim
 
 from torchrl.data import LazyTensorStorage, TensorDictReplayBuffer
 from torchrl.record.loggers.tensorboard import TensorboardLogger
+from torchrl.modules import QValueActor
+from torchrl.objectives import DQNLoss, SoftUpdate
+
 from torchrl.envs import GymEnv
 
 from CommonLearning import *
@@ -41,24 +42,29 @@ REPLAY_SIZE = 2000
 FRAME_SKIP = 5
 
 env = create_environment(device, torch.get_default_dtype(), "main", FRAME_SKIP, True)
+# env = GymEnv("CartPole-v1", device=device)
 
 # Get number of actions from gym action space
 n_actions = env.action_spec.zero().flatten().shape[0]
-# Get the number of state observations
-
-def unfold(state):
-    return state["pixels"], state["linear_data"]
 
 policy_net = Model(n_actions).to(device)
-target_net = Model(n_actions).to(device)
+# policy_net = nn.Sequential(
+#     nn.LazyLinear(128),
+#     nn.ReLU(),
+#     nn.LazyLinear(128),
+#     nn.ReLU(),
+#     nn.LazyLinear(n_actions),
+# )
+
+policy_net = QValueActor(policy_net, in_keys=["observation"], spec=env.action_spec)
 
 state = env.reset()
-policy_net(*unfold(state))
-target_net(*unfold(state))
+policy_net(state)
 
-target_net.load_state_dict(policy_net.state_dict())
+loss_module = DQNLoss(policy_net, delay_value=True, action_space=env.action_spec)
+target_updater = SoftUpdate(loss_module, tau=TAU)
 
-optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True, weight_decay=WEIGHT_DECAY, foreach=False, fused=True)
+optimizer = optim.AdamW(loss_module.parameters(), lr=LR, amsgrad=True, weight_decay=WEIGHT_DECAY, foreach=False, fused=True)
 
 replay_buffer = TensorDictReplayBuffer(
     batch_size=BATCH_SIZE,
@@ -101,70 +107,27 @@ def select_action(state):
             # t.max(1) will return the largest column value of each row.
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
-            state["action"] = policy_net(*unfold(state))
+            return policy_net(state)
     else:
         state["action"] = env.action_spec.rand()
-    return state
+        return state
 
-@torch.jit.script
-def fused_optimize_model_(*, batch_next_done, batch_action, batch_pixels, batch_linear_data, state_reward, next_states_pixels, next_states_linear_data, BATCH_SIZE: int, GAMMA: float):
-    non_final_mask = ~batch_next_done.squeeze()
-    non_final_next_states_pixels = next_states_pixels[non_final_mask]
-    non_final_next_states_linear_data = next_states_linear_data[non_final_mask]
-
-    # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
-    # columns of actions taken. These are the actions which would've been taken
-    # for each batch state according to policy_net
-    state_action_values = policy_net(batch_pixels, batch_linear_data).gather(1, torch.argmax(batch_action, dim=1, keepdim=True))
-
-    # Compute V(s_{t+1}) for all next states.
-    # Expected values of actions for non_final_next_states are computed based
-    # on the "older" target_net; selecting their best reward with max(1)[0].
-    # This is merged based on the mask, such that we'll have either the expected
-    # state value or 0 in case the state was final.
-    next_state_values = torch.zeros(BATCH_SIZE, device="cuda")
-    with torch.no_grad():
-        next_state_values[non_final_mask] = target_net(non_final_next_states_pixels, non_final_next_states_linear_data).max(1)[0]
-    # Compute the expected Q values
-    expected_state_action_values = (next_state_values * GAMMA) + state_reward
-
-    # Compute Huber loss
-    loss = criterion(state_action_values, expected_state_action_values.unsqueeze(-1))
-
-    return loss
-
-def fused_optimize_model(**kwargs):
-    return fused_optimize_model_(
-        BATCH_SIZE=BATCH_SIZE,
-        GAMMA=GAMMA,
-        **kwargs
-    )
-
-is_first = True
 def optimize_model():
-    global batch, is_first
     if len(replay_buffer) < BATCH_SIZE:
         return
     batch = replay_buffer.sample(BATCH_SIZE).to(device)
     # Compute a mask of non-final states and concatenate the batch elements
     # (a final state would've been the one after which simulation ended)
-    
-    loss = fused_optimize_model(
-        batch_next_done=batch["next", "done"],
-        batch_action=batch["action"],
-        batch_linear_data=batch["linear_data"],
-        batch_pixels=batch["pixels"],
-        state_reward=state["reward"],
-        next_states_linear_data=batch["next", "linear_data"],
-        next_states_pixels=batch["next", "pixels"],
-    )
 
-    # Optimize the model
-    optimizer.zero_grad(set_to_none=True)
-    loss.backward()
+    loss = loss_module(batch)
+    loss["loss"].backward()
+
     # In-place gradient clipping
     torch.nn.utils.clip_grad_value_(policy_net.parameters(), 100)
     optimizer.step()
+    optimizer.zero_grad(set_to_none=True)
+
+    target_updater.step()
     
 save_dir = f"checkpointsDQN/{datetime.now():%m%d%Y %H:%M:%S}/"
 save_filename = save_dir + "network_{}.ckpt"
@@ -176,10 +139,9 @@ def save_state(epoch):
     torch.save(
         {
             "policy_net": policy_net.state_dict(),
-            "target_net": target_net.state_dict(),
+            "loss_module": loss_module.state_dict(),
             "optimizer": optimizer.state_dict(),
             "replay_buffer": replay_buffer.state_dict(),
-            "criterion": criterion.state_dict(),
             "epoch": epoch
         },
         path
@@ -190,15 +152,12 @@ def load_state(path):
     loaded_state = torch.load(path)
     
     policy_net.load_state_dict(loaded_state["policy_net"])
-    target_net.load_state_dict(loaded_state["target_net"])
+    loss_module.load_state_dict(loaded_state["loss_module"])
     optimizer.load_state_dict(loaded_state["optimizer"])
     replay_buffer.load_state_dict(loaded_state["replay_buffer"])
-    criterion.load_state_dict(loaded_state["criterion"])
     epoch = loaded_state["epoch"]
 
     print(f"Loaded epoch {epoch}")
-
-os.makedirs(save_filename)
 
 if (os.path.exists(CHECKPOINT_PATH)):
     load_state(CHECKPOINT_PATH)
@@ -226,14 +185,6 @@ for i_episode in range(num_episodes):
         # Perform one step of the optimization (on the policy network)
         for i in range(OPTIM_STEPS):
             optimize_model()
-
-        # Soft update of the target network's weights
-        # θ′ ← τ θ + (1 −τ )θ′
-        target_net_state_dict = target_net.state_dict()
-        policy_net_state_dict = policy_net.state_dict()
-        for key in policy_net_state_dict:
-            target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
-        target_net.load_state_dict(target_net_state_dict)
 
 
         logger.log_scalar("current game reward", reward_sum, t)
