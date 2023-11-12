@@ -3,7 +3,7 @@ import os
 import torch
 from torch import nn
 from torchrl.collectors import MultiSyncDataCollector
-from torchrl.data import LazyMemmapStorage, MultiStep, TensorDictReplayBuffer
+from torchrl.data import LazyTensorStorage, MultiStep, TensorDictReplayBuffer
 
 from torchrl.modules import QValueActor, EGreedyWrapper
 
@@ -27,7 +27,7 @@ import functools
 
 
 #-----------------
-torch.set_default_dtype(torch.float32)
+torch.set_default_dtype(torch.float16)
 device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
 
 # the learning rate of the optimizer
@@ -41,14 +41,14 @@ n_optim = 8
 
 gamma = 0.99
 
-num_workers = 15
-total_frames = 100_000
+num_workers = 7
+total_frames = 100_000_000
 frame_skip = 5
 init_random_frames = 1000
-frames_per_batch = 256
-batch_size = 256
+frames_per_batch = 64
+batch_size = 32
 buffer_size = min(total_frames, 100000)
-save_frames = frames_per_batch * 10
+save_frames = frames_per_batch * 200
 
 eps_greedy_val = 0.2
 eps_greedy_val_env = 0.005
@@ -58,8 +58,8 @@ init_bias = 2.0
 
 
 def make_model(dummy_env):
-    net = Model(device, [
-        nn.LazyLinear(dummy_env.action_spec.shape[-1], device=device),
+    net = Model([
+        nn.LazyLinear(dummy_env.action_spec.shape[-1]),
     ]).to(device)
     net.combined_pipeline[-1].bias.data.fill_(init_bias)
 
@@ -82,7 +82,7 @@ def make_model(dummy_env):
 def get_replay_buffer(buffer_size, n_optim, batch_size):
     replay_buffer = TensorDictReplayBuffer(
         batch_size=batch_size,
-        storage=LazyMemmapStorage(buffer_size),
+        storage=LazyTensorStorage(buffer_size),
         prefetch=n_optim,
     )
     return replay_buffer
@@ -119,7 +119,7 @@ def get_loss_module(actor, gamma):
 if __name__ == "__main__":
     Renderer.init()
 
-    test_env = create_environment(device, id="test", dtype=torch.float32, frame_skip=frame_skip)
+    test_env = create_environment(device, id="test", dtype=torch.get_default_dtype(), frame_skip=frame_skip, should_render=True)
     # Get model
     actor, actor_explore = make_model(test_env)
     loss_module, target_net_updater = get_loss_module(actor, gamma)
@@ -181,11 +181,11 @@ if __name__ == "__main__":
     weight_updater.register(trainer)
     recorder = Recorder(
         record_interval=10,  # log every 100 optimization steps
-        record_frames=1000,  # maximum number of frames in the record
+        record_frames=5000,  # maximum number of frames in the record
         frame_skip=frame_skip,
         policy_exploration=actor_explore,
         environment=test_env,
-        exploration_type=ExplorationType.MODE,
+        exploration_type=ExplorationType.MEAN,
         log_keys=[("next", "reward")],
         out_keys={("next", "reward"): "eval reward"},
         log_pbar=True,
@@ -196,7 +196,7 @@ if __name__ == "__main__":
     trainer.register_op("post_optim", target_net_updater.step)
 
     log_reward = LogReward(log_pbar=True)
-    log_reward.register(trainer)
+    trainer.register_op("pre_steps_log", log_reward)
 
 
     trainer.train()
