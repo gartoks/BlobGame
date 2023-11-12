@@ -34,7 +34,7 @@ EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 1000
 TAU = 0.005
-LR = 1e-4
+LR = 1e-3
 WEIGHT_DECAY = 0.01
 
 OPTIM_STEPS = 2
@@ -56,7 +56,7 @@ policy_net = Model(n_actions).to(device)
 #     nn.LazyLinear(n_actions),
 # )
 
-policy_net = QValueActor(policy_net, in_keys=["observation"], spec=env.action_spec)
+policy_net = QValueActor(policy_net, in_keys=["pixels", "linear_data"], spec=env.action_spec)
 
 state = env.reset()
 policy_net(state)
@@ -161,6 +161,7 @@ def load_state(path):
 
 if (os.path.exists(CHECKPOINT_PATH)):
     load_state(CHECKPOINT_PATH)
+os.makedirs(save_dir)
 
 
 num_episodes = 2000
@@ -195,4 +196,6 @@ for i_episode in range(num_episodes):
             break
 
     save_state(i_episode)
+
+save_state("final")
 print('Complete')
