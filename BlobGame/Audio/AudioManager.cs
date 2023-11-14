@@ -1,7 +1,7 @@
 ﻿using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using Raylib_CsLo;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 
 namespace BlobGame.Audio;
 /// <summary>
@@ -81,7 +81,7 @@ internal static class AudioManager {
         if (PlayingSounds.ContainsKey(name))
             StopSound(name);
 
-        SoundResource sound = ResourceManager.GetSound(name);
+        SoundResource sound = ResourceManager.SoundLoader.Get(name);
 
         SoundActionQueue.Add(() => {
             PlayingSounds[name] = sound;
@@ -149,10 +149,10 @@ internal static class AudioManager {
         if (PlayingMusic.ContainsKey(name))
             StopMusic(name);
 
-        MusicResource music = ResourceManager.GetMusic(name);
+        MusicResource music = ResourceManager.MusicLoader.Get(name);
 
         MusicActionQueue.Add(() => {
-            Debug.WriteLine($"Playing {name} ({Raylib.GetMusicTimeLength(music.Resource)}s)");
+            //Debug.WriteLine($"Playing {name} ({Raylib.GetMusicTimeLength(music.Resource)}s)");
             PlayingMusic[name] = music;
             Raylib.PlayMusicStream(music.Resource);
             Raylib.SetMusicVolume(music.Resource, MUSIC_VOLUME_MODIFIER * Application.Settings.MusicVolume / 100f);

@@ -1,4 +1,5 @@
 ﻿using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using Raylib_CsLo;
 using System.Diagnostics;
 
@@ -45,8 +46,8 @@ internal static class Renderer {
     /// Loads global resources.
     /// </summary>
     internal static void Load() {
-        MainFont = ResourceManager.GetFont("main");
-        GuiFont = ResourceManager.GetFont("gui");
+        MainFont = ResourceManager.FontLoader.Get("main");
+        GuiFont = ResourceManager.FontLoader.Get("gui");
     }
 
     /// <summary>
@@ -60,7 +61,7 @@ internal static class Renderer {
         UpdateStopwatch.Restart();
 
         Raylib.BeginDrawing();
-        Raylib.ClearBackground(ResourceManager.GetColor("background").Resource);
+        Raylib.ClearBackground(ResourceManager.ColorLoader.Get("background").Resource);
 
         RlGl.rlPushMatrix();
 

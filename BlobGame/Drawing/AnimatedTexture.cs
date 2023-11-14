@@ -1,4 +1,5 @@
 ﻿using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using Raylib_CsLo;
 using System.Numerics;
 
@@ -38,7 +39,7 @@ internal sealed class AnimatedTexture {
     public bool IsReady => Renderer.Time - StartTime < 0;
 
     public AnimatedTexture(string textureKey, float duration, Vector2 position, Vector2 pivot, Vector2? scale = null, float rotation = 0, Color? color = null)
-        : this(ResourceManager.GetTexture(textureKey), duration, position, pivot, scale, rotation, color) {
+        : this(ResourceManager.TextureLoader.Get(textureKey), duration, position, pivot, scale, rotation, color) {
     }
 
     public AnimatedTexture(TextureResource texture, float duration, Vector2 position, Vector2? pivot = null, Vector2? scale = null, float rotation = 0, Color? color = null) {

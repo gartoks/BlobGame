@@ -2,6 +2,7 @@
 using BlobGame.Game.GameModes;
 using BlobGame.Game.Gui;
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using System.Numerics;
 using static BlobGame.Game.Gui.GuiSelector;
 
@@ -60,7 +61,7 @@ internal class GameModeSelectionScene : Scene {
     }
 
     internal override void Load() {
-        GameModeDescriptionsText = ResourceManager.GetText("game_mode_descriptions");
+        GameModeDescriptionsText = ResourceManager.TextLoader.Get("game_mode_descriptions");
 
         LoadAllGuiElements();
     }

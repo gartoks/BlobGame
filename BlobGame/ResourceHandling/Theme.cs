@@ -38,7 +38,6 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
     /// </summary>
     private bool WasLoaded { get; set; }
 
-
     private bool disposedValue;
 
     /// <summary>

@@ -1,5 +1,6 @@
 ﻿using BlobGame.App;
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
@@ -27,9 +28,9 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
     }
 
     protected override void DrawInternal() {
-        ColorResource bgColor = ResourceManager.GetColor("light_accent");
+        ColorResource bgColor = ResourceManager.ColorLoader.Get("light_accent");
         if (IsHovered)
-            bgColor = ResourceManager.GetColor("dark_accent");
+            bgColor = ResourceManager.ColorLoader.Get("dark_accent");
 
         Panel.Color = bgColor;
 
@@ -41,7 +42,7 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
 
         ColorResource accentColor = ColorResource.WHITE;
         if (HasFocus())
-            accentColor = ResourceManager.GetColor("highlight");
+            accentColor = ResourceManager.ColorLoader.Get("highlight");
         Panel.AccentColor = accentColor;
 
         Panel.Draw();

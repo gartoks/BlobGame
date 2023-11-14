@@ -2,6 +2,8 @@
 
 using BlobGame;
 using BlobGame.Game.GameModes;
+using BlobGame.Util;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -13,6 +15,10 @@ int seed = 0;
 string gameModeKey = "Classic";
 
 //TmpSerializeText();
+
+Log.OnLog += (msg, type) => Console.WriteLine(msg);
+Log.OnLog += (msg, type) => Debug.WriteLine(msg);
+
 
 try {
     if (args.Length > 0) {

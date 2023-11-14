@@ -31,6 +31,8 @@ internal sealed class GuiLabel : GuiElement {
 
     private Vector2 TextPosition { get; set; }
 
+    private Font LastUsedFont { get; set; }
+
     public GuiLabel(string boundsString, string text, Vector2? pivot = null)
         : this(GuiBoundsParser.Parse(boundsString), text, pivot) {
     }
@@ -49,6 +51,10 @@ internal sealed class GuiLabel : GuiElement {
     }
 
     protected override void DrawInternal() {
+        if (!LastUsedFont.Equals(Renderer.GuiFont.Resource))
+            CalculateTextPosition();
+        LastUsedFont = Renderer.GuiFont.Resource;
+
         Raylib.DrawTextEx(Renderer.GuiFont.Resource, Text, TextPosition, FontSize, FontSpacing, Raylib.WHITE);
     }
 

@@ -2,6 +2,7 @@
 using BlobGame.Audio;
 using BlobGame.Drawing;
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
@@ -56,7 +57,7 @@ internal class GuiSelector : InteractiveGuiElement {
 
         ColorResource accentColor = ColorResource.WHITE;
         if (HasFocus())
-            accentColor = ResourceManager.GetColor("highlight");
+            accentColor = ResourceManager.ColorLoader.Get("highlight");
         Panel.AccentColor = accentColor;
         DecreaseButton.Panel.AccentColor = accentColor;
         IncreaseButton.Panel.AccentColor = accentColor;

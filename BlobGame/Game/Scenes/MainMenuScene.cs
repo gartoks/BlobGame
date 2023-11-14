@@ -1,6 +1,7 @@
 ﻿using BlobGame.Drawing;
 using BlobGame.Game.Gui;
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using Raylib_CsLo;
 using System.Numerics;
 
@@ -48,13 +49,13 @@ internal sealed class MainMenuScene : Scene {
             Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.05f,
             1,
             //Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.2f,
-            ResourceManager.FallbackTexture,
+            ResourceManager.TextureLoader.Fallback,
             new Vector2(0.5f, 0));
     }
 
     internal override void Load() {
-        TitleTexture = ResourceManager.GetTexture("title_logo");
-        AvatarTexture = ResourceManager.GetTexture("melba_avatar");
+        TitleTexture = ResourceManager.TextureLoader.Get("title_logo");
+        AvatarTexture = ResourceManager.TextureLoader.Get("melba_avatar");
 
         LoadAllGuiElements();
 

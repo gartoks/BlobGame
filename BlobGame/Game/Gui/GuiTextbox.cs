@@ -1,5 +1,6 @@
 ﻿using BlobGame.App;
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
@@ -57,7 +58,7 @@ internal class GuiTextbox : InteractiveGuiElement {
 
         ColorResource accentColor = ColorResource.WHITE;
         if (HasFocus())
-            accentColor = ResourceManager.GetColor("highlight");
+            accentColor = ResourceManager.ColorLoader.Get("highlight");
         Panel.AccentColor = accentColor;
 
         Panel.Draw();

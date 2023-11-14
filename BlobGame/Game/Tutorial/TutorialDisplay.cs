@@ -36,7 +36,7 @@ internal sealed class TutorialDisplay {
     }
 
     internal void Load() {
-        //OverlayTexture = ResourceManager.GetTexture("tutorial_stage_1_overlay");
+        //OverlayTexture = ResourceManager.TextureLoader.Get("tutorial_stage_1_overlay");
 
         CurrentStage?.Load();
     }
