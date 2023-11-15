@@ -1,3 +1,4 @@
+using BlobGame.ResourceHandling.Resources;
 using Raylib_CsLo;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -284,6 +285,34 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         Dictionary<string, string>? dict = JsonSerializer.Deserialize<Dictionary<string, string>>(textStream);
 
         return dict;
+    }
+
+    /// <summary>
+    /// Tries to load a NPatchTexture from the zip archive.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
+    public NPatchTexture? LoadNPatchTexture(string key) {
+        if (!WasLoaded)
+            throw new InvalidOperationException("Theme was not loaded.");
+
+        Texture texture = (Texture)LoadTexture(key);
+
+        string path = $"Textures/NPatchData/{key}.json";
+        ZipArchiveEntry? zippedText = ThemeArchive!.GetEntry(path);
+
+        if (zippedText == null) {
+            Debug.WriteLine($"NPatchData {key} doesn't exist in this theme");
+            return null;
+        }
+
+        using Stream textStream = zippedText.Open();
+        Dictionary<string, int>? dict = JsonSerializer.Deserialize<Dictionary<string, int>>(textStream);
+
+        if (dict == null)
+            return null;
+
+        return new NPatchTexture(texture, dict["left"], dict["right"], dict["top"], dict["bottom"]);
     }
 
     private void Dispose(bool disposing) {

@@ -35,6 +35,19 @@ internal sealed class TextureResource : GameResource<Texture> {
                     rotation,
                     tint != null ? tint.Value : Raylib.WHITE);
     }
+
+    internal void Draw(Rectangle bounds, Vector2? pivot = null, float rotation = 0, Color? tint = null) {
+        if (pivot == null)
+            pivot = Vector2.Zero;
+
+        Raylib.DrawTexturePro(
+                    Resource,
+                    new Rectangle(0, 0, Resource.width, Resource.height),
+                    bounds,
+                    new Vector2(bounds.width * pivot.Value.X, bounds.height * pivot.Value.Y),
+                    rotation,
+                    tint != null ? tint.Value : Raylib.WHITE);
+    }
 }
 
 internal sealed class TextureResourceLoader : ResourceLoader<Texture, TextureResource> {

@@ -25,6 +25,7 @@ internal static class ResourceManager {
     public static SoundResourceLoader SoundLoader { get; }
     public static MusicResourceLoader MusicLoader { get; }
     public static TextResourceLoader TextLoader { get; }
+    public static NPatchTextureResourceLoader NPatchLoader { get; }
 
     /// <summary>
     /// Base theme.
@@ -47,6 +48,7 @@ internal static class ResourceManager {
         SoundLoader = new(ResourceLoadingQueue);
         MusicLoader = new(ResourceLoadingQueue);
         TextLoader = new(ResourceLoadingQueue);
+        NPatchLoader = new(ResourceLoadingQueue);
 
         DefaultTheme = new Theme(Files.GetResourceFilePath("MelbaToast.theme"));
         MainTheme = DefaultTheme;
@@ -71,6 +73,7 @@ internal static class ResourceManager {
         SoundLoader.Load(new Sound());
         MusicLoader.Load(new Music());
         TextLoader.Load(new Dictionary<string, string>());
+        NPatchLoader.Load(new NPatchTexture(Raylib.LoadTextureFromImage(image), 0, 1, 0, 1));
     }
 
     /// <summary>
@@ -97,6 +100,7 @@ internal static class ResourceManager {
         SoundLoader.ReloadAll();
         MusicLoader.ReloadAll();
         TextLoader.ReloadAll();
+        NPatchLoader.ReloadAll();
     }
 
     /// <summary>
@@ -104,7 +108,7 @@ internal static class ResourceManager {
     /// </summary>
     internal static void Update() {
         while (ResourceLoadingQueue.TryTake(out (string key, Type type) resource, RESOURCE_LOADING_TIMEOUT)) {
-            Log.WriteLine($"Loading resource {resource.key} of type {resource.type}");
+            //Log.WriteLine($"Loading resource {resource.key} of type {resource.type}");
             LoadResource(resource.key, resource.type);
         }
     }
@@ -128,6 +132,8 @@ internal static class ResourceManager {
             MusicLoader.LoadResource(key);
         } else if (type == typeof(IReadOnlyDictionary<string, string>)) {
             TextLoader.LoadResource(key);
+        } else if (type == typeof(NPatchTexture)) {
+            NPatchLoader.LoadResource(key);
         } else {
             Debug.WriteLine($"Resource type {type} is not supported");
         }

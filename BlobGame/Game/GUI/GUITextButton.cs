@@ -7,7 +7,9 @@ using System.Numerics;
 
 namespace BlobGame.Game.Gui;
 internal sealed class GuiTextButton : InteractiveGuiElement {
-    public GuiPanel Panel { get; }
+    public NPatchTextureResource BaseTexture { get; set; }
+    public NPatchTextureResource SelectedTexture { get; set; }
+
     public GuiLabel Label { get; }
 
     public bool IsClicked { get; private set; }
@@ -23,16 +25,16 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
     public GuiTextButton(float x, float y, float w, float h, string text, Vector2? pivot = null)
         : base(x, y, w, h, pivot) {
 
-        Panel = new GuiPanel(Bounds, new Vector2(0, 0));
+        BaseTexture = ResourceManager.NPatchLoader.Get("button_up");
+        SelectedTexture = ResourceManager.NPatchLoader.Get("button_selected");
+        //Panel = new GuiPanel(Bounds, new Vector2(0, 0));
         Label = new GuiLabel(Bounds, text, new Vector2(0, 0));
     }
 
     protected override void DrawInternal() {
-        ColorResource bgColor = ResourceManager.ColorLoader.Get("light_accent");
+        NPatchTextureResource texture = BaseTexture;
         if (IsHovered)
-            bgColor = ResourceManager.ColorLoader.Get("dark_accent");
-
-        Panel.Color = bgColor;
+            texture = SelectedTexture;
 
         IsClicked = (IsHovered && Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT)) ||
             (GuiManager.HasFocus(this) && Input.IsHotkeyActive("confirm"));
@@ -40,12 +42,11 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
         if (IsClicked)
             Focus();
 
-        ColorResource accentColor = ColorResource.WHITE;
         if (HasFocus())
-            accentColor = ResourceManager.ColorLoader.Get("highlight");
-        Panel.AccentColor = accentColor;
+            texture = SelectedTexture;
 
-        Panel.Draw();
+        texture.Draw(Bounds, Vector2.Zero, Raylib.WHITE);
+
         Label.Draw();
 
         Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT] |= IsClicked;

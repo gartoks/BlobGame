@@ -59,8 +59,8 @@ internal class GuiSelector : InteractiveGuiElement {
         if (HasFocus())
             accentColor = ResourceManager.ColorLoader.Get("highlight");
         Panel.AccentColor = accentColor;
-        DecreaseButton.Panel.AccentColor = accentColor;
-        IncreaseButton.Panel.AccentColor = accentColor;
+        //DecreaseButton.Panel.AccentColor = accentColor;   // TODO
+        //IncreaseButton.Panel.AccentColor = accentColor;
 
         DecreaseButton.Draw();
         IncreaseButton.Draw();
