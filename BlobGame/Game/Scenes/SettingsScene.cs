@@ -8,7 +8,7 @@ using static BlobGame.Game.Gui.GuiSelector;
 
 namespace BlobGame.Game.Scenes;
 internal class SettingsScene : Scene {
-    private GuiPanel BackgroundPanel { get; }
+    private GuiNPatchPanel BackgroundPanel { get; }
 
     private GuiLabel ScreenModeLabel { get; }
     private GuiSelector ScreenModeSelector { get; }
@@ -36,7 +36,7 @@ internal class SettingsScene : Scene {
 
 
     public SettingsScene() {
-        BackgroundPanel = new GuiPanel("0.05 0.05 0.9 0.8", new Vector2(0, 0));
+        BackgroundPanel = new GuiNPatchPanel("0.05 0.05 0.9 0.8", "panel", new Vector2(0, 0));
 
         BackButton = new GuiTextButton(
             Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.95f,
@@ -50,7 +50,7 @@ internal class SettingsScene : Scene {
             "Apply",
             new Vector2(1, 1));
 
-        float xOffset = 0.1f;
+        float xOffset = 0.175f;
         /*(GuiSelector monitorSelector, GuiLabel monitorLabel) = CreateSettingsEntry(
             "Monitor", xOffset,
             Application.Settings.GetMonitors().Select(m => new SelectionElement($"{m.monitor}: {m.name}", m.monitor)).ToArray(),
@@ -186,12 +186,13 @@ internal class SettingsScene : Scene {
     }
 
     private (GuiSelector, GuiLabel) CreateSettingsEntry(string title, float xOffset, SelectionElement[] selectionElements, int selectedIndex) {
-        GuiLabel label = new GuiLabel($"0.05 {xOffset} 0.25 {1f / 16f}", title, new Vector2(0, 0));
+        GuiLabel label = new GuiLabel($"0.1 {xOffset} 0.25 {1f / 10f}", title, new Vector2(0, 0.5f));
         label.TextAlignment = eTextAlignment.Center;
+        label.DrawOutline = true;
 
         GuiSelector selector = new GuiSelector($"0.35 {xOffset} 0.5 {1f / 16f}",
             selectionElements, selectedIndex < 0 ? 0 : selectedIndex,
-            new Vector2(0, 0));
+            new Vector2(0, 0.5f));
 
         return (selector, label);
     }

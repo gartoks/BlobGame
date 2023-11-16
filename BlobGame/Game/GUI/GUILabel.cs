@@ -1,4 +1,6 @@
 ﻿using BlobGame.Drawing;
+using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
@@ -26,6 +28,9 @@ internal sealed class GuiLabel : GuiElement {
         }
     }
 
+    public bool DrawOutline { get; set; }
+    public ColorResource OutlineColor { get; set; }
+
     private float FontSize { get; }
     private float FontSpacing { get; }
 
@@ -48,12 +53,27 @@ internal sealed class GuiLabel : GuiElement {
         FontSize = h * 0.6f;
         FontSpacing = FontSize / 64f;
         TextAlignment = eTextAlignment.Center;
+
+        DrawOutline = false;
+        OutlineColor = ResourceManager.ColorLoader.Get("outline");
     }
 
     protected override void DrawInternal() {
         if (!LastUsedFont.Equals(Renderer.GuiFont.Resource))
             CalculateTextPosition();
         LastUsedFont = Renderer.GuiFont.Resource;
+
+
+        if (DrawOutline) {
+            Vector2 textSize = GetTextSize();
+            Vector2 outlineSize = Raylib.MeasureTextEx(Renderer.GuiFont.Resource, Text, FontSize * 1.05f, FontSpacing);
+            Vector2 outlineOffset = new Vector2(
+                (outlineSize.X - textSize.X) / 2f,
+                (outlineSize.Y - textSize.Y) / 2f
+                );
+
+            Raylib.DrawTextEx(Renderer.GuiFont.Resource, Text, TextPosition - outlineOffset, FontSize * 1.05f, FontSpacing, OutlineColor.Resource);
+        }
 
         Raylib.DrawTextEx(Renderer.GuiFont.Resource, Text, TextPosition, FontSize, FontSpacing, Raylib.WHITE);
     }

@@ -1,8 +1,6 @@
 ﻿using BlobGame.App;
 using BlobGame.Audio;
 using BlobGame.Drawing;
-using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
@@ -13,7 +11,7 @@ internal class GuiSelector : InteractiveGuiElement {
 
     private IReadOnlyList<SelectionElement> Elements { get; }
 
-    public GuiPanel Panel { get; }
+    public GuiNPatchPanel Panel { get; }
     public GuiTextButton DecreaseButton { get; }
     public GuiTextButton IncreaseButton { get; }
 
@@ -42,8 +40,8 @@ internal class GuiSelector : InteractiveGuiElement {
         FontSpacing = FontSize / 64f;
         //Bounds = new Rectangle(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h);
 
-        Panel = new GuiPanel(x + buttonSize + BUTTON_SPACING, y, w - 2 * buttonSize - 2 * BUTTON_SPACING, h, new Vector2(0, 0));
-        DecreaseButton = new GuiTextButton(Bounds.x, y, buttonSize, buttonSize, "<", new Vector2(0, 0));
+        Panel = new GuiNPatchPanel(Bounds.x + buttonSize + BUTTON_SPACING, Bounds.y, Bounds.width - 2 * buttonSize - 2 * BUTTON_SPACING, Bounds.height, "button_up", new Vector2(0, 0));
+        DecreaseButton = new GuiTextButton(Bounds.x, Bounds.y, buttonSize, buttonSize, "<", new Vector2(0, 0));
         IncreaseButton = new GuiTextButton(Bounds.x + Bounds.width, Bounds.y, buttonSize, buttonSize, ">", new Vector2(1, 0));
 
         SelectedIndex = selectedIndex;
@@ -55,12 +53,10 @@ internal class GuiSelector : InteractiveGuiElement {
         if (shouldFocus)
             Focus();
 
-        ColorResource accentColor = ColorResource.WHITE;
+        string texture = "button_up";
         if (HasFocus())
-            accentColor = ResourceManager.ColorLoader.Get("highlight");
-        Panel.AccentColor = accentColor;
-        //DecreaseButton.Panel.AccentColor = accentColor;   // TODO
-        //IncreaseButton.Panel.AccentColor = accentColor;
+            texture = "button_selected";
+        Panel.TextureKey = texture;
 
         DecreaseButton.Draw();
         IncreaseButton.Draw();

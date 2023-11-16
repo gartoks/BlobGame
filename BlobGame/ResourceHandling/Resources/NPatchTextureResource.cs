@@ -1,5 +1,6 @@
 ﻿using Raylib_CsLo;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace BlobGame.ResourceHandling.Resources;
@@ -28,8 +29,87 @@ internal sealed class NPatchTextureResource : GameResource<NPatchTexture> {
         float th = Resource.Texture.height;
         float bw = bounds.width;
         float bh = bounds.height;
+        float r = Resource.Texture.width - Resource.right;
+        float b = Resource.Texture.height - Resource.bottom;
 
-        float x0 = 0;
+        float centerW = Math.Max(0, bounds.width - r - Resource.left);
+        float centerH = Math.Max(0, bounds.height - b - Resource.top);
+        float wScale = Math.Min(1, bw / (Resource.left + r));
+        float hScale = Math.Min(1, bh / (Resource.top + b));
+
+        void Draw(float xT, float yT, float wT, float hT, float xB, float yB, float wB, float hB) {
+            Raylib.DrawTexturePro(
+                    Resource.Texture,
+                    new Rectangle(xT, yT, wT, hT),
+                    new Rectangle(bounds.x + xB, bounds.y + yB, wB, hB),
+                    Vector2.Zero,   // TODO
+                    0,  // TODO
+                    tint != null ? tint.Value : Raylib.WHITE);
+        }
+
+        Debug.WriteLine("");
+        // Top left
+        Draw(
+            0, 0,
+            Resource.left, Resource.top,
+            0, 0,
+            Resource.left * wScale, Resource.top * hScale);
+        // Top right
+        Draw(
+            Resource.right, 0,
+            r, Resource.top,
+            bw - r * wScale, 0,
+            r * wScale, Resource.top * hScale);
+        // Bottom left
+        Draw(
+            0, Resource.bottom,
+            Resource.left, b,
+            0, bh - b * hScale,
+            Resource.left * wScale, b * hScale);
+        // Bottom right
+        Draw(
+            Resource.right, Resource.bottom,
+            r, b,
+            bw - r * wScale, bh - b * hScale,
+            r * wScale, b * hScale);
+        if (centerW > 0) {
+            // Top
+            Draw(
+                Resource.left, 0,
+                Resource.right - Resource.left, Resource.top,
+                Resource.left * wScale, 0,
+                centerW, Resource.top * hScale);
+            // Bottom
+            Draw(
+                Resource.left, Resource.bottom,
+                Resource.right - Resource.left, b,
+                Resource.left * wScale, bh - b * hScale,
+                centerW, b * hScale);
+        }
+        if (centerH > 0) {
+            // Left
+            Draw(
+                0, Resource.top,
+                Resource.left, Resource.bottom - Resource.top,
+                0, Resource.top * hScale,
+                Resource.left * wScale, centerH);
+            // Right
+            Draw(
+                Resource.right, Resource.top,
+                Resource.left, Resource.bottom - Resource.top,
+                bw - r * wScale, Resource.top * hScale,
+                Resource.left * wScale, centerH);
+        }
+        if (centerW > 0 && centerH > 0) {
+            // Center
+            Draw(
+                Resource.left, Resource.top,
+                Resource.right - Resource.left, Resource.bottom - Resource.top,
+                Resource.left * wScale, Resource.top * hScale,
+                centerW, centerH);
+        }
+
+        /*float x0 = 0;
         float y0 = 0;
         float w0 = Resource.left / (float)Resource.Texture.width;
         float h0 = Resource.top / (float)Resource.Texture.height;
@@ -57,7 +137,7 @@ internal sealed class NPatchTextureResource : GameResource<NPatchTexture> {
                     0,  // TODO
                     tint != null ? tint.Value : Raylib.WHITE);
             }
-        }
+        }*/
     }
 }
 

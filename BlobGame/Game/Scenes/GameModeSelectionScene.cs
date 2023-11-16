@@ -10,7 +10,7 @@ namespace BlobGame.Game.Scenes;
 internal class GameModeSelectionScene : Scene {
     private TextResource GameModeDescriptionsText { get; set; }
 
-    private GuiPanel BackgroundPanel { get; }
+    private GuiNPatchPanel BackgroundPanel { get; }
 
     private GuiLabel GameModeLabel { get; }
     private GuiSelector GameModeSelector { get; }
@@ -26,7 +26,7 @@ internal class GameModeSelectionScene : Scene {
     private GuiTextButton BackButton { get; }
 
     public GameModeSelectionScene() {
-        BackgroundPanel = new GuiPanel("0.05 0.05 0.9 0.8", new Vector2(0, 0));
+        BackgroundPanel = new GuiNPatchPanel("0.05 0.05 0.9 0.8", "panel", new Vector2(0, 0));
 
         BackButton = new GuiTextButton("0.05 0.95 0.125 0.0625", "Back", new Vector2(0, 1));
         PlayButton = new GuiTextButton("0.95 0.95 0.125 0.0625", "Play", new Vector2(1, 1));

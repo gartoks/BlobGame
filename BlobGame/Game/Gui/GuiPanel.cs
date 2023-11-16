@@ -28,5 +28,4 @@ internal sealed class GuiPanel : GuiElement {
         Raylib.DrawRectangleRounded(Bounds, 0.15f, 10, Color.Resource);
         Raylib.DrawRectangleRoundedLines(Bounds, 0.15f, 10, 8, AccentColor.Resource);
     }
-
 }

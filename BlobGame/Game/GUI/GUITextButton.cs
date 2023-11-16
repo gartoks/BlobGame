@@ -1,15 +1,14 @@
 ﻿using BlobGame.App;
-using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;
 internal sealed class GuiTextButton : InteractiveGuiElement {
-    public NPatchTextureResource BaseTexture { get; set; }
-    public NPatchTextureResource SelectedTexture { get; set; }
+    public string BaseTexture { get; set; }
+    public string SelectedTexture { get; set; }
 
+    public GuiNPatchPanel Panel { get; }
     public GuiLabel Label { get; }
 
     public bool IsClicked { get; private set; }
@@ -25,14 +24,17 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
     public GuiTextButton(float x, float y, float w, float h, string text, Vector2? pivot = null)
         : base(x, y, w, h, pivot) {
 
-        BaseTexture = ResourceManager.NPatchLoader.Get("button_up");
-        SelectedTexture = ResourceManager.NPatchLoader.Get("button_selected");
-        //Panel = new GuiPanel(Bounds, new Vector2(0, 0));
+        BaseTexture = "button_up";
+        SelectedTexture = "button_selected";
+        Panel = new GuiNPatchPanel(Bounds, BaseTexture, new Vector2(0, 0));
         Label = new GuiLabel(Bounds, text, new Vector2(0, 0));
     }
 
+    internal override void Load() {
+    }
+
     protected override void DrawInternal() {
-        NPatchTextureResource texture = BaseTexture;
+        string texture = BaseTexture;
         if (IsHovered)
             texture = SelectedTexture;
 
@@ -45,7 +47,8 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
         if (HasFocus())
             texture = SelectedTexture;
 
-        texture.Draw(Bounds, Vector2.Zero, Raylib.WHITE);
+        Panel.TextureKey = texture;
+        Panel.Draw();
 
         Label.Draw();
 
