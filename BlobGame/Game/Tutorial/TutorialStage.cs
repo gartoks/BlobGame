@@ -1,5 +1,6 @@
 ﻿using BlobGame.Drawing;
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using System.Numerics;
 
 namespace BlobGame.Game.Tutorial;
@@ -12,9 +13,9 @@ internal abstract class TutorialStage {
     internal virtual bool IsFadeOutFinished => true;
 
     internal virtual void Load() {
-        AvatarTexture = ResourceManager.GetTexture("melba_avatar");
-        LMBTexture = ResourceManager.GetTexture("lmb");
-        PointerTexture = ResourceManager.GetTexture("pointer");
+        AvatarTexture = ResourceManager.TextureLoader.Get("melba_avatar");
+        LMBTexture = ResourceManager.TextureLoader.Get("lmb");
+        PointerTexture = ResourceManager.TextureLoader.Get("pointer");
     }
 
     internal virtual void Unload() {
@@ -38,7 +39,7 @@ internal abstract class TutorialStage {
         Renderer.GuiFont.Draw(
             "Hold LMB to continue!",
             80,
-            ResourceManager.GetColor("dark_accent"),
+            ResourceManager.ColorLoader.Get("dark_accent"),
             new Vector2(x + 125, Application.BASE_HEIGHT - 150));
     }
 
@@ -58,14 +59,14 @@ internal abstract class TutorialStage {
     //        startControl * size,
     //        encControl * size,
     //        60,
-    //        ResourceManager.GetColor("dark_accent").Resource);
+    //        ResourceManager.ColorLoader.Get("dark_accent").Resource);
     //    Raylib.DrawLineBezierCubic(
     //        start * size,
     //        end * size,
     //        startControl * size,
     //        encControl * size,
     //        40,
-    //        ResourceManager.GetColor("highlight").Resource);
+    //        ResourceManager.ColorLoader.Get("highlight").Resource);
     //}
 
 }

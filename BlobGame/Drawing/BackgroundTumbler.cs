@@ -1,4 +1,5 @@
 ﻿using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
@@ -13,7 +14,7 @@ internal sealed class BackgroundTumbler {
     private TumblerData[] Tumblers { get; }
 
     public BackgroundTumbler(int numTumblers) {
-        Textures = Enumerable.Range(0, 2).Select(i => ResourceManager.FallbackTexture).ToArray();
+        Textures = Enumerable.Range(0, 2).Select(i => ResourceManager.TextureLoader.Fallback).ToArray();
 
         // Spawn tumblers off screen in a circle around the center of the screen.
         // target a point in a circle around the center of the screen.
@@ -46,8 +47,8 @@ internal sealed class BackgroundTumbler {
     }
 
     internal void Load() {
-        Textures[0] = ResourceManager.GetTexture($"blueberry_no_face");
-        Textures[1] = ResourceManager.GetTexture($"strawberry_no_face");
+        Textures[0] = ResourceManager.TextureLoader.Get($"blueberry_no_face");
+        Textures[1] = ResourceManager.TextureLoader.Get($"strawberry_no_face");
     }
 
     internal void Draw(float dT) {

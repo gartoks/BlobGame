@@ -32,4 +32,8 @@
     </None>
   </ItemGroup>
 
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="&quot;$(SolutionDir)ThemePacker\bin\Debug\net7.0\ThemePacker.exe&quot; $(ProjectDir)Resources\Themes\ $(ProjectDir)Resources\" />
+  </Target>
+
 </Project>

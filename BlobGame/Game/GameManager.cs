@@ -4,6 +4,7 @@ using BlobGame.Game.Gui;
 using BlobGame.Game.Scenes;
 using BlobGame.Game.Util;
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
@@ -58,13 +59,13 @@ public static class GameManager {
         Tumbler.Load();
 
         Music = new MusicResource[] {
-            ResourceManager.GetMusic("crossinglike"),
-            ResourceManager.GetMusic("Melba_1"),
-            ResourceManager.GetMusic("Melba_2"),
-            ResourceManager.GetMusic("Melba_3"),
-            ResourceManager.GetMusic("Melba_s_Toasty_Game"),
-            ResourceManager.GetMusic("On_the_Surface"),
-            ResourceManager.GetMusic("synthyupdated"),
+            ResourceManager.MusicLoader.Get("crossinglike"),
+            ResourceManager.MusicLoader.Get("Melba_1"),
+            ResourceManager.MusicLoader.Get("Melba_2"),
+            ResourceManager.MusicLoader.Get("Melba_3"),
+            ResourceManager.MusicLoader.Get("Melba_s_Toasty_Game"),
+            ResourceManager.MusicLoader.Get("On_the_Surface"),
+            ResourceManager.MusicLoader.Get("synthyupdated"),
         };
 
         GuiManager.Load();
@@ -128,7 +129,7 @@ public static class GameManager {
 
     private static void DrawBackground() {
         const float ANGLE = -12.5f;
-        Color elementColor = ResourceManager.GetColor("light_accent").Resource.ChangeAlpha(64);
+        Color elementColor = ResourceManager.ColorLoader.Get("light_accent").Resource.ChangeAlpha(64);
         //Color elementColor = new Color(255, 255, 255, 64);
 
         Raylib.DrawRectanglePro(

@@ -1,4 +1,4 @@
-﻿using BlobGame.ResourceHandling;
+﻿using BlobGame.ResourceHandling.Resources;
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;

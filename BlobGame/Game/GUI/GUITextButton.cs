@@ -1,12 +1,14 @@
 ﻿using BlobGame.App;
-using BlobGame.ResourceHandling;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Gui;
 internal sealed class GuiTextButton : InteractiveGuiElement {
-    public GuiPanel Panel { get; }
+    public string BaseTexture { get; set; }
+    public string SelectedTexture { get; set; }
+
+    public GuiNPatchPanel Panel { get; }
     public GuiLabel Label { get; }
 
     public bool IsClicked { get; private set; }
@@ -22,16 +24,19 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
     public GuiTextButton(float x, float y, float w, float h, string text, Vector2? pivot = null)
         : base(x, y, w, h, pivot) {
 
-        Panel = new GuiPanel(Bounds, new Vector2(0, 0));
+        BaseTexture = "button_up";
+        SelectedTexture = "button_selected";
+        Panel = new GuiNPatchPanel(Bounds, BaseTexture, new Vector2(0, 0));
         Label = new GuiLabel(Bounds, text, new Vector2(0, 0));
     }
 
-    protected override void DrawInternal() {
-        ColorResource bgColor = ResourceManager.GetColor("light_accent");
-        if (IsHovered)
-            bgColor = ResourceManager.GetColor("dark_accent");
+    internal override void Load() {
+    }
 
-        Panel.Color = bgColor;
+    protected override void DrawInternal() {
+        string texture = BaseTexture;
+        if (IsHovered)
+            texture = SelectedTexture;
 
         IsClicked = (IsHovered && Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT)) ||
             (GuiManager.HasFocus(this) && Input.IsHotkeyActive("confirm"));
@@ -39,12 +44,12 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
         if (IsClicked)
             Focus();
 
-        ColorResource accentColor = ColorResource.WHITE;
         if (HasFocus())
-            accentColor = ResourceManager.GetColor("highlight");
-        Panel.AccentColor = accentColor;
+            texture = SelectedTexture;
 
+        Panel.TextureKey = texture;
         Panel.Draw();
+
         Label.Draw();
 
         Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT] |= IsClicked;

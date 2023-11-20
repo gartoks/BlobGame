@@ -2,8 +2,9 @@
 
 using BlobGame;
 using BlobGame.Game.GameModes;
+using BlobGame.Util;
+using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
 
 string usage_text = $"""
 usage: 
@@ -18,7 +19,11 @@ int port = 0;
 int seed = 0;
 string gameModeKey = "Classic";
 
-//TmpSerializeText();
+DEBUGStuff.DEBUG_PrintNPatchJson();
+
+Log.OnLog += (msg, type) => Console.WriteLine(msg);
+Log.OnLog += (msg, type) => Debug.WriteLine(msg);
+
 
 try {
     if (args.Length > 0) {
@@ -70,16 +75,4 @@ try {
     File.WriteAllText("error.log", sb.ToString());
 
     throw;
-}
-
-
-
-void DEBUG_SerializeText() {
-    Dictionary<string, string> scrolls = new Dictionary<string, string> {
-        { "Classic", "Play the classic mode!\nCombine pieces and gain points." },
-    };
-    string json = JsonSerializer.Serialize(scrolls, new JsonSerializerOptions() { WriteIndented = true });
-    File.WriteAllText(@"G:\Coding\C#\BlobGame\BlobGame\Resources\References\Texts\game_mode_descriptions.json", json);
-
-    Dictionary<string, string> d2 = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(@"G:\Coding\C#\BlobGame\BlobGame\Resources\References\Texts\game_mode_descriptions.json"));
 }

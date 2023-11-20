@@ -6,6 +6,7 @@ using BlobGame.Game.GameModes;
 using BlobGame.Game.Gui;
 using BlobGame.Game.Tutorial;
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Diagnostics;
@@ -68,8 +69,8 @@ internal sealed class GameScene : Scene {
     internal override void Load() {
         // Loads all the blob textures
         for (int i = 0; i <= 10; i++) {
-            ResourceManager.GetTexture($"{i}");
-            ResourceManager.GetTexture($"{i}_shadow");
+            ResourceManager.TextureLoader.Get($"{i}");
+            ResourceManager.TextureLoader.Get($"{i}_shadow");
         }
 
         LoadAllGuiElements();
@@ -77,13 +78,13 @@ internal sealed class GameScene : Scene {
         Game.Load();
         Controller.Load();
 
-        TitleTexture = ResourceManager.GetTexture("title_logo");
-        RankupArrowTexture = ResourceManager.GetTexture("rankup_arrow");
-        ArenaTexture = ResourceManager.GetTexture("arena_bg");
-        MarkerTexture = ResourceManager.GetTexture("marker");
-        DropperTexture = ResourceManager.GetTexture("dropper");
-        CurrentBlobTexture = ResourceManager.GetTexture($"{(int)Game.CurrentBlob}");
-        NextBlobTexture = ResourceManager.GetTexture($"{(int)Game.NextBlob}");
+        TitleTexture = ResourceManager.TextureLoader.Get("title_logo");
+        RankupArrowTexture = ResourceManager.TextureLoader.Get("rankup_arrow");
+        ArenaTexture = ResourceManager.TextureLoader.Get("arena_bg");
+        MarkerTexture = ResourceManager.TextureLoader.Get("marker");
+        DropperTexture = ResourceManager.TextureLoader.Get("dropper");
+        CurrentBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.CurrentBlob}");
+        NextBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.NextBlob}");
 
         Tutorial?.Load();
     }
@@ -103,11 +104,11 @@ internal sealed class GameScene : Scene {
             Controller.Update(dT, Game);
 
             if (Game.CanSpawnBlob) {
-                CurrentBlobTexture = ResourceManager.GetTexture($"{(int)Game.CurrentBlob}");
-                NextBlobTexture = ResourceManager.GetTexture($"{(int)Game.NextBlob}");
+                CurrentBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.CurrentBlob}");
+                NextBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.NextBlob}");
             } else {
-                CurrentBlobTexture = ResourceManager.FallbackTexture;
-                NextBlobTexture = ResourceManager.GetTexture($"{(int)Game.CurrentBlob}");
+                CurrentBlobTexture = ResourceManager.TextureLoader.Fallback;
+                NextBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.CurrentBlob}");
             }
 
             if (Game.CanSpawnBlob && Controller.SpawnBlob(Game, out float t)) {
@@ -221,12 +222,12 @@ internal sealed class GameScene : Scene {
             float x = cX + radius * MathF.Cos(angle);
             float y = cY + radius * MathF.Sin(angle);
 
-            Texture tex = ResourceManager.GetTexture($"{i}_shadow").Resource;
+            Texture tex = ResourceManager.TextureLoader.Get($"{i}_shadow").Resource;
             float w = tex.width;
             float h = tex.height;
 
             Raylib.DrawTexturePro(
-                ResourceManager.GetTexture($"{i}_shadow").Resource,
+                ResourceManager.TextureLoader.Get($"{i}_shadow").Resource,
                 new Rectangle(0, 0, w, h),
                 new Rectangle(x, y, size, size),
                 new Vector2(size / 2, size / 2), 0, Raylib.WHITE);
@@ -260,7 +261,7 @@ internal sealed class GameScene : Scene {
         float mH = MarkerTexture.Resource.height;
 
         // Hightlight
-        MarkerTexture.Draw(new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, 0), new Vector2(0.5f, 0.5f), null, 0, ResourceManager.GetColor("light_accent").Resource);
+        MarkerTexture.Draw(new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, 0), new Vector2(0.5f, 0.5f), null, 0, ResourceManager.ColorLoader.Get("light_accent").Resource);
 
         // Blob
         NextBlobTexture.Draw(
@@ -275,7 +276,7 @@ internal sealed class GameScene : Scene {
             textPos,
             textPos / 2f,
             -25.5f,
-            80, 5, ResourceManager.GetColor("dark_accent").Resource);
+            80, 5, ResourceManager.ColorLoader.Get("dark_accent").Resource);
     }
 
     internal void DrawDropper(float x) {
@@ -290,7 +291,7 @@ internal sealed class GameScene : Scene {
             new Rectangle(x, 0, DROP_INDICATOR_WIDTH, ClassicGameMode.ARENA_HEIGHT),
             new Vector2(DROP_INDICATOR_WIDTH / 2f, 0),
             0,
-            ResourceManager.GetColor("background").Resource.ChangeAlpha(128));
+            ResourceManager.ColorLoader.Get("background").Resource.ChangeAlpha(128));
     }
 
     internal void DrawCurrentBlob(float x) {
@@ -330,7 +331,7 @@ internal sealed class GameScene : Scene {
             new Vector2(x + w - 50 - scoreTextSize.X, y),
             100,
             10,
-            ResourceManager.GetColor("dark_accent").Resource);
+            ResourceManager.ColorLoader.Get("dark_accent").Resource);
     }
 
     private void DrawGameOverScreen() {

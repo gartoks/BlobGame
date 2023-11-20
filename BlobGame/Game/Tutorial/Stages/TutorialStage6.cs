@@ -1,6 +1,7 @@
 ﻿using BlobGame.Audio;
 using BlobGame.Drawing;
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using Raylib_CsLo;
 using System.Numerics;
 
@@ -27,7 +28,7 @@ internal class TutorialStage6 : TutorialStage {
 
     internal override void Load() {
         base.Load();
-        SpeechbubbleTexture = ResourceManager.GetTexture("speechbubble");
+        SpeechbubbleTexture = ResourceManager.TextureLoader.Get("speechbubble");
 
         AnimatedSpeechbubble = new AnimatedTexture(
             SpeechbubbleTexture,
@@ -77,7 +78,7 @@ internal class TutorialStage6 : TutorialStage {
         Renderer.GuiFont.Draw(
             "These are your highscores\nfrom today!",
             50,
-            ResourceManager.GetColor("dark_accent"),
+            ResourceManager.ColorLoader.Get("dark_accent"),
             new Vector2(600, Application.BASE_HEIGHT / 2 - 100));
 
         DrawLMBHint(50);

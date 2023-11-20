@@ -1,6 +1,7 @@
 ﻿using BlobGame.Drawing;
 using BlobGame.Game.Gui;
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using Raylib_CsLo;
 using System.Numerics;
 
@@ -23,38 +24,38 @@ internal sealed class MainMenuScene : Scene {
     public MainMenuScene() {
         Scroller = new TextScroller(5, 15, 30, 15);
 
+        float yOffset = 0.45f;
         PlayButton = new GuiTextButton(
-            Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.45f,
-            Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
+            $"0.5 {yOffset} 0.25 0.125",
             "Play",
             new Vector2(0.5f, 0.5f));
+        yOffset += 0.15f;
         SettingsButton = new GuiTextButton(
-            Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.6f,
-            Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
+            $"0.5 {yOffset} 0.25 0.125",
             "Settings",
             new Vector2(0.5f, 0.5f));
+        yOffset += 0.15f;
         CreditsButton = new GuiTextButton(
-            Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.75f,
-            Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
+            $"0.5 {yOffset} 0.25 0.125",
             "Credits",
             new Vector2(0.5f, 0.5f));
+        yOffset += 0.15f;
         QuitButton = new GuiTextButton(
-            Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.9f,
-            Application.BASE_WIDTH / 4f, Application.BASE_HEIGHT / 8f,
+            $"0.5 {yOffset} 0.25 0.125",
             "Quit",
             new Vector2(0.5f, 0.5f));
+        yOffset += 0.15f;
 
         TitleImage = new GUIImage(
             Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.05f,
-            1,
-            //Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.2f,
-            ResourceManager.FallbackTexture,
+            0.5f,
+            ResourceManager.TextureLoader.Fallback,
             new Vector2(0.5f, 0));
     }
 
     internal override void Load() {
-        TitleTexture = ResourceManager.GetTexture("title_logo");
-        AvatarTexture = ResourceManager.GetTexture("melba_avatar");
+        TitleTexture = ResourceManager.TextureLoader.Get("title_logo");
+        AvatarTexture = ResourceManager.TextureLoader.Get("melba_avatar");
 
         LoadAllGuiElements();
 
@@ -84,7 +85,7 @@ internal sealed class MainMenuScene : Scene {
             Application.Exit();
 
         float t = MathF.Sin(Renderer.Time * 4);
-        TitleImage.Scale = 0.985f + 0.03f * t;
+        TitleImage.Scale = 0.485f + 0.03f * t;
         TitleImage.Draw();
 
         // TODO: Is tmp, will fix when back

@@ -1,5 +1,6 @@
 ﻿using BlobGame.Game.Blobs;
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
 using Raylib_CsLo;
@@ -19,7 +20,7 @@ internal sealed class Blob : GameObject {
     /// <returns></returns>
     public static Blob Create(World world, Vector2 position, eBlobType blobType) {
         (string name, eBlobType type, int score, float radius, float mass, string textureKey) = BlobData.Data.Single(d => d.type == blobType);
-        return new Blob(name, type, score, world, position, radius, mass, ResourceManager.GetTexture(textureKey), new Vector2(0.5f, 0.5f));
+        return new Blob(name, type, score, world, position, radius, mass, ResourceManager.TextureLoader.Get(textureKey), new Vector2(0.5f, 0.5f));
     }
 
     /// <summary>

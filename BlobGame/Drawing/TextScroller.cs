@@ -1,5 +1,6 @@
 ﻿
 using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
 using Raylib_CsLo;
 using System.Numerics;
 
@@ -49,7 +50,7 @@ internal sealed class TextScroller {
     }
 
     internal void Load() {
-        ScrollerTexts = ResourceManager.GetText("scrollers");
+        ScrollerTexts = ResourceManager.TextLoader.Get("scrollers");
 
         NextScrollTime = Renderer.Time + InitialScrollInterval;
     }
@@ -70,7 +71,7 @@ internal sealed class TextScroller {
 
         Renderer.MainFont.Draw(
             Scroller.Value.text, 200,
-            ResourceManager.GetColor("background"),
+            ResourceManager.ColorLoader.Get("background"),
             pos, -12.5f);
 
         if (traversedDistance > distance) {
