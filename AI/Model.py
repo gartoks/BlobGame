@@ -7,32 +7,21 @@ class Model(nn.Module):
         if (isinstance(additional_layers, int)):
             additional_layers = [nn.LazyLinear(additional_layers)]
         
-        self.linear_pipeline = nn.Sequential(
-            nn.LazyLinear(256),
-            nn.Tanh(),
-            nn.LazyLinear(128),
-            nn.Tanh(),
-        )
-        self.pixel_pipeline = nn.Sequential(
-            nn.LazyConv2d(16, 5),
+        self.pipeline = nn.Sequential(
+            nn.LazyConv2d(64, 5),
             nn.ReLU(),
-            nn.LazyConv2d(8, 4),
+            nn.LazyConv2d(32, 3),
             nn.ReLU(),
             nn.MaxPool2d(3),
             nn.Flatten(-3, -1),
-        )
-
-        self.combined_pipeline = nn.Sequential(
-            nn.LazyLinear(128),
+            nn.LazyLinear(1024),
             nn.Tanh(),
-            nn.LazyLinear(64),
+            nn.LazyLinear(512),
+            nn.Tanh(),
+            nn.LazyLinear(128),
             nn.Tanh(),
             *additional_layers
         )
     
-    def forward(self, pixels, linear_data):
-        image_transformed = self.pixel_pipeline(pixels)
-        linear_transformed = self.linear_pipeline(linear_data)
-        combined = torch.concat((image_transformed, linear_transformed), dim=-1)
-        combined_transformed = self.combined_pipeline(combined)
-        return combined_transformed
+    def forward(self, x):
+        return self.pipeline(x)

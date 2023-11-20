@@ -51,18 +51,18 @@ class BlobEnvironment(EnvBase):
                 shape=(NN_VIEW_WIDTH, NN_VIEW_HEIGHT),
                 dtype=self.custom_dtype,
             ),
-            top_blob=BoundedTensorSpec(
-                low=0,
-                high=1,
-                shape=(NN_VIEW_WIDTH),
-                dtype=self.custom_dtype,
-            ),
-            top_distance=BoundedTensorSpec(
-                low=0,
-                high=1,
-                shape=(NN_VIEW_WIDTH),
-                dtype=self.custom_dtype,
-            ),
+            # top_blob=BoundedTensorSpec(
+            #     low=0,
+            #     high=1,
+            #     shape=(NN_VIEW_WIDTH),
+            #     dtype=self.custom_dtype,
+            # ),
+            # top_distance=BoundedTensorSpec(
+            #     low=0,
+            #     high=1,
+            #     shape=(NN_VIEW_WIDTH),
+            #     dtype=self.custom_dtype,
+            # ),
             can_drop=BoundedTensorSpec(
                 low=0,
                 high=1,
@@ -99,20 +99,20 @@ class BlobEnvironment(EnvBase):
             2: +0.01,
         }
 
-        self.renderer = Renderer((ARENA_WIDTH, ARENA_HEIGHT), never_display=never_display)
+        self.renderer = Renderer(never_display=never_display)
 
         self.t = 0.5
         self.controller = SocketController(("localhost", 1337), worker_id)
 
     def _get_obs(self, tensordict):
-        self.renderer.render_frame(self.last_frame)
+        self.renderer.render_frame(self.last_frame, self.t)
 
         pixels = self.renderer.get_pixels().astype(np.float16) / 255.0
 
-        rolled_pixels = np.roll(pixels, int(float(pixels.shape[-1]) * -self.t), -2)
+        # rolled_pixels = np.roll(pixels, int(float(pixels.shape[-1]) * -self.t), -2)
 
-        top_blob = first_nonone(rolled_pixels, -1)
-        top_distance = (1.0-(np.argmax(rolled_pixels!=1, -1) / float(NN_VIEW_HEIGHT))) % 1.0
+        # top_blob = first_nonone(rolled_pixels, -1)
+        # top_distance = (1.0-(np.argmax(rolled_pixels!=1, -1) / float(NN_VIEW_HEIGHT))) % 1.0
         
         # plt.imshow(np.moveaxis([np.concatenate([
         #     np.transpose(rolled_pixels),
@@ -127,9 +127,9 @@ class BlobEnvironment(EnvBase):
         
         return TensorDict(
             {
-                "pixels": torch.tensor(rolled_pixels, dtype=self.custom_dtype, device=self.device),
-                "top_blob": torch.tensor(top_blob, dtype=self.custom_dtype, device=self.device),
-                "top_distance": torch.tensor(top_distance, dtype=self.custom_dtype, device=self.device),
+                "pixels": torch.tensor(pixels, dtype=self.custom_dtype, device=self.device),
+                # "top_blob": torch.tensor(top_blob, dtype=self.custom_dtype, device=self.device),
+                # "top_distance": torch.tensor(top_distance, dtype=self.custom_dtype, device=self.device),
                 "current_blob": self.observation_spec["current_blob"].encode(self.last_frame.current_blob).to(self.device),
                 "next_blob": self.observation_spec["next_blob"].encode(self.last_frame.next_blob).to(self.device),
                 "current_t": torch.tensor(self.t, dtype=self.custom_dtype),
@@ -153,7 +153,6 @@ class BlobEnvironment(EnvBase):
 
     def _step(self, action):
         # Map the action (element of {0,1,2,3}) to the direction we walk in
-        
         
         self.t = (self.t + self._action_to_direction[torch.argmax(action["action"]).item()]) % 1.0
         

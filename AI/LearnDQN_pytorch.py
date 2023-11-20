@@ -28,20 +28,23 @@ torch.set_default_device(device)
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the ``AdamW`` optimizer
+NUM_GAMES = 2000
+
 BATCH_SIZE = 256
 GAMMA = 0.99
-EPS_START = 0.9
+EPS_START = 0.7
 EPS_END = 0.05
-EPS_DECAY = 1000
+EPS_DECAY = 100_000
 TAU = 0.005
-LR = 1e-3
+LR = 1e-4
 WEIGHT_DECAY = 0.01
 
-OPTIM_STEPS = 2
-REPLAY_SIZE = 2000
+OPTIM_STEPS = 1
+REPLAY_SIZE = 1000
 FRAME_SKIP = 5
+FRAME_STACK = 50
 
-env = create_environment(device, torch.get_default_dtype(), "main", FRAME_SKIP, True)
+env = create_environment(device, torch.get_default_dtype(), "main", FRAME_SKIP, FRAME_STACK, True)
 # env = GymEnv("CartPole-v1", device=device)
 
 # Get number of actions from gym action space
@@ -56,7 +59,7 @@ policy_net = Model(n_actions).to(device)
 #     nn.LazyLinear(n_actions),
 # )
 
-policy_net = QValueActor(policy_net, in_keys=["pixels", "linear_data"], spec=env.action_spec)
+policy_net = QValueActor(policy_net, in_keys=["pixels"], spec=env.action_spec)
 
 state = env.reset()
 policy_net(state)
@@ -69,7 +72,6 @@ optimizer = optim.AdamW(loss_module.parameters(), lr=LR, amsgrad=True, weight_de
 replay_buffer = TensorDictReplayBuffer(
     batch_size=BATCH_SIZE,
     storage=LazyTensorStorage(REPLAY_SIZE, device=device),
-    prefetch=OPTIM_STEPS,
 )
 
 
@@ -141,7 +143,6 @@ def save_state(epoch):
             "policy_net": policy_net.state_dict(),
             "loss_module": loss_module.state_dict(),
             "optimizer": optimizer.state_dict(),
-            "replay_buffer": replay_buffer.state_dict(),
             "epoch": epoch
         },
         path
@@ -154,7 +155,6 @@ def load_state(path):
     policy_net.load_state_dict(loaded_state["policy_net"])
     loss_module.load_state_dict(loaded_state["loss_module"])
     optimizer.load_state_dict(loaded_state["optimizer"])
-    replay_buffer.load_state_dict(loaded_state["replay_buffer"])
     epoch = loaded_state["epoch"]
 
     print(f"Loaded epoch {epoch}")
@@ -164,9 +164,7 @@ if (os.path.exists(CHECKPOINT_PATH)):
 os.makedirs(save_dir)
 
 
-num_episodes = 2000
-
-for i_episode in range(num_episodes):
+for i_episode in range(NUM_GAMES):
     # Initialize the environment and get it's state
     state = env.reset()
     reward_sum = 0
