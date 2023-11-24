@@ -1,0 +1,3 @@
+[submodule "SimpleGL"]
+	path = SimpleGL
+	url = https://github.com/gartoks/SimpleGL.git
