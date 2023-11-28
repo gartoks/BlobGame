@@ -40,7 +40,7 @@ def first_nonone(arr, axis):
     return result
 
 class BlobEnvironment(EnvBase):
-    def __init__(self, dtype, worker_id, never_display, seed=None, device="cpu"):
+    def __init__(self, dtype, worker_id, never_display, move_penalty_threshold, move_step_size, seed=None, device="cpu"):
         super().__init__(device=device, batch_size=[])
         self.custom_dtype = dtype
         self.worker_id = worker_id
@@ -95,8 +95,8 @@ class BlobEnvironment(EnvBase):
 
         self._action_to_direction = {
             0: 0,
-            1: -0.01,
-            2: +0.01,
+            1: -move_step_size,
+            2: +move_step_size,
         }
 
         self.renderer = Renderer(never_display=never_display)
@@ -104,12 +104,15 @@ class BlobEnvironment(EnvBase):
         self.t = 0.5
         self.controller = SocketController(("localhost", 1337), worker_id)
 
+        self.num_moves_since_last_drop = 0
+        self.move_penalty_threshold = move_penalty_threshold
+
     def _get_obs(self, tensordict):
         self.renderer.render_frame(self.last_frame, self.t)
 
         pixels = self.renderer.get_pixels().astype(np.float16) / 255.0
 
-        # rolled_pixels = np.roll(pixels, int(float(pixels.shape[-1]) * -self.t), -2)
+        rolled_pixels = np.roll(pixels, int(float(pixels.shape[-1]) * -self.t), -2)
 
         # top_blob = first_nonone(rolled_pixels, -1)
         # top_distance = (1.0-(np.argmax(rolled_pixels!=1, -1) / float(NN_VIEW_HEIGHT))) % 1.0
@@ -127,7 +130,7 @@ class BlobEnvironment(EnvBase):
         
         return TensorDict(
             {
-                "pixels": torch.tensor(pixels, dtype=self.custom_dtype, device=self.device),
+                "pixels": torch.tensor(rolled_pixels, dtype=self.custom_dtype, device=self.device),
                 # "top_blob": torch.tensor(top_blob, dtype=self.custom_dtype, device=self.device),
                 # "top_distance": torch.tensor(top_distance, dtype=self.custom_dtype, device=self.device),
                 "current_blob": self.observation_spec["current_blob"].encode(self.last_frame.current_blob).to(self.device),
@@ -144,6 +147,7 @@ class BlobEnvironment(EnvBase):
 
         self.controller = SocketController(("localhost", 1337), self.worker_id)
         self.last_frame = self.controller.receive_frame_info()
+        self.num_moves_since_last_drop = 0
 
         observation = self._get_obs(tensordict)
 
@@ -157,6 +161,11 @@ class BlobEnvironment(EnvBase):
         self.t = (self.t + self._action_to_direction[torch.argmax(action["action"]).item()]) % 1.0
         
         should_drop = torch.argmax(action["action"]).item() == 0
+        if (should_drop):
+            self.num_moves_since_last_drop = 0
+        else:
+            if (self.last_frame.can_drop):
+                self.num_moves_since_last_drop += 1
         
         last_score = self.last_frame.score
         terminated = False
@@ -169,14 +178,18 @@ class BlobEnvironment(EnvBase):
 
         # An episode is done if the agent has reached the target
         terminated = terminated or self.last_frame.is_game_over
-        reward = self.last_frame.score - last_score if not terminated else -10
+        game_reward = self.last_frame.score - last_score
+        reward = game_reward if not terminated else -10
 
-        if (reward < 0):
-            terminated = True
+        if (self.num_moves_since_last_drop >= self.move_penalty_threshold):
+            reward -= 1
+            print("dbg")
+
         observation = self._get_obs(action)
 
         self.renderer.display_frame()
 
+        observation["game_reward"] = float(game_reward)
         observation["reward"] = float(reward)
         observation["done"] = terminated
 

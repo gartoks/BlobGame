@@ -44,7 +44,10 @@ REPLAY_SIZE = 1000
 FRAME_SKIP = 5
 FRAME_STACK = 50
 
-env = create_environment(device, torch.get_default_dtype(), "main", FRAME_SKIP, FRAME_STACK, True)
+MOVE_STEP_SIZE = 0.01
+MOVE_PENALTY_THRESHOLD = (1.0/MOVE_STEP_SIZE) * 1.5
+
+env = create_environment(device, torch.get_default_dtype(), "main", FRAME_SKIP, FRAME_STACK, True, MOVE_PENALTY_THRESHOLD, MOVE_STEP_SIZE)
 # env = GymEnv("CartPole-v1", device=device)
 
 # Get number of actions from gym action space
@@ -168,11 +171,12 @@ for i_episode in range(NUM_GAMES):
     # Initialize the environment and get it's state
     state = env.reset()
     reward_sum = 0
+    game_reward_sum = 0
     for t in count():
         state = select_action(state)
         state = env.step(state)
-        reward = state["next", "reward"]
-        reward_sum += reward.item()
+        reward_sum += state["next", "reward"].item()
+        game_reward_sum += state["next", "game_reward"].item()
         done = state["next", "done"]
 
         # Store the transition in memory
@@ -186,10 +190,12 @@ for i_episode in range(NUM_GAMES):
             optimize_model()
 
 
-        logger.log_scalar("current game reward", reward_sum, t)
+        logger.log_scalar("current reward", reward_sum, t)
+        logger.log_scalar("current game reward", game_reward_sum, t)
 
         if done:
             logger.log_scalar("reward", reward_sum, i_episode)
+            logger.log_scalar("game reward", game_reward_sum, i_episode)
             logger.log_scalar("step count", t + 1, i_episode)
             break
 

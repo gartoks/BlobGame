@@ -17,8 +17,8 @@ from torchrl.envs import (
     DTypeCastTransform,
 )
 
-def create_environment(device, dtype, id, frame_skip=2, frame_stack=3, should_render=False):
-    env = BlobEnvironment(dtype=dtype, device=device, worker_id=id, never_display=not should_render)
+def create_environment(device, dtype, id, frame_skip=2, frame_stack=3, should_render=False, move_penalty_threshold=100, move_step_size = 0.001):
+    env = BlobEnvironment(dtype=dtype, device=device, worker_id=id, never_display=not should_render, move_penalty_threshold=move_penalty_threshold, move_step_size=move_step_size)
 
     env = TransformedEnv(
         env,
