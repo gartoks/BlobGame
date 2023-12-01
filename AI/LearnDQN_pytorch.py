@@ -9,14 +9,19 @@ import torch.nn as nn
 import torch.optim as optim
 
 from torchrl.data import LazyTensorStorage, TensorDictReplayBuffer
+from torchrl.data.replay_buffers.samplers import RandomSampler
 from torchrl.record.loggers.tensorboard import TensorboardLogger
 from torchrl.modules import QValueActor
 from torchrl.objectives import DQNLoss, SoftUpdate
 
 from torchrl.envs import GymEnv
 
+from tqdm import tqdm
+
 from CommonLearning import *
 from Model import Model 
+
+from collections import deque
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
@@ -28,27 +33,43 @@ torch.set_default_device(device)
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the ``AdamW`` optimizer
-NUM_GAMES = 2000
+NUM_GAMES = 50_000
 
-BATCH_SIZE = 256
+BATCH_SIZE = 32
 GAMMA = 0.99
-EPS_START = 0.7
+EPS_START = 0.98
 EPS_END = 0.05
 EPS_DECAY = 100_000
 TAU = 0.005
-LR = 1e-4
+LR = 5e-5
 WEIGHT_DECAY = 0.01
 
-OPTIM_STEPS = 1
-REPLAY_SIZE = 1000
-FRAME_SKIP = 5
-FRAME_STACK = 50
+REPLAY_SIZE = 50_000
+MIN_REPLAY_SIZE = 10_000
+FRAME_SKIP = 1
+FRAME_STACK = 3
 
 MOVE_STEP_SIZE = 0.01
 MOVE_PENALTY_THRESHOLD = (1.0/MOVE_STEP_SIZE) * 1.5
 
-env = create_environment(device, torch.get_default_dtype(), "main", FRAME_SKIP, FRAME_STACK, True, MOVE_PENALTY_THRESHOLD, MOVE_STEP_SIZE)
-# env = GymEnv("CartPole-v1", device=device)
+# env = create_environment(device, torch.get_default_dtype(), "main", FRAME_SKIP, FRAME_STACK, True, MOVE_PENALTY_THRESHOLD, MOVE_STEP_SIZE)
+env = GymEnv("ALE/Pong-v5", device=device, obs_type="grayscale")
+
+env = TransformedEnv(
+    env,
+    Compose(
+        StepCounter(max_steps=600),
+        FrameSkipTransform(frame_skip=FRAME_SKIP),
+        DTypeCastTransform(dtype_in=torch.uint8, dtype_out=torch.get_default_dtype(), in_keys=["observation"]),
+        UnsqueezeTransform(
+            unsqueeze_dim=-3,
+            in_keys=["observation"]
+        ),
+        Resize(w=210/10, h=160/10, in_keys=["observation"]),
+        # CatFrames(N=frame_stack, dim=-1, in_keys=["linear_data"]),
+        CatFrames(N=FRAME_STACK, dim=-3, in_keys=["observation"]),
+    ),
+)
 
 # Get number of actions from gym action space
 n_actions = env.action_spec.zero().flatten().shape[0]
@@ -62,7 +83,7 @@ policy_net = Model(n_actions).to(device)
 #     nn.LazyLinear(n_actions),
 # )
 
-policy_net = QValueActor(policy_net, in_keys=["pixels"], spec=env.action_spec)
+policy_net = QValueActor(policy_net, in_keys=["observation"], spec=env.action_spec)
 
 state = env.reset()
 policy_net(state)
@@ -72,10 +93,7 @@ target_updater = SoftUpdate(loss_module, tau=TAU)
 
 optimizer = optim.AdamW(loss_module.parameters(), lr=LR, amsgrad=True, weight_decay=WEIGHT_DECAY, foreach=False, fused=True)
 
-replay_buffer = TensorDictReplayBuffer(
-    batch_size=BATCH_SIZE,
-    storage=LazyTensorStorage(REPLAY_SIZE, device=device),
-)
+replay_buffer = deque(maxlen=REPLAY_SIZE)
 
 
 run_name = f"dqn {datetime.now():%m-%d%Y %H:%M:%S}"
@@ -89,7 +107,6 @@ logger.log_hparams({
     "frame_skip": FRAME_SKIP,
     "frames_per_batch": BATCH_SIZE,
     "sub_batch_size": BATCH_SIZE,
-    "num_epochs": OPTIM_STEPS,
     "gamma": GAMMA,
     "tau": TAU,
     "weight_decay": WEIGHT_DECAY,
@@ -118,9 +135,8 @@ def select_action(state):
         return state
 
 def optimize_model():
-    if len(replay_buffer) < BATCH_SIZE:
-        return
-    batch = replay_buffer.sample(BATCH_SIZE).to(device)
+    batch = random.sample(replay_buffer, BATCH_SIZE)
+    batch = torch.stack(batch).to(device)
     # Compute a mask of non-final states and concatenate the batch elements
     # (a final state would've been the one after which simulation ended)
 
@@ -167,39 +183,46 @@ if (os.path.exists(CHECKPOINT_PATH)):
 os.makedirs(save_dir)
 
 
-for i_episode in range(NUM_GAMES):
+filling_replay_buffer = True
+for i_episode in tqdm(range(NUM_GAMES), unit="ep"):
     # Initialize the environment and get it's state
     state = env.reset()
     reward_sum = 0
-    game_reward_sum = 0
+
+    # game_reward_sum = 0
     for t in count():
         state = select_action(state)
         state = env.step(state)
         reward_sum += state["next", "reward"].item()
-        game_reward_sum += state["next", "game_reward"].item()
+        # game_reward_sum += state["next", "game_reward"].item()
         done = state["next", "done"]
 
         # Store the transition in memory
-        replay_buffer.add(state)
+        replay_buffer.append(state.cpu())
 
         # Move to the next state
         state = state["next"]
 
         # Perform one step of the optimization (on the policy network)
-        for i in range(OPTIM_STEPS):
+        if len(replay_buffer) >= MIN_REPLAY_SIZE:
+            if (filling_replay_buffer):
+                filling_replay_buffer = False
+                print("Replay buffer filled")
+            
             optimize_model()
 
 
         logger.log_scalar("current reward", reward_sum, t)
-        logger.log_scalar("current game reward", game_reward_sum, t)
+        # logger.log_scalar("current game reward", game_reward_sum, t)
 
         if done:
             logger.log_scalar("reward", reward_sum, i_episode)
-            logger.log_scalar("game reward", game_reward_sum, i_episode)
+            # logger.log_scalar("game reward", game_reward_sum, i_episode)
             logger.log_scalar("step count", t + 1, i_episode)
             break
 
-    save_state(i_episode)
+    if not filling_replay_buffer:
+        save_state(i_episode)
 
 save_state("final")
 print('Complete')
