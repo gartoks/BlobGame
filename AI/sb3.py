@@ -1,7 +1,7 @@
 import functools
-from sbx import DQN
+from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor, VecFrameStack
-from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
+from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList, EvalCallback
 
 from GymEnvironment import BlobEnvironment
 
@@ -10,12 +10,22 @@ MOVE_PENALTY_THRESHOLD = (1.0 / MOVE_STEP_SIZE) * 1.5
 
 if __name__ == "__main__":
     env_fns = [
-        functools.partial(BlobEnvironment, str(i), True, MOVE_PENALTY_THRESHOLD, MOVE_STEP_SIZE)
+        functools.partial(
+            BlobEnvironment, str(i), bool(i != 0), MOVE_PENALTY_THRESHOLD, MOVE_STEP_SIZE, is_eval=False
+        )
         for i in range(16)
     ]
     env = VecMonitor(VecFrameStack(SubprocVecEnv(env_fns), n_stack=4))
+    env_fns_eval = [
+        functools.partial(
+            BlobEnvironment, "eval " + str(i), bool(i != 0), MOVE_PENALTY_THRESHOLD, MOVE_STEP_SIZE, is_eval=True
+        )
+        for i in range(8)
+    ]
+    eval_env = VecMonitor(VecFrameStack(SubprocVecEnv(env_fns_eval), n_stack=4))
 
-    model = DQN(
+
+    model = PPO(
         "MlpPolicy", env, verbose=1, tensorboard_log="./AI/a2c_cartpole_tensorboard/"
     )
     # model.load("model.zip")
@@ -23,7 +33,14 @@ if __name__ == "__main__":
         total_timesteps=10_000_000,
         tb_log_name="first_run",
         progress_bar=True,
-        callback=CallbackList([CheckpointCallback(100_000, "./AI/sb3_models", verbose=2, name_prefix="rl_model_dqn_")]),
+        callback=CallbackList(
+            [
+                CheckpointCallback(
+                    100_000, "./AI/sb3_models", verbose=2, name_prefix="rl_model_dqn_"
+                ),
+                EvalCallback(eval_env, eval_freq=2000)
+            ]
+        ),
     )
     model.save("ppo_model.zip")
 

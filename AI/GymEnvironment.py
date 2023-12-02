@@ -26,7 +26,7 @@ def first_nonone(arr, axis):
     return result
 
 class BlobEnvironment(gym.Env):
-    def __init__(self, worker_id, never_display, move_penalty_threshold, move_step_size):
+    def __init__(self, worker_id, never_display, move_penalty_threshold, move_step_size, is_eval=False):
         super().__init__()
         self.worker_id = worker_id
         # self.observation_space = spaces.Box(low=0, high=255,
@@ -44,7 +44,7 @@ class BlobEnvironment(gym.Env):
             2: +move_step_size,
         }
 
-        self.renderer = Renderer(never_display=never_display)
+        self.renderer = Renderer(never_display=never_display, window_title=self.worker_id)
 
         self.t = 0.5
         self.controller = SocketController(("localhost", 1337), worker_id)
@@ -52,31 +52,36 @@ class BlobEnvironment(gym.Env):
         self.num_moves_since_last_drop = 0
         self.move_penalty_threshold = move_penalty_threshold
 
+        self.is_eval = is_eval
+        self.frame_count = 0
+
     def _get_obs(self):
         self.renderer.render_frame(self.last_frame, self.t)
 
-        pixels = self.renderer.get_pixels().astype(np.uint8)
+        pixels = self.renderer.get_pixels().astype(np.float32) / 255.0
 
         rolled_pixels = np.roll(pixels, int(float(pixels.shape[-1]) * -self.t), -2)
 
-        top_blob = first_nonone(rolled_pixels, -1)
-        top_distance = (1.0-(np.argmax(rolled_pixels!=1, -1) / float(NN_VIEW_HEIGHT))) % 1.0
+        rolled_cropped_pixels = rolled_pixels[:, 2*NN_NEXT_BLOB_HEIGHT:]
+
+        top_blob = first_nonone(rolled_cropped_pixels, -1)
+        top_distance = (1.0-(np.argmax(rolled_cropped_pixels!=1, -1) / float(NN_VIEW_HEIGHT))) % 1.0
         
         current_blob = np.zeros((len(BLOB_RADII)))
         current_blob[self.last_frame.current_blob] = 1
-        # plt.imshow(np.moveaxis([np.concatenate([
-        #     np.transpose(rolled_pixels),
-        #     [[0]*100],
-        #     [top_distance]*50,
-        #     [[0]*100],
-        #     [top_blob]*30,
-        # ])]*3, [0, 1, 2], [2, 0, 1]))
-        # plt.show(block=False)
-        # plt.pause(0.01)
+        
+        # if (not self.renderer.never_display):
+        #     plt.imshow(np.moveaxis([np.concatenate([
+        #         np.transpose(rolled_cropped_pixels),
+        #         [[0]*NN_VIEW_WIDTH],
+        #         [top_distance]*50,
+        #         [[0]*NN_VIEW_WIDTH],
+        #         [top_blob]*30,
+        #     ])]*3, [0, 1, 2], [2, 0, 1]))
+        #     plt.show(block=False)
+        #     plt.pause(0.01)
 
         pixels = np.expand_dims(np.transpose(pixels), axis=0)
-
-
         
         return np.concatenate([top_blob, current_blob, [self.t]])
 
@@ -90,6 +95,7 @@ class BlobEnvironment(gym.Env):
         observation = self._get_obs()
 
         self.renderer.display_frame()
+        self.frame_count = 0
 
         return observation, {}
 
@@ -119,6 +125,16 @@ class BlobEnvironment(gym.Env):
         game_reward = self.last_frame.score - last_score
         reward = game_reward
 
+        position_badness = 0
+        for blob in self.last_frame.blobs:
+            if (blob.type >= 3):
+                position_badness += (blob.y / ARENA_HEIGHT) * BLOB_RADII[blob.type-3]
+        
+        if (len(self.last_frame.blobs)):
+            position_badness /= len(self.last_frame.blobs)
+
+        reward -= position_badness / 500
+                                 
         if (self.num_moves_since_last_drop >= self.move_penalty_threshold):
             reward -= 1
 
@@ -126,7 +142,16 @@ class BlobEnvironment(gym.Env):
 
         self.renderer.display_frame()
 
-        return observation, reward, terminated, False, {}
+        self.frame_count += 1
+        terminated |= self.frame_count > 20_000 or self.num_moves_since_last_drop > 500
+        
+        if (terminated):
+            reward -= 100
+
+        if self.is_eval:
+            return observation, game_reward, terminated, False, {"scaled_reward": reward}
+        else:
+            return observation, reward, terminated, False, {"actual_reward": game_reward}
 
     def close(self):
         self.controller.close_connection()
