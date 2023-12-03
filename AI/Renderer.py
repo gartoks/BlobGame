@@ -36,6 +36,7 @@ class Renderer:
             pass
 
         pygame.transform.scale(self.scaled_surface, OUTPUT_SIZE, self.output_surface)
+        pygame.draw.line(self.output_surface, (255, 0, 0), (0, NEXT_BLOB_HEIGHT), (OUTPUT_SIZE[0], NEXT_BLOB_HEIGHT))
         pygame.display.flip()
 
     def get_pixels(self):
