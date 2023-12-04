@@ -1,31 +1,39 @@
-﻿using BlobGame.ResourceHandling.Resources;
-using System.Numerics;
+﻿using BlobGame.ResourceHandling;
+using OpenTK.Mathematics;
+using SimpleGL.Graphics.Rendering;
+using SimpleGL.Graphics.Textures;
 
 namespace BlobGame.Game.Gui;
 internal sealed class GUIImage : GuiElement {
-    public TextureResource Texture { get; set; }
-    public ColorResource Tint { get; set; }
+    private string _TextureKey { get; set; }
+    public string TextureKey {
+        get => _TextureKey;
+        set {
+            _TextureKey = value;
+            Texture = null;
+        }
+    }
+    private Texture? Texture { get; set; }
+
+    public Color4 Tint { get; set; }
 
     public float Scale { get; set; }
 
-    public GUIImage(float x, float y, float scale, TextureResource texture, Vector2? pivot = null)
-        : base(x, y, scale * texture.Resource.width, scale * texture.Resource.height, pivot) {
+    public GUIImage(float x, float y, float width, float height, int zIndex, string textureKey, Vector2? pivot = null)
+        : base(x, y, width, height, pivot, zIndex) {
 
-        Scale = scale;
-        Texture = texture;
-        Tint = ColorResource.WHITE;
+        TextureKey = textureKey;
+        Tint = Color4.White;
+
+        Scale = 1;
+        Texture = null;
     }
 
     protected override void DrawInternal() {
-        Texture.Draw(new Vector2(Bounds.x, Bounds.y), Pivot, new Vector2(Scale, Scale), 0, Tint.Resource);
+        if (Texture == null)
+            Texture = ResourceManager.TextureLoader.GetResource(TextureKey);
 
-        //Raylib.DrawTexturePro(
-        //    Texture.Resource,
-        //        new Rectangle(0, 0, Texture.Resource.width, Texture.Resource.height),
-        //        Bounds,
-        //        Pivot,
-        //        0,
-        //        Tint.Resource);
+        Primitives.DrawSprite(Bounds.Min, Bounds.Size * Scale, Pivot, 0, ZIndex, Texture, Tint);
     }
 
 }

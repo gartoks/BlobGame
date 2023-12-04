@@ -1,8 +1,8 @@
 ﻿using BlobGame.App;
 using BlobGame.Game.GameModes;
 using BlobGame.Game.Scenes;
-using Raylib_CsLo;
-using System.Numerics;
+using OpenTK.Mathematics;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace BlobGame.Game.GameControllers;
 
@@ -18,7 +18,7 @@ internal class MouseController : IGameController {
     /// </summary>
     /// <returns>The current value of t.</returns>
     public float GetCurrentT() {
-        Vector2 mPos = GameScene.ScreenToArenaPosition(Raylib.GetMousePosition());
+        Vector2 mPos = GameScene.ScreenToArenaPosition(Input.GetMousePosition());
         float t = mPos.X / ClassicGameMode.ARENA_WIDTH;
         return t;
     }
@@ -35,10 +35,10 @@ internal class MouseController : IGameController {
         if (!simulation.CanSpawnBlob)
             return false;
 
-        if (!Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT))
+        if (!Input.IsMouseButtonActive(MouseButton.Left))
             return false;
 
-        Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT] = true;
+        Input.WasMouseHandled[MouseButton.Left] = true;
 
         t = GetCurrentT();
         return true;

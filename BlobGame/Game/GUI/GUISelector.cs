@@ -1,9 +1,10 @@
 ﻿using BlobGame.App;
 using BlobGame.Audio;
-using BlobGame.Drawing;
+using BlobGame.ResourceHandling;
 using BlobGame.Util;
-using Raylib_CsLo;
-using System.Numerics;
+using OpenTK.Mathematics;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using SimpleGL.Graphics.Rendering;
 
 namespace BlobGame.Game.Gui;
 internal class GuiSelector : InteractiveGuiElement {
@@ -15,41 +16,49 @@ internal class GuiSelector : InteractiveGuiElement {
     public GuiTextButton DecreaseButton { get; }
     public GuiTextButton IncreaseButton { get; }
 
-    private int FontSize { get; }
-    private float FontSpacing { get; }
+    private int FontSizeInt => (int)FontSize;
+    private float FontSize { get; }
+    //private float FontSpacing { get; }
 
     private int SelectedIndex { get; set; }
     public SelectionElement SelectedElement => Elements[SelectedIndex];
 
     public bool IsClicked { get; private set; }
 
-    public GuiSelector(string boundsString, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null)
-        : this(GuiBoundsParser.Parse(boundsString), elements, selectedIndex, pivot) {
+    public GuiSelector(string boundsString, SelectionElement[] elements, int selectedIndex, int zIndex, Vector2? pivot = null)
+        : this(GuiBoundsParser.Parse(boundsString), elements, selectedIndex, zIndex, pivot) {
     }
 
-    private GuiSelector(Rectangle bounds, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null)
-        : this(bounds.X, bounds.Y, bounds.width, bounds.height, elements, selectedIndex, pivot) {
+    private GuiSelector(Box2 bounds, SelectionElement[] elements, int selectedIndex, int zIndex, Vector2? pivot = null)
+        : this(bounds.X(), bounds.Y(), bounds.Width(), bounds.Height(), elements, selectedIndex, zIndex, pivot) {
     }
 
-    private GuiSelector(float x, float y, float w, float h, SelectionElement[] elements, int selectedIndex, Vector2? pivot = null)
-        : base(x, y, w, h, pivot) {
+    private GuiSelector(float x, float y, float w, float h, SelectionElement[] elements, int selectedIndex, int zIndex, Vector2? pivot = null)
+        : base(x, y, w, h, zIndex, pivot) {
         float buttonSize = MathF.Min(w, h);
 
         Elements = elements;
-        FontSize = (int)(buttonSize * 0.7f);
-        FontSpacing = FontSize / 64f;
+        FontSize = buttonSize * 0.7f;
+        //FontSpacing = FontSize / 64f;
         //Bounds = new Rectangle(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h);
 
-        Panel = new GuiNPatchPanel(Bounds.x + buttonSize + BUTTON_SPACING, Bounds.y, Bounds.width - 2 * buttonSize - 2 * BUTTON_SPACING, Bounds.height, "button_up", new Vector2(0, 0));
-        DecreaseButton = new GuiTextButton(Bounds.x, Bounds.y, buttonSize, buttonSize, "<", new Vector2(0, 0));
-        IncreaseButton = new GuiTextButton(Bounds.x + Bounds.width, Bounds.y, buttonSize, buttonSize, ">", new Vector2(1, 0));
+        Panel = new GuiNPatchPanel(Bounds.X() + buttonSize + BUTTON_SPACING, Bounds.Y(), Bounds.Width() - 2 * buttonSize - 2 * BUTTON_SPACING, Bounds.Height(), "button_up", zIndex, new Vector2(0, 0));
+        DecreaseButton = new GuiTextButton(Bounds.X(), Bounds.Y(), buttonSize, buttonSize, "<", zIndex, new Vector2(0, 0));
+        IncreaseButton = new GuiTextButton(Bounds.X() + Bounds.Width(), Bounds.Y(), buttonSize, buttonSize, ">", zIndex, new Vector2(1, 0));
 
         SelectedIndex = selectedIndex;
     }
 
+    internal override void Load() {
+        base.Load();
+
+        Panel.Load();
+        DecreaseButton.Load();
+        IncreaseButton.Load();
+    }
 
     protected override void DrawInternal() {
-        bool shouldFocus = IsHovered && Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT);
+        bool shouldFocus = IsHovered && Input.IsMouseButtonActive(MouseButton.Left);
         if (shouldFocus)
             Focus();
 
@@ -78,10 +87,12 @@ internal class GuiSelector : InteractiveGuiElement {
 
         Panel.Draw();
 
-        int textPosX = (int)(Bounds.x + Bounds.width / 2 - Raylib.MeasureText(SelectedElement.Text, FontSize) / 2);
-        int textPosY = (int)(Bounds.y + Bounds.height / 2 - FontSize / 2);
-        Raylib.DrawTextEx(Renderer.GuiFont.Resource, SelectedElement.Text, new Vector2(textPosX, textPosY), FontSize, FontSpacing, Raylib.WHITE);
+        MeshFont font = Fonts.GetGuiFont(FontSizeInt);
+        Vector2 textSize = font.MeasureText(SelectedElement.Text);
 
+        int textPosX = (int)(Bounds.X() + Bounds.Width() / 2 - textSize.X / 2);
+        int textPosY = (int)(Bounds.Y() + Bounds.Height() / 2 - FontSize / 2);
+        Primitives.DrawText(font, SelectedElement.Text, Color4.White, new Vector2(textPosX, textPosY), Vector2.Zero, 0, ZIndex + 1);
     }
 
     internal record SelectionElement(string Text, object Element);

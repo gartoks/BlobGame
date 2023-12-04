@@ -1,5 +1,4 @@
 ﻿using nkast.Aether.Physics2D.Dynamics;
-using Raylib_CsLo;
 using Vector2 = nkast.Aether.Physics2D.Common.Vector2;
 
 namespace BlobGame.Game;
@@ -51,17 +50,7 @@ public abstract class GameObject : IEquatable<GameObject?> {
     /// <summary>
     /// Draws the game object. Calls optional custom draw logic. Translates all drawing to the game object's position and rotation.
     /// </summary>
-    internal void Draw() {
-        RlGl.rlPushMatrix();
-        RlGl.rlTranslatef(Position.X, Position.Y, 0);
-        RlGl.rlRotatef(RayMath.RAD2DEG * Rotation, 0, 0, 1);
-
-        DrawInternal();
-
-        RlGl.rlPopMatrix();
-    }
-
-    protected internal abstract void DrawInternal();
+    public abstract void Render(OpenTK.Mathematics.Vector2 offset);
 
     public override bool Equals(object? obj) => Equals(obj as GameObject);
     public bool Equals(GameObject? other) => other is not null && Id.Equals(other.Id);

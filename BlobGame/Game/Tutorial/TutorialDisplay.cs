@@ -1,7 +1,9 @@
 ﻿using BlobGame.App;
 using BlobGame.Game.Tutorial.Stages;
 using BlobGame.Util;
-using Raylib_CsLo;
+using OpenTK.Mathematics;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using SimpleGL.Graphics.Rendering;
 
 namespace BlobGame.Game.Tutorial;
 internal sealed class TutorialDisplay {
@@ -45,7 +47,13 @@ internal sealed class TutorialDisplay {
         if (IsFinished)
             return;
 
-        Raylib.DrawRectangleRec(new Rectangle(0, 0, Application.BASE_WIDTH, Application.BASE_HEIGHT), Raylib.WHITE.ChangeAlpha(64));
+        Primitives.DrawRectangle(
+            Vector2.Zero,
+            new Vector2(GameApplication.PROJECTION_WIDTH, GameApplication.PROJECTION_HEIGHT),
+            Vector2.Zero,
+            0,
+            5,
+            Color4.White.ChangeAlpha(64));
 
         if (!CurrentStage!.IsFadeInFinished)
             CurrentStage.DrawFadeIn();
@@ -56,11 +64,15 @@ internal sealed class TutorialDisplay {
     }
 
     internal void Update(float dT) {
-        if (CurrentStage != null && CurrentStage.IsFadeInFinished && !AdvanceStage && Input.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT) && !Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT])
+        if (CurrentStage != null &&
+            CurrentStage.IsFadeInFinished &&
+            !AdvanceStage &&
+            Input.IsMouseButtonDown(MouseButton.Left) &&
+            !Input.WasMouseHandled[MouseButton.Left])
             HoldTime += dT;
 
         if (!AdvanceStage && HoldTime >= HOLD_TIME) {
-            Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT] = true;
+            Input.WasMouseHandled[MouseButton.Left] = true;
 
             HoldTime = 0;
             AdvanceStage = true;

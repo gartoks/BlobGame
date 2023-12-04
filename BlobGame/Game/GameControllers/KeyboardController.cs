@@ -1,6 +1,6 @@
 ﻿using BlobGame.App;
 using BlobGame.Game.GameModes;
-using Raylib_CsLo;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace BlobGame.Game.GameControllers;
 internal sealed class KeyboardController : IGameController {
@@ -17,9 +17,9 @@ internal sealed class KeyboardController : IGameController {
     }
 
     public void Load() {
-        Input.RegisterHotkey("cursor_left", KeyboardKey.KEY_A);
-        Input.RegisterHotkey("cursor_right", KeyboardKey.KEY_D);
-        Input.RegisterHotkey("drop_piece", KeyboardKey.KEY_SPACE);
+        Input.RegisterHotkey("cursor_left", Keys.A);
+        Input.RegisterHotkey("cursor_right", Keys.D);
+        Input.RegisterHotkey("drop_piece", Keys.Space);
     }
 
     public float GetCurrentT() {

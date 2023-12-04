@@ -1,4 +1,4 @@
-﻿namespace BlobGame.ResourceHandling;
+﻿/*namespace BlobGame.ResourceHandling;
 
 internal delegate object? ResourceRetrieverDelegate(string key);    // sadly this has to be object? and cannot be T? because delegates dont work properly when T is a struct
 
@@ -12,15 +12,6 @@ internal abstract class GameResource<T> {
     public string Key { get; }
 
     /// <summary>
-    /// A fallback resource to use if the resource could not be loaded or is still loading.
-    /// </summary>
-    private T Fallback { get; }
-    /// <summary>
-    /// Function to retrieve the resource from the resource manager. Used to check if the resource has been loaded.
-    /// </summary>
-    private ResourceRetrieverDelegate ResourceRetriever { get; }
-
-    /// <summary>
     /// The raylib resource. Is null if the resource has not been loaded yet.
     /// </summary>
     private T? _Resource { get; set; }
@@ -29,22 +20,23 @@ internal abstract class GameResource<T> {
     /// </summary>
     public T Resource {
         get {
-            if (!IsLoaded) {
-                _Resource = (T?)ResourceRetriever(Key);
-                //Log.WriteLineIf(_Resource != null, $"Resource {Key} loaded.");
-            }
+            eResourceLoadStatus status = Status;
+            if (status is eResourceLoadStatus.NotLoaded or eResourceLoadStatus.Unloaded)
+                throw new InvalidOperationException($"Resource {Key} is not loaded");
 
-            if (IsLoaded)
-                return _Resource!;
-            else
-                return Fallback;
+            if (status == eResourceLoadStatus.Loading)
+                ResourceLoadWaiter?.WaitOne();
+
+            return _Resource!;
         }
     }
 
     /// <summary>
-    /// Returns whether the resource is loaded yet.
+    /// Returns the load status of the resource.
     /// </summary>
-    public bool IsLoaded => _Resource != null && !_Resource.Equals(default(T));
+    public eResourceLoadStatus Status => ResourceManager.GetResourceState(Key);
+
+    private ManualResetEvent? ResourceLoadWaiter { get; }
 
     /// <summary>
     /// Constructor for a new resource.
@@ -52,12 +44,19 @@ internal abstract class GameResource<T> {
     /// <param name="key"></param>
     /// <param name="fallback"></param>
     /// <param name="resourceRetriever"></param>
-    protected GameResource(string key, T fallback, ResourceRetrieverDelegate resourceRetriever) {
+    protected GameResource(string key, T? resource) {
         Key = key;
 
-        Fallback = fallback;
-        ResourceRetriever = resourceRetriever;
-        _Resource = (T?)resourceRetriever(key);
+        if (resource != null && !resource.Equals(default(T))) {
+            _Resource = resource;
+        } else {
+            ResourceLoadWaiter = new ManualResetEvent(false);
+        }
+    }
+
+    internal void SetResource(T resource) {
+        _Resource = resource;
+        ResourceLoadWaiter?.Set();
     }
 
     /// <summary>
@@ -67,3 +66,4 @@ internal abstract class GameResource<T> {
         _Resource = default;
     }
 }
+*/

@@ -1,10 +1,14 @@
-﻿using Raylib_CsLo;
+﻿using BlobGame.App;
+using OpenTK.Mathematics;
 
 namespace BlobGame.Util;
 internal static class GuiBoundsParser {
 
-    public static Rectangle Parse(string bounds) {
+    public static Box2 Parse(string bounds) {
         string[] split = bounds.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (split.Length != 4)
+            throw new Exception("Invalid bounds string: " + bounds);
 
         bool xUsesPixel = false;
         if (split[0].EndsWith("px")) {
@@ -30,9 +34,6 @@ internal static class GuiBoundsParser {
             split[3] = split[3][..^2];
         }
 
-        if (split.Length != 4)
-            throw new Exception("Invalid bounds string: " + bounds);
-
         if (!float.TryParse(split[0], out float x))
             throw new Exception("Invalid bounds string: " + bounds);
 
@@ -45,12 +46,12 @@ internal static class GuiBoundsParser {
         if (!float.TryParse(split[3], out float h))
             throw new Exception("Invalid bounds string: " + bounds);
 
-        x = xUsesPixel ? x : x * Application.BASE_WIDTH;
-        y = yUsesPixel ? y : y * Application.BASE_HEIGHT;
-        w = wUsesPixel ? w : w * Application.BASE_WIDTH;
-        h = hUsesPixel ? h : h * Application.BASE_HEIGHT;
+        x = xUsesPixel ? x : x * GameApplication.PROJECTION_WIDTH;
+        y = yUsesPixel ? y : y * GameApplication.PROJECTION_HEIGHT;
+        w = wUsesPixel ? w : w * GameApplication.PROJECTION_WIDTH;
+        h = hUsesPixel ? h : h * GameApplication.PROJECTION_HEIGHT;
 
-        return new Rectangle(x, y, w, h);
+        return new Box2(x, y, x + w, y + h);
     }
 
 }

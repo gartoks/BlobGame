@@ -1,7 +1,7 @@
 ﻿using BlobGame.App;
 using BlobGame.Util;
-using Raylib_CsLo;
-using System.Numerics;
+using OpenTK.Mathematics;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace BlobGame.Game.Gui;
 internal sealed class GuiTextButton : InteractiveGuiElement {
@@ -13,24 +13,28 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
 
     public bool IsClicked { get; private set; }
 
-    public GuiTextButton(string boundsString, string text, Vector2? pivot = null)
-        : this(GuiBoundsParser.Parse(boundsString), text, pivot) {
+    public GuiTextButton(string boundsString, string text, int zIndex, Vector2? pivot = null)
+        : this(GuiBoundsParser.Parse(boundsString), text, zIndex, pivot) {
     }
 
-    private GuiTextButton(Rectangle bounds, string text, Vector2? pivot = null)
-        : this(bounds.X, bounds.Y, bounds.width, bounds.height, text, pivot) {
+    private GuiTextButton(Box2 bounds, string text, int zIndex, Vector2? pivot = null)
+        : this(bounds.X(), bounds.Y(), bounds.Width(), bounds.Height(), text, zIndex, pivot) {
     }
 
-    public GuiTextButton(float x, float y, float w, float h, string text, Vector2? pivot = null)
-        : base(x, y, w, h, pivot) {
+    public GuiTextButton(float x, float y, float w, float h, string text, int zIndex, Vector2? pivot = null)
+        : base(x, y, w, h, zIndex, pivot) {
 
         BaseTexture = "button_up";
         SelectedTexture = "button_selected";
-        Panel = new GuiNPatchPanel(Bounds, BaseTexture, new Vector2(0, 0));
-        Label = new GuiLabel(Bounds, text, new Vector2(0, 0));
+        Panel = new GuiNPatchPanel(Bounds, BaseTexture, zIndex, new Vector2(0, 0));
+        Label = new GuiLabel(Bounds, text, zIndex + 1, new Vector2(0, 0));
     }
 
     internal override void Load() {
+        base.Load();
+
+        Panel.Load();
+        Label.Load();
     }
 
     protected override void DrawInternal() {
@@ -38,7 +42,7 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
         if (IsHovered)
             texture = SelectedTexture;
 
-        IsClicked = (IsHovered && Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT)) ||
+        IsClicked = (IsHovered && Input.IsMouseButtonActive(MouseButton.Left)) ||
             (GuiManager.HasFocus(this) && Input.IsHotkeyActive("confirm"));
 
         if (IsClicked)
@@ -52,7 +56,7 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
 
         Label.Draw();
 
-        Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT] |= IsClicked;
+        Input.WasMouseHandled[MouseButton.Left] |= IsClicked;
     }
 
 }

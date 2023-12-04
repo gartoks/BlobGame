@@ -1,5 +1,6 @@
-﻿using BlobGame.Game.Gui;
-using System.Numerics;
+﻿using BlobGame.App;
+using BlobGame.Game.Gui;
+using OpenTK.Mathematics;
 
 namespace BlobGame.Game.Scenes;
 internal class CreditsScene : Scene {
@@ -18,68 +19,77 @@ internal class CreditsScene : Scene {
 
     public CreditsScene() {
         BackButton = new GuiTextButton(
-            Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.95f,
-            Application.BASE_WIDTH / 8f, Application.BASE_HEIGHT / 16f,
+            GameApplication.PROJECTION_WIDTH * 0.05f, GameApplication.PROJECTION_HEIGHT * 0.95f,
+            GameApplication.PROJECTION_WIDTH / 8f, GameApplication.PROJECTION_HEIGHT / 16f,
             "Back",
+            2,
             new Vector2(0, 1));
 
-        BackgroundPanel = new GuiPanel("0.05 0.05 0.9 0.8", new Vector2(0, 0));
+        BackgroundPanel = new GuiPanel("0.05 0.05 0.9 0.8", 0, new Vector2(0, 0));
 
         float yOffset = 0.1f;
         ProgrammingCaptionLabel = new GuiDynamicLabel(
-            Application.BASE_WIDTH * 0.1f, Application.BASE_HEIGHT * yOffset,
+            GameApplication.PROJECTION_WIDTH * 0.1f, GameApplication.PROJECTION_HEIGHT * yOffset,
             "Programming",
             80f,
+            2,
             new Vector2(0, 0));
         yOffset += 0.185f;
 
         ArtCaptionLabel = new GuiDynamicLabel(
-            Application.BASE_WIDTH * 0.1f, Application.BASE_HEIGHT * yOffset,
+            GameApplication.PROJECTION_WIDTH * 0.1f, GameApplication.PROJECTION_HEIGHT * yOffset,
             "Art",
             80f,
+            2,
             new Vector2(0, 0));
         yOffset += 0.185f;
 
         MusicCaptionLabel = new GuiDynamicLabel(
-            Application.BASE_WIDTH * 0.1f, Application.BASE_HEIGHT * yOffset,
+            GameApplication.PROJECTION_WIDTH * 0.1f, GameApplication.PROJECTION_HEIGHT * yOffset,
             "Music",
             80f,
+            2,
             new Vector2(0, 0));
         yOffset += 0.185f;
 
         OtherCaptionLabel = new GuiDynamicLabel(
-            Application.BASE_WIDTH * 0.1f, Application.BASE_HEIGHT * yOffset,
+            GameApplication.PROJECTION_WIDTH * 0.1f, GameApplication.PROJECTION_HEIGHT * yOffset,
             "Special Thanks",
             80f,
+            2,
             new Vector2(0, 0));
         yOffset += 0.2f;
 
         yOffset = 0.2f;
         ProgrammersLabel = new GuiDynamicLabel(
-            Application.BASE_WIDTH * 0.15f, Application.BASE_HEIGHT * yOffset,
+            GameApplication.PROJECTION_WIDTH * 0.15f, GameApplication.PROJECTION_HEIGHT * yOffset,
             "gartoks\t\t\t\t\tRobotino",
             50f,
+            2,
             new Vector2(0, 0));
         yOffset += 0.185f;
 
         ArtistsLabel = new GuiDynamicLabel(
-            Application.BASE_WIDTH * 0.15f, Application.BASE_HEIGHT * yOffset,
+            GameApplication.PROJECTION_WIDTH * 0.15f, GameApplication.PROJECTION_HEIGHT * yOffset,
             "Pixl\t\t\t\t\tTroobs\t\t\t\t\t_neuroFumo",
             50f,
+            2,
             new Vector2(0, 0));
         yOffset += 0.185f;
 
         MusiciansLabel = new GuiDynamicLabel(
-            Application.BASE_WIDTH * 0.15f, Application.BASE_HEIGHT * yOffset,
+            GameApplication.PROJECTION_WIDTH * 0.15f, GameApplication.PROJECTION_HEIGHT * yOffset,
             "Wiggle\t\t\t\t\tFibi",
             50f,
+            2,
             new Vector2(0, 0));
         yOffset += 0.185f;
 
         OthersLabel = new GuiDynamicLabel(
-            Application.BASE_WIDTH * 0.15f, Application.BASE_HEIGHT * yOffset,
+            GameApplication.PROJECTION_WIDTH * 0.15f, GameApplication.PROJECTION_HEIGHT * yOffset,
             "The Neuro Sama Discord Server <3",
             50f,
+            2,
             new Vector2(0, 0));
         yOffset += 0.185f;
     }
@@ -88,7 +98,7 @@ internal class CreditsScene : Scene {
         LoadAllGuiElements();
     }
 
-    internal override void Draw() {
+    internal override void Render() {
         BackgroundPanel.Draw();
 
         ProgrammingCaptionLabel.Draw();

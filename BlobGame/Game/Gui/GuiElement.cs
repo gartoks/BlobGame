@@ -1,22 +1,26 @@
-﻿using Raylib_CsLo;
-using System.Numerics;
+﻿using OpenTK.Mathematics;
 
 namespace BlobGame.Game.Gui;
 internal abstract class GuiElement : IEquatable<GuiElement?> {
     private Guid Id { get; }
 
     protected Vector2 Pivot { get; }
-    protected Rectangle Bounds { get; }
+    protected Box2 Bounds { get; }
+    protected int ZIndex { get; }
 
     public bool Enabled { get; set; }
 
-    protected GuiElement(float x, float y, float w, float h, Vector2? pivot) {
+    protected GuiElement(Vector2 position, Vector2 size, Vector2? pivot, int zIndex)
+        : this(position.X, position.Y, size.X, size.Y, pivot, zIndex) { }
+
+    protected GuiElement(float x, float y, float w, float h, Vector2? pivot, int zIndex) {
         Id = Guid.NewGuid();
         Pivot = pivot ?? Vector2.Zero;
 
         x += -w * Pivot.X;
         y += -h * Pivot.Y;
-        Bounds = new Rectangle(x, y, w, h);
+        Bounds = new Box2(x, y, x + w, y + h);
+        ZIndex = zIndex;
 
         Enabled = true;
 

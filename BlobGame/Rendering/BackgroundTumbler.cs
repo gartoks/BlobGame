@@ -1,20 +1,21 @@
-﻿using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
+﻿using BlobGame.App;
+using BlobGame.ResourceHandling;
 using BlobGame.Util;
-using Raylib_CsLo;
-using System.Numerics;
+using OpenTK.Mathematics;
+using SimpleGL.Graphics.Rendering;
+using SimpleGL.Graphics.Textures;
 
-namespace BlobGame.Drawing;
+namespace BlobGame.Rendering;
 /// <summary>
 /// Class to handle the logic and drawing of the cute little berries in the background.
 /// </summary>
 internal sealed class BackgroundTumbler {
-    private TextureResource[] Textures { get; set; }
+    private Texture[] Textures { get; set; }
 
     private TumblerData[] Tumblers { get; }
 
     public BackgroundTumbler(int numTumblers) {
-        Textures = Enumerable.Range(0, 2).Select(i => ResourceManager.TextureLoader.Fallback).ToArray();
+        Textures = new Texture[2];
 
         // Spawn tumblers off screen in a circle around the center of the screen.
         // target a point in a circle around the center of the screen.
@@ -22,16 +23,16 @@ internal sealed class BackgroundTumbler {
 
         Random rng = new Random();
         Tumblers = new TumblerData[numTumblers];
-        float cX = Application.BASE_WIDTH / 2f;
-        float cY = Application.BASE_HEIGHT / 2f;
+        float cX = GameApplication.PROJECTION_WIDTH / 2f;
+        float cY = GameApplication.PROJECTION_HEIGHT / 2f;
         for (int i = 0; i < Tumblers.Length; i++) {
             float angle = rng.NextSingle() * MathF.Tau;
-            float r = (0.85f + 1.5f * rng.NextSingle()) * Application.BASE_HEIGHT;
+            float r = (0.85f + 1.5f * rng.NextSingle()) * GameApplication.PROJECTION_HEIGHT;
             float pX = MathF.Cos(angle) * r + cX;
             float pY = MathF.Sin(angle) * r + cY;
 
-            float tX = MathF.Cos(rng.NextSingle() * MathF.Tau) * Application.BASE_HEIGHT * 0.4f + cX;
-            float tY = MathF.Sin(rng.NextSingle() * MathF.Tau) * Application.BASE_HEIGHT * 0.4f + cY;
+            float tX = MathF.Cos(rng.NextSingle() * MathF.Tau) * GameApplication.PROJECTION_HEIGHT * 0.4f + cX;
+            float tY = MathF.Sin(rng.NextSingle() * MathF.Tau) * GameApplication.PROJECTION_HEIGHT * 0.4f + cY;
 
             float vX = tX - pX;
             float vY = tY - pY;
@@ -47,30 +48,32 @@ internal sealed class BackgroundTumbler {
     }
 
     internal void Load() {
-        Textures[0] = ResourceManager.TextureLoader.Get($"blueberry_no_face");
-        Textures[1] = ResourceManager.TextureLoader.Get($"strawberry_no_face");
+        Textures[0] = ResourceManager.TextureLoader.GetResource($"blueberry_no_face");
+        Textures[1] = ResourceManager.TextureLoader.GetResource($"strawberry_no_face");
     }
 
     internal void Draw(float dT) {
-        Vector2 center = new Vector2(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT / 2f);
+        Vector2 center = new Vector2(GameApplication.PROJECTION_WIDTH / 2f, GameApplication.PROJECTION_HEIGHT / 2f);
         foreach (TumblerData tumbler in Tumblers) {
-            float sW = Textures[tumbler.TextureIndex].Resource.width;
-            float sH = Textures[tumbler.TextureIndex].Resource.height;
+            float sW = Textures[tumbler.TextureIndex].Width;
+            float sH = Textures[tumbler.TextureIndex].Height;
 
             tumbler.Position += tumbler.Velocity * dT;
             Vector2 dP = tumbler.Position - tumbler.StartPosition;
             Vector2 dCP = tumbler.Position - center;
 
-            if (dP.LengthSquared() > Application.BASE_HEIGHT * Application.BASE_HEIGHT &&
-                dCP.LengthSquared() > Application.BASE_HEIGHT * Application.BASE_HEIGHT)
+            if (dP.LengthSquared > GameApplication.PROJECTION_HEIGHT * GameApplication.PROJECTION_HEIGHT &&
+                dCP.LengthSquared > GameApplication.PROJECTION_HEIGHT * GameApplication.PROJECTION_HEIGHT)
                 tumbler.Position = tumbler.StartPosition;
 
-            Raylib.DrawTexturePro(
-                Textures[tumbler.TextureIndex].Resource,
-                new Rectangle(0, 0, sW, sH),
-                new Rectangle(tumbler.Position.X, tumbler.Position.Y, sW, sH),
-                new Vector2(0.5f * sW, 0.5f * sH),
-                (tumbler.Rotation + Renderer.Time * tumbler.AngularVelocity) * RayMath.RAD2DEG, Raylib.WHITE.ChangeAlpha(32));
+            Primitives.DrawSprite(
+                tumbler.Position,
+                new Vector2(sW, sH),
+                new Vector2(0.5f, 0.5f),
+                (tumbler.Rotation + GameApplication.RenderGameTime * tumbler.AngularVelocity),
+                2,
+                Textures[tumbler.TextureIndex],
+                Color4.White.ChangeAlpha(32));
         }
     }
 

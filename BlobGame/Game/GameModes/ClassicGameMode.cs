@@ -4,7 +4,6 @@ using BlobGame.Game.Util;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
 using nkast.Aether.Physics2D.Dynamics.Contacts;
-using Raylib_CsLo;
 
 namespace BlobGame.Game.GameModes;
 /// <summary>
@@ -310,9 +309,9 @@ internal sealed class ClassicGameMode : IGameMode {
         float y = 0;
 
         GameObject[] walls = new GameObject[] {
-            new Wall("Ground", world, new Rectangle(x, y + ARENA_HEIGHT, totalWidth, ARENA_WALL_THICKNESS)),
-            new Wall("Left Wall", world, new Rectangle(x, y - 100, ARENA_WALL_THICKNESS, ARENA_HEIGHT + 100)),
-            new Wall("Right Wall", world, new Rectangle(x + ARENA_WIDTH + ARENA_WALL_THICKNESS, y - 100, ARENA_WALL_THICKNESS, ARENA_HEIGHT + 100))
+            new Wall("Ground", world, new OpenTK.Mathematics.Box2(x, y + ARENA_HEIGHT, x + totalWidth, y + ARENA_HEIGHT + ARENA_WALL_THICKNESS)),
+            new Wall("Left Wall", world, new OpenTK.Mathematics.Box2(x, y - 100, x + ARENA_WALL_THICKNESS, y + ARENA_HEIGHT)),
+            new Wall("Right Wall", world, new OpenTK.Mathematics.Box2(x + ARENA_WIDTH + ARENA_WALL_THICKNESS, y - 100, x + ARENA_WIDTH + 2 * ARENA_WALL_THICKNESS, y + ARENA_HEIGHT))
         };
 
         return walls;

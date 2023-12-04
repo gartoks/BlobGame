@@ -1,13 +1,15 @@
-﻿using BlobGame.Audio;
-using BlobGame.Drawing;
+﻿using BlobGame.App;
+using BlobGame.Audio;
+using BlobGame.Rendering;
 using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
-using Raylib_CsLo;
-using System.Numerics;
+using OpenTK.Mathematics;
+using SimpleGL.Graphics.Rendering;
+using SimpleGL.Graphics.Textures;
+using SimpleGL.Util.Math;
 
 namespace BlobGame.Game.Tutorial.Stages;
 internal class TutorialStage3 : TutorialStage {
-    private TextureResource SpeechbubbleTexture { get; set; }
+    private Texture SpeechbubbleTexture { get; set; }
 
     private AnimatedTexture AnimatedSpeechbubble { get; set; }
     private AnimatedTexture AnimatedPointer { get; set; }
@@ -21,18 +23,21 @@ internal class TutorialStage3 : TutorialStage {
     public TutorialStage3() {
         PlayedSound = false;
 
-        PointerAnimationDirection = new Vector2(MathF.Cos(135f * RayMath.DEG2RAD), MathF.Sin(135f * RayMath.DEG2RAD));
+        PointerAnimationDirection = new Vector2(MathF.Cos(135f.ToRad()), MathF.Sin(135f.ToRad()));
 
     }
 
     internal override void Load() {
         base.Load();
-        SpeechbubbleTexture = ResourceManager.TextureLoader.Get("speechbubble");
+        SpeechbubbleTexture = ResourceManager.TextureLoader.GetResource("speechbubble");
 
         AnimatedSpeechbubble = new AnimatedTexture(
             SpeechbubbleTexture,
             2,
-            new Vector2(Application.BASE_WIDTH / 2 + 20, Application.BASE_HEIGHT / 2 + 70),
+            new Vector2(GameApplication.PROJECTION_WIDTH / 2 + 20, GameApplication.PROJECTION_HEIGHT / 2 + 70),
+            new Vector2(300, 300),  // TODO find size
+            0,
+            BASE_ZINDEX,
             new Vector2(0.5f, 0.5f)) {
             ScaleAnimator = t => Vector2.One + new Vector2(0.05f, 0.05f) * GetSpeechbubbleScaleT(t),
             RotationAnimator = t => MathF.PI / 128 * GetSpeechbubbleRotationT(t)
@@ -41,10 +46,11 @@ internal class TutorialStage3 : TutorialStage {
         AnimatedPointer = new AnimatedTexture(
             PointerTexture,
             0.5f,
-            new Vector2(0.667f * Application.BASE_WIDTH, 0.273f * Application.BASE_HEIGHT),
-            Vector2.One / 2f,
-            Vector2.One / 2f,
-            45f * RayMath.DEG2RAD) {
+            new Vector2(0.667f * GameApplication.PROJECTION_WIDTH, 0.273f * GameApplication.PROJECTION_HEIGHT),
+            new Vector2(256, 256),
+            45f.ToRad(),
+            BASE_ZINDEX,
+            Vector2.One / 2f) {
             PositionAnimator = t => PointerAnimationDirection * 10 * -MathF.Sin(MathF.Tau * t)
         };
     }
@@ -62,23 +68,20 @@ internal class TutorialStage3 : TutorialStage {
             PlayedSound = true;
         }
 
-        AvatarTexture.Draw(new Vector2(-100, Application.BASE_HEIGHT - AvatarTexture.Resource.height / 2));
+        Primitives.DrawSprite(new Vector2(-100, GameApplication.PROJECTION_HEIGHT - AvatarTexture.Height / 2), new Vector2(944, 1432), new Vector2(0.5f, 0.5f), 0, BASE_ZINDEX, AvatarTexture, Color4.White);
 
         if (AnimatedPointer.IsReady)
             AnimatedPointer.Start();
 
-        AnimatedPointer.Draw();
+        AnimatedPointer.Render();
 
         if (AnimatedPointer.IsFinished)
             AnimatedPointer.Start();
 
         DrawSpeechBubble();
 
-        Renderer.GuiFont.Draw(
-            "This is your next piece!",
-            50,
-            ResourceManager.ColorLoader.Get("dark_accent"),
-            new Vector2(600, Application.BASE_HEIGHT / 2 - 100));
+        MeshFont font = Fonts.GetGuiFont(50);
+        Primitives.DrawText(font, "This is your next piece!", ResourceManager.ColorLoader.GetResource("dark_accent"), new Vector2(600, GameApplication.PROJECTION_HEIGHT / 2 - 100), new Vector2(0.5f, 0.5f), 0, BASE_ZINDEX + 1);
 
         DrawLMBHint(750);
     }
@@ -90,7 +93,7 @@ internal class TutorialStage3 : TutorialStage {
         if (AnimatedSpeechbubble.IsReady)
             AnimatedSpeechbubble.Start();
 
-        AnimatedSpeechbubble.Draw();
+        AnimatedSpeechbubble.Render();
 
         if (AnimatedSpeechbubble.IsFinished)
             AnimatedSpeechbubble.Start();

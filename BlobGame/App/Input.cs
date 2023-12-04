@@ -1,5 +1,7 @@
-﻿using Raylib_CsLo;
-using System.Numerics;
+﻿using OpenTK.Mathematics;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using SimpleGL;
+using SimpleGL.Graphics.GLHandling;
 using static BlobGame.App.Input;
 
 namespace BlobGame.App;
@@ -33,11 +35,13 @@ public static class Input {
     /// </summary>
     static Input() {
         MouseButtonStates = new Dictionary<MouseButton, eInteractionState>();
-        MouseButtonStates[MouseButton.MOUSE_BUTTON_LEFT] = eInteractionState.Up;
-        MouseButtonStates[MouseButton.MOUSE_BUTTON_RIGHT] = eInteractionState.Up;
-        MouseButtonStates[MouseButton.MOUSE_BUTTON_MIDDLE] = eInteractionState.Up;
+        MouseButtonStates[MouseButton.Left] = eInteractionState.Up;
+        MouseButtonStates[MouseButton.Right] = eInteractionState.Up;
+        MouseButtonStates[MouseButton.Middle] = eInteractionState.Up;
 
         WasMouseHandled = new Dictionary<MouseButton, bool>();
+        foreach (MouseButton mb in Enum.GetValues<MouseButton>())
+            WasMouseHandled[mb] = false;
 
         Hotkeys = new Dictionary<string, Hotkey>();
     }
@@ -58,43 +62,37 @@ public static class Input {
     /// Called every frame to read and update the input states, as well as apply states to mouse buttons and hotkeys.
     /// </summary>
     internal static void Update() {
-        Vector2 mPosDelta = Raylib.GetMouseDelta();
+        MouseState mouseState = Application.Window.MouseState;
+        Vector2 mPosDelta = mouseState.Delta;
         foreach (MouseButton mbs in MouseButtonStates.Keys) {
-            if (Raylib.IsMouseButtonDown(mbs)) {
-                if (MouseButtonStates[mbs] == eInteractionState.Up)
-                    MouseButtonStates[mbs] = eInteractionState.Pressed;
-                else
-                    MouseButtonStates[mbs] = eInteractionState.Down;
-            } else if (Raylib.IsMouseButtonUp(mbs)) {
-                if (MouseButtonStates[mbs] == eInteractionState.Down)
-                    MouseButtonStates[mbs] = eInteractionState.Released;
-                else {
-                    WasMouseHandled[mbs] = false;
-                    MouseButtonStates[mbs] = eInteractionState.Up;
-                }
-            }
+            if (mouseState.IsButtonReleased(mbs))
+                MouseButtonStates[mbs] = eInteractionState.Released;
+            else if (mouseState.IsButtonPressed(mbs))
+                MouseButtonStates[mbs] = eInteractionState.Pressed;
+            else if (mouseState.IsButtonDown(mbs))
+                MouseButtonStates[mbs] = eInteractionState.Down;
+            else
+                MouseButtonStates[mbs] = eInteractionState.Up;
         }
 
+        KeyboardState keyboardState = Application.Window.KeyboardState;
         foreach (Hotkey hotkey in Hotkeys.Values) {
+            Keys ks = hotkey.PrimaryKey;
             eInteractionState state = hotkey.State is eInteractionState.Released or eInteractionState.Up ? eInteractionState.Up : eInteractionState.Released;
 
-            bool allModifiersDown = hotkey.Modifiers.All(Raylib.IsKeyDown);
+            bool allModifiersDown = hotkey.Modifiers.All(keyboardState.IsKeyDown);
             if (allModifiersDown) {
-                if (Raylib.IsKeyPressed(hotkey.PrimaryKey))
-                    state = eInteractionState.Pressed;
-                else if (Raylib.IsKeyDown(hotkey.PrimaryKey))
-                    state = eInteractionState.Down;
-                else if (Raylib.IsKeyReleased(hotkey.PrimaryKey))
+                if (keyboardState.IsKeyReleased(ks))
                     state = eInteractionState.Released;
+                else if (keyboardState.IsKeyPressed(ks))
+                    state = eInteractionState.Pressed;
+                else if (keyboardState.IsKeyDown(ks))
+                    state = eInteractionState.Down;
+                else
+                    state = eInteractionState.Up;
             }
             hotkey.State = state;
         }
-    }
-
-    public static Vector2 ScreenToWorld(Vector2 screenPos) {
-        return new Vector2(
-            screenPos.X / Application.WorldToScreenMultiplierX,
-            screenPos.Y / Application.WorldToScreenMultiplierY);
     }
 
     /// <summary>
@@ -103,7 +101,7 @@ public static class Input {
     /// <param name="key">The unique hotkey identifier</param>
     /// <param name="primaryKey">The primary key of the hotkey. This controls the state.</param>
     /// <param name="modifiers">List of key modifiers that are required to be held down in addition to the primary key. Such as Ctrl, Shift, Alt.</param>
-    public static void RegisterHotkey(string key, KeyboardKey primaryKey, params KeyboardKey[] modifiers) {
+    public static void RegisterHotkey(string key, Keys primaryKey, params Keys[] modifiers) {
         Hotkeys.Add(key, new Hotkey(key, primaryKey, modifiers));
     }
 
@@ -113,6 +111,16 @@ public static class Input {
     /// <param name="key"></param>
     public static void UnregisterHotkey(string key) {
         Hotkeys.Remove(key);
+    }
+
+    /// <summary>
+    /// Gets the current position of the mouse in viewport coordinates.
+    /// </summary>
+    /// <returns></returns>
+    public static Vector2 GetMousePosition() {
+        Vector2 rawMPos = Application.Window.MouseState.Position;
+
+        return rawMPos / Application.Window.Size * GLHandler.Viewport.Size; // TODO TEST
     }
 
     /// <summary>
@@ -166,11 +174,11 @@ public static class Input {
 /// </summary>
 internal class Hotkey {
     public string Key { get; }
-    public KeyboardKey PrimaryKey { get; }
-    public IReadOnlyList<KeyboardKey> Modifiers { get; }
+    public Keys PrimaryKey { get; }
+    public IReadOnlyList<Keys> Modifiers { get; }
     public eInteractionState State { get; set; }
 
-    public Hotkey(string name, KeyboardKey primaryKey, params KeyboardKey[] modifiers) {
+    public Hotkey(string name, Keys primaryKey, params Keys[] modifiers) {
         Key = name;
         PrimaryKey = primaryKey;
         Modifiers = modifiers;

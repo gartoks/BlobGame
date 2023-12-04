@@ -1,13 +1,14 @@
-﻿using BlobGame.Audio;
-using BlobGame.Drawing;
+﻿using BlobGame.App;
+using BlobGame.Audio;
 using BlobGame.Game.Gui;
 using BlobGame.Game.Scenes;
 using BlobGame.Game.Util;
+using BlobGame.Rendering;
 using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
-using Raylib_CsLo;
-using System.Numerics;
+using OpenTK.Mathematics;
+using SimpleGL.Graphics.Rendering;
+using SimpleGL.Util.Math;
 
 namespace BlobGame.Game;
 /// <summary>
@@ -19,9 +20,9 @@ public static class GameManager {
     /// </summary>
     private static Scene Scene { get; set; }
     /// <summary>
-    /// Flag indicating if the scene was loaded after setting a new scene.
+    /// The next scene to be loaded
     /// </summary>
-    private static bool WasSceneLoaded { get; set; }
+    private static Scene? NextScene { get; set; }
 
     public static Scoreboard Scoreboard { get; }
 
@@ -30,12 +31,16 @@ public static class GameManager {
     /// </summary>
     private static BackgroundTumbler Tumbler { get; }
 
-    private static IReadOnlyList<MusicResource> Music { get; set; }
+    private static IReadOnlyList<(string key, Music audio)> Music { get; set; }
     private static bool WasMusicQueued { get; set; }
+
+    private static bool WereResourcesLoaded { get; set; }
 
     static GameManager() {
         Scoreboard = new Scoreboard();
         Tumbler = new BackgroundTumbler(60);
+
+        WereResourcesLoaded = false;
     }
 
     /// <summary>
@@ -44,33 +49,32 @@ public static class GameManager {
     internal static void Initialize() {
         //InputHandler.RegisterHotkey("w", KeyboardKey.KEY_W);
 
-        WasSceneLoaded = false;
         WasMusicQueued = false;
-
-        GuiManager.Initialize();
     }
 
     /// <summary>
     /// Loads the game. Loads the initial scene.
     /// </summary>
     internal static void Load() {
+        NextScene = new GameLoadingScene();
+    }
+
+    internal static void LoadResources() {
         Scoreboard.Load();
 
         Tumbler.Load();
 
-        Music = new MusicResource[] {
-            ResourceManager.MusicLoader.Get("crossinglike"),
-            ResourceManager.MusicLoader.Get("Melba_1"),
-            ResourceManager.MusicLoader.Get("Melba_2"),
-            ResourceManager.MusicLoader.Get("Melba_3"),
-            ResourceManager.MusicLoader.Get("Melba_s_Toasty_Game"),
-            ResourceManager.MusicLoader.Get("On_the_Surface"),
-            ResourceManager.MusicLoader.Get("synthyupdated"),
+        Music = new (string key, Music audio)[] {
+            ("crossinglike", ResourceManager.MusicLoader.GetResource("crossinglike")),
+            ("Melba_1", ResourceManager.MusicLoader.GetResource("Melba_1")),
+            ("Melba_2", ResourceManager.MusicLoader.GetResource("Melba_2")),
+            ("Melba_3", ResourceManager.MusicLoader.GetResource("Melba_3")),
+            ("Melba_s_Toasty_Game", ResourceManager.MusicLoader.GetResource("Melba_s_Toasty_Game")),
+            ("On_the_Surface", ResourceManager.MusicLoader.GetResource("On_the_Surface")),
+            ("synthyupdated", ResourceManager.MusicLoader.GetResource("synthyupdated")),
         };
 
-        GuiManager.Load();
-
-        Scene = new MainMenuScene();
+        WereResourcesLoaded = true;
     }
 
     /// <summary>
@@ -78,23 +82,26 @@ public static class GameManager {
     /// </summary>
     /// <param name="dT"></param>
     internal static void Update(float dT) {
-        if (Music.All(m => !AudioManager.IsMusicPlaying(m.Key))) {
-            if (WasMusicQueued)
-                return;
+        if (WereResourcesLoaded) {
+            if (Music.All(m => !AudioManager.IsMusicPlaying(m.key))) {
+                if (WasMusicQueued)
+                    return;
 
-            Random rng = new Random();
-            AudioManager.PlayMusic(Music[rng.Next(Music.Count)].Key);
-            WasMusicQueued = true;
-        } else {
-            WasMusicQueued = false;
+                Random rng = new Random();
+                AudioManager.PlayMusic(Music[rng.Next(Music.Count)].key);
+                WasMusicQueued = true;
+            } else {
+                WasMusicQueued = false;
+            }
         }
 
-        GuiManager.Update(dT);
-
         // The scene is loaded in the update method to ensure scene drawing doesn't access unloaded resources.
-        if (!WasSceneLoaded) {
+        if (NextScene != null) {
+            Scene?.Unload();
+            GuiManager.ResetElements();
+            Scene = NextScene;
             Scene.Load();
-            WasSceneLoaded = true;
+            NextScene = null;
         } else
             Scene.Update(dT);
     }
@@ -102,14 +109,23 @@ public static class GameManager {
     /// <summary>
     /// Draws the game. Is executed every frame.
     /// </summary>
-    internal static void Draw(float dT) {
-        DrawBackground();
-        Tumbler.Draw(dT);
+    internal static void Render(float dT) {
+        if (WereResourcesLoaded) {
+            DrawBackground();
+            Tumbler.Draw(dT);
+        }
 
-        if (!WasSceneLoaded)
+        if (NextScene != null)
             return;
 
-        Scene.Draw();
+        Scene.Render();
+    }
+
+    internal static void RenderGui(float dT) {
+        if (NextScene != null)
+            return;
+
+        Scene?.RenderGui();
     }
 
     /// <summary>
@@ -121,27 +137,27 @@ public static class GameManager {
     }
 
     internal static void SetScene(Scene scene) {
-        Scene.Unload();
-        GuiManager.ResetElements();
-        WasSceneLoaded = false;
-        Scene = scene;
+        NextScene = scene;
     }
 
     private static void DrawBackground() {
-        const float ANGLE = -12.5f;
-        Color elementColor = ResourceManager.ColorLoader.Get("light_accent").Resource.ChangeAlpha(64);
+        float ANGLE = -12.5f.ToRad();
+        Color4 elementColor = ResourceManager.ColorLoader.GetResource("light_accent").ChangeAlpha(64);
         //Color elementColor = new Color(255, 255, 255, 64);
 
-        Raylib.DrawRectanglePro(
-            new Rectangle(-100, 287.5f, 2500, 100),
-            new Vector2(), ANGLE, elementColor);
+        Primitives.DrawRectangle(
+            new Vector2(-100, 287.5f),
+            new Vector2(2500, 100),
+            new Vector2(), ANGLE, 0, elementColor);
 
-        Raylib.DrawRectanglePro(
-            new Rectangle(-100, Application.BASE_HEIGHT * 0.80f, 2500, 25),
-            new Vector2(), ANGLE, elementColor);
+        Primitives.DrawRectangle(
+            new Vector2(-100, GameApplication.PROJECTION_HEIGHT * 0.80f),
+            new Vector2(2500, 25),
+            new Vector2(), ANGLE, 0, elementColor);
 
-        Raylib.DrawRectanglePro(
-            new Rectangle(-100, Application.BASE_HEIGHT * 0.85f, 2500, 200),
-            new Vector2(), ANGLE, elementColor);
+        Primitives.DrawRectangle(
+            new Vector2(-100, GameApplication.PROJECTION_HEIGHT * 0.85f),
+            new Vector2(2500, 200),
+            new Vector2(), ANGLE, 0, elementColor);
     }
 }

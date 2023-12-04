@@ -1,9 +1,10 @@
-﻿using BlobGame.Game.Blobs;
+﻿using BlobGame.App;
+using BlobGame.Game.Blobs;
 using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
-using Raylib_CsLo;
+using SimpleGL.Graphics.Rendering;
+using SimpleGL.Graphics.Textures;
 
 namespace BlobGame.Game.GameObjects;
 
@@ -20,7 +21,7 @@ internal sealed class Blob : GameObject {
     /// <returns></returns>
     public static Blob Create(World world, Vector2 position, eBlobType blobType) {
         (string name, eBlobType type, int score, float radius, float mass, string textureKey) = BlobData.Data.Single(d => d.type == blobType);
-        return new Blob(name, type, score, world, position, radius, mass, ResourceManager.TextureLoader.Get(textureKey), new Vector2(0.5f, 0.5f));
+        return new Blob(name, type, score, world, position, radius, mass, ResourceManager.TextureLoader.GetResource(textureKey), new Vector2(0.5f, 0.5f));
     }
 
     /// <summary>
@@ -44,7 +45,7 @@ internal sealed class Blob : GameObject {
     /// <summary>
     /// The texture of the blob.
     /// </summary>
-    private TextureResource Texture { get; }
+    private Texture Texture { get; }
     /// <summary>
     /// The origin of the texuture. Rotation is applied around this point. It is in relative texture coordinates from [0, 1].
     /// </summary>
@@ -53,7 +54,7 @@ internal sealed class Blob : GameObject {
     /// <summary>
     /// Create a new blob with the given parameters.
     /// </summary>
-    private Blob(string name, eBlobType type, int score, World world, Vector2 position, float radius, float mass, TextureResource texture, Vector2 textureOrigin)
+    private Blob(string name, eBlobType type, int score, World world, Vector2 position, float radius, float mass, Texture texture, Vector2 textureOrigin)
         : base(name, world, position, 0, BodyType.Dynamic) {
 
         Type = type;
@@ -73,16 +74,13 @@ internal sealed class Blob : GameObject {
     /// <summary>
     /// Custom draw logic for the blob.
     /// </summary>
-    protected internal override void DrawInternal() {
-        Texture.Draw(
-            System.Numerics.Vector2.Zero,
-            new System.Numerics.Vector2(TextureOrigin.X, TextureOrigin.Y),
-            new System.Numerics.Vector2(0.25f, 0.25f),
-            RayMath.RAD2DEG * Rotation);
+    public override void Render(OpenTK.Mathematics.Vector2 offset) {
+        OpenTK.Mathematics.Vector2 pos = new OpenTK.Mathematics.Vector2(Position.X, Position.Y) + offset;
+        Primitives.DrawSprite(pos, new OpenTK.Mathematics.Vector2(Radius, Radius), new OpenTK.Mathematics.Vector2(0.5f, 0.5f), Rotation, 4, Texture, OpenTK.Mathematics.Color4.White);
 
-        if (Application.DRAW_DEBUG) {
-            Raylib.DrawCircleLines(0, 0, Radius, Raylib.BLUE);
-            Raylib.DrawCircleV(new System.Numerics.Vector2(0, 0), 5f, Raylib.LIME);
+        if (GameApplication.DRAW_DEBUG) {
+            Primitives.DrawCircleLines(pos, Radius, new OpenTK.Mathematics.Vector2(0.5f, 0.5f), int.MaxValue, OpenTK.Mathematics.Color4.Blue);
+            Primitives.DrawCircle(pos, 5, new OpenTK.Mathematics.Vector2(0.5f, 0.5f), int.MaxValue, OpenTK.Mathematics.Color4.Lime);
         }
     }
 }

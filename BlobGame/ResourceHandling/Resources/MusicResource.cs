@@ -1,8 +1,8 @@
-﻿using Raylib_CsLo;
+﻿using BlobGame.Audio;
 using System.Collections.Concurrent;
 
 namespace BlobGame.ResourceHandling.Resources;
-
+/*
 /// <summary>
 /// Game resource for music.
 /// </summary>
@@ -17,17 +17,18 @@ internal sealed class MusicResource : GameResource<Music> {
         : base(key, fallback, resourceRetriever) {
     }
 }
-
-internal sealed class MusicResourceLoader : ResourceLoader<Music, MusicResource> {
+*/
+internal sealed class MusicResourceLoader : ResourceLoader<Music> {
     public MusicResourceLoader(BlockingCollection<(string key, Type type)> resourceLoadingQueue)
         : base(resourceLoadingQueue) {
     }
 
     protected override Music LoadResourceInternal(string key) {
         Music? res = ResourceManager.MainTheme.LoadMusic(key) ?? ResourceManager.DefaultTheme.LoadMusic(key);
-        return res ?? Fallback.Resource;
+        return res ?? throw new ArgumentException($"Music resource '{key}' does not exist in theme.");
     }
 
-    protected override void UnloadResourceInternal(MusicResource resource) {
+    protected override void UnloadResourceInternal(string key, Music resource) {
+        resource.Dispose();
     }
 }

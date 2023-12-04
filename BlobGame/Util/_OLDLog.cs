@@ -1,4 +1,4 @@
-﻿namespace BlobGame.Util;
+﻿/*namespace BlobGame.Util;
 public enum eLogType { Message, Warning, Error }
 
 public delegate void LogEventHandler(string text, eLogType logType);
@@ -20,4 +20,4 @@ internal class Log {
         DateTime timestamp = DateTime.Now;
         return $"[{timestamp.Hour.ToString().PadLeft(2, '0')}:{timestamp.Minute.ToString().PadLeft(2, '0')}:{timestamp.Second.ToString().PadLeft(2, '0')}]";
     }
-}
+}*/

@@ -1,6 +1,11 @@
-using BlobGame.ResourceHandling.Resources;
-using Raylib_CsLo;
-using System.Diagnostics;
+using BlobGame.Audio;
+using OpenTK.Mathematics;
+using SimpleGL.Graphics;
+using SimpleGL.Graphics.Textures;
+using SimpleGL.Util;
+using SixLabors.Fonts;
+using StbImageSharp;
+using System.Globalization;
 using System.IO.Compression;
 using System.Text.Json;
 
@@ -19,20 +24,12 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
     /// <summary>
     /// A mapping of color name to colors.
     /// </summary>
-    private Dictionary<string, Color> Colors { get; }
+    private Dictionary<string, Color4> Colors { get; }
 
     /// <summary>
     /// The zip archive containing all assets.
     /// </summary>
     private ZipArchive? ThemeArchive { get; set; }
-
-    /// <summary>
-    /// A collection of all music data from this theme.
-    /// This has to exist because Raylib.loadMusicStreamFromMemory
-    /// streams in the music while playing. This just keeps it from
-    /// being garbage collected.
-    /// </summary>
-    private List<byte[]> _MusicBuffers;
 
     /// <summary>
     /// Flag indicating whether the theme was loaded.
@@ -48,8 +45,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         Name = Path.GetFileNameWithoutExtension(themefilePath);
 
         ThemeFilePath = themefilePath;
-        Colors = new Dictionary<string, Color>();
-        _MusicBuffers = new();
+        Colors = new Dictionary<string, Color4>();
 
         WasLoaded = false;
     }
@@ -58,7 +54,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         if (WasLoaded)
             throw new InvalidOperationException("Theme was already loaded.");
 
-        Debug.WriteLine($"Loading theme {Name}");
+        Log.WriteLine($"Loading theme {Name}");
         MemoryStream ms = new MemoryStream();
         using FileStream fs = new FileStream(ThemeFilePath, FileMode.Open);
 
@@ -69,19 +65,19 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
 
         ZipArchiveEntry? colorEntry = ThemeArchive.GetEntry("colors.json");
         if (colorEntry == null) {
-            Debug.WriteLine($"Theme {ThemeFilePath} doesn't contain colors.");
+            Log.WriteLine($"Theme {ThemeFilePath} doesn't contain colors.");
             return;
         }
 
         StreamReader colorStreamReader = new StreamReader(colorEntry.Open());
         Dictionary<string, int[]>? colors = JsonSerializer.Deserialize<Dictionary<string, int[]>>(colorStreamReader.ReadToEnd());
         if (colors == null) {
-            Debug.WriteLine($"colors.json in theme {ThemeFilePath} has a wrong format.");
+            Log.WriteLine($"colors.json in theme {ThemeFilePath} has a wrong format.");
             return;
         }
 
         foreach (KeyValuePair<string, int[]> entry in colors) {
-            Colors[entry.Key] = new Color((byte)entry.Value[0], (byte)entry.Value[1], (byte)entry.Value[2], (byte)entry.Value[3]);
+            Colors[entry.Key] = new Color4((byte)entry.Value[0], (byte)entry.Value[1], (byte)entry.Value[2], (byte)entry.Value[3]);
         }
 
         WasLoaded = true;
@@ -96,7 +92,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
     /// </summary>
     /// <param name="key"></param>
     /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
-    internal Color? GetColor(string key) {
+    internal Color4? GetColor(string key) {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
 
@@ -112,42 +108,41 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
     /// </summary>
     /// <param name="key"></param>
     /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
-    public Font? LoadFont(string key) {
+    public FontFamilyData? LoadFont(string key) {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
+
+        bool isTTF = true;
 
         string path = $"Fonts/{key}.ttf";
         ZipArchiveEntry? zippedFont = ThemeArchive!.GetEntry(path);
 
         if (zippedFont == null) {
+            isTTF = false;
             path = $"Fonts/{key}.otf";
             zippedFont = ThemeArchive!.GetEntry(path);
         }
 
-        if (zippedFont == null) {
-            Debug.WriteLine($"Font {key} doesn't exist in this theme");
-            return null;
-        }
-
-        using Stream fontStream = zippedFont.Open();
-        byte[] fontData;
-        using (MemoryStream ms = new MemoryStream()) {
+        FontFamily fontFamily;
+        if (zippedFont != null) {
+            Stream fontStream = zippedFont.Open();
+            MemoryStream ms = new MemoryStream();
             fontStream.CopyTo(ms);
-            fontData = ms.ToArray();
-        }
+            fontStream.Dispose();
+            ms.Position = 0;
 
-        Font font;
-        unsafe {
-            fixed (byte* fontPtr = fontData) {
-                font = Raylib.LoadFontFromMemory(".ttf", fontPtr, fontData.Length, 200, null, 0);
-            }
-        }
+            FontCollection fontCollection = new FontCollection();
+            fontFamily = fontCollection.Add(ms);
+            ms.Dispose();
 
-        if (font.texture.id == 0) {
-            Debug.WriteLine($"Failed to load font {key} from {path}");
+        } else if (SystemFonts.Collection.TryGet(key, CultureInfo.InvariantCulture, out fontFamily)) {
+            // Do nothing
+        } else {
+            Log.WriteLine($"Font {key} doesn't exist in this theme");
             return null;
         }
-        return font;
+
+        return new FontFamilyData(fontFamily, isTTF);
     }
 
     /// <summary>
@@ -155,7 +150,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
     /// </summary>
     /// <param name="key"></param>
     /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
-    public Texture? LoadTexture(string key) {
+    public Texture2D? LoadTexture(string key) {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
 
@@ -163,29 +158,26 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         ZipArchiveEntry? zippedTexture = ThemeArchive!.GetEntry(path);
 
         if (zippedTexture == null) {
-            Debug.WriteLine($"Texture {key} doesn't exist in this theme");
+            Log.WriteLine($"Texture {key} doesn't exist in this theme");
             return null;
         }
 
-        using Stream textureStream = zippedTexture.Open();
-        byte[] textureData;
-        using (MemoryStream ms = new MemoryStream()) {
-            textureStream.CopyTo(ms);
-            ms.Position = 0;
-            textureData = ms.ToArray();
-        }
+        Stream textureStream = zippedTexture.Open();
+        MemoryStream ms = new MemoryStream();
+        textureStream.CopyTo(ms);
+        textureStream.Dispose();
+        ms.Position = 0;
 
-        Texture texture;
-        unsafe {
-            fixed (byte* texturePtr = textureData) {
-                texture = Raylib.LoadTextureFromImage(Raylib.LoadImageFromMemory(".png", texturePtr, textureData.Length));
-            }
-        }
+        ImageResult image = ImageResult.FromStream(ms, ColorComponents.RedGreenBlueAlpha);
+        ms.Dispose();
 
-        if (texture.id == 0) {
-            Debug.WriteLine($"Failed to load texture {key} from {path}");
+        Texture2D texture = GraphicsHelper.CreateTexture(image);
+
+        // TODO add check if texture was loaded correctly
+        /*if (texture.id == 0) {
+            Log.WriteLine($"Failed to load texture {key} from {path}");
             return null;
-        }
+        }*/
         return texture;
     }
 
@@ -202,24 +194,18 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         ZipArchiveEntry? zippedSound = ThemeArchive!.GetEntry(path);
 
         if (zippedSound == null) {
-            Debug.WriteLine($"Sound {key} doesn't exist in this theme");
+            Log.WriteLine($"Sound {key} doesn't exist in this theme");
             return null;
         }
 
-        using Stream soundStream = zippedSound.Open();
-        byte[] soundData;
-        using (MemoryStream ms = new MemoryStream()) {
-            soundStream.CopyTo(ms);
-            ms.Position = 0;
-            soundData = ms.ToArray();
-        }
+        Stream soundStream = zippedSound.Open();
+        MemoryStream ms = new MemoryStream();
+        soundStream.CopyTo(ms);
+        soundStream.Dispose();
+        ms.Position = 0;
 
-        Sound sound;
-        unsafe {
-            fixed (byte* soundPtr = soundData) {
-                sound = Raylib.LoadSoundFromWave(Raylib.LoadWaveFromMemory(".wav", soundPtr, soundData.Length));
-            }
-        }
+        Sound sound = Sound.Create(ms);
+        ms.Dispose();
 
         return sound;
     }
@@ -237,28 +223,18 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         ZipArchiveEntry? zippedSound = ThemeArchive!.GetEntry(path);
 
         if (zippedSound == null) {
-            Debug.WriteLine($"Music {key} doesn't exist in this theme");
+            Log.WriteLine($"Music {key} doesn't exist in this theme");
             return null;
         }
 
-        using Stream musicStream = zippedSound.Open();
-        byte[] musicData;
-        using (MemoryStream ms = new MemoryStream()) {
-            musicStream.CopyTo(ms);
-            ms.Position = 0;
-            musicData = ms.ToArray();
-        }
+        Stream musicStream = zippedSound.Open();
+        MemoryStream ms = new MemoryStream();
+        musicStream.CopyTo(ms);
+        musicStream.Dispose();
+        ms.Position = 0;
 
-        Music music;
-        unsafe {
-            fixed (byte* soundPtr = musicData) {
-                music = Raylib.LoadMusicStreamFromMemory(".mp3", soundPtr, musicData.Length);
-            }
-        }
-
-        // force the data to stay alive until the theme changes.
-        _MusicBuffers.Add(musicData);
-        music.looping = false;
+        Music music = Music.Create(ms);
+        ms.Dispose();
 
         return music;
     }
@@ -277,7 +253,7 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         ZipArchiveEntry? zippedText = ThemeArchive!.GetEntry(path);
 
         if (zippedText == null) {
-            Debug.WriteLine($"Text {key} doesn't exist in this theme");
+            Log.WriteLine($"Text {key} doesn't exist in this theme");
             return null;
         }
 
@@ -296,13 +272,16 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         if (!WasLoaded)
             throw new InvalidOperationException("Theme was not loaded.");
 
-        Texture texture = (Texture)LoadTexture(key);
+        Texture2D? texture = LoadTexture(key);
+
+        if (texture == null)
+            return null;
 
         string path = $"Textures/NPatchData/{key}.json";
         ZipArchiveEntry? zippedText = ThemeArchive!.GetEntry(path);
 
         if (zippedText == null) {
-            Debug.WriteLine($"NPatchData {key} doesn't exist in this theme");
+            Log.WriteLine($"NPatchData {key} doesn't exist in this theme");
             return null;
         }
 

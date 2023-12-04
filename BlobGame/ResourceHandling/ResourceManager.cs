@@ -1,7 +1,9 @@
 ﻿using BlobGame.App;
+using BlobGame.Audio;
 using BlobGame.ResourceHandling.Resources;
-using BlobGame.Util;
-using Raylib_CsLo;
+using OpenTK.Mathematics;
+using SimpleGL.Graphics.Textures;
+using SimpleGL.Util;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
@@ -26,15 +28,18 @@ internal static class ResourceManager {
     public static MusicResourceLoader MusicLoader { get; }
     public static TextResourceLoader TextLoader { get; }
     public static NPatchTextureResourceLoader NPatchLoader { get; }
+    private static ResourceLoader[] ResourceLoaders { get; }
 
     /// <summary>
     /// Base theme.
     /// </summary>
-    public static Theme DefaultTheme { get; }
+    internal static Theme DefaultTheme { get; }
     /// <summary>
     /// Additional theme.
     /// </summary>
-    public static Theme MainTheme { get; private set; }
+    internal static Theme MainTheme { get; private set; }
+
+    public static event Action<string, Type> ResourceLoaded;
 
     /// <summary>
     /// Static constructor to initialize the resource loading queue and other required properties.
@@ -49,6 +54,24 @@ internal static class ResourceManager {
         MusicLoader = new(ResourceLoadingQueue);
         TextLoader = new(ResourceLoadingQueue);
         NPatchLoader = new(ResourceLoadingQueue);
+
+        ResourceLoaders = new ResourceLoader[] {
+            ColorLoader,
+            FontLoader,
+            TextureLoader,
+            SoundLoader,
+            MusicLoader,
+            TextLoader,
+            NPatchLoader
+        };
+
+        ColorLoader.ResourceLoaded += (key, resource) => ResourceLoaded?.Invoke(key, typeof(Color4));
+        FontLoader.ResourceLoaded += (key, resource) => ResourceLoaded?.Invoke(key, typeof(FontFamilyData));
+        TextureLoader.ResourceLoaded += (key, resource) => ResourceLoaded?.Invoke(key, typeof(Texture2D));
+        SoundLoader.ResourceLoaded += (key, resource) => ResourceLoaded?.Invoke(key, typeof(Sound));
+        MusicLoader.ResourceLoaded += (key, resource) => ResourceLoaded?.Invoke(key, typeof(Music));
+        TextLoader.ResourceLoaded += (key, resource) => ResourceLoaded?.Invoke(key, typeof(IReadOnlyDictionary<string, string>));
+        NPatchLoader.ResourceLoaded += (key, resource) => ResourceLoaded?.Invoke(key, typeof(NPatchTexture));
 
         DefaultTheme = new Theme(Files.GetResourceFilePath("MelbaToast.theme"));
         MainTheme = DefaultTheme;
@@ -66,25 +89,36 @@ internal static class ResourceManager {
     internal static void Load() {
         DefaultTheme.Load();
 
-        ColorLoader.Load(Raylib.WHITE);
-        FontLoader.Load(Raylib.GetFontDefault());
-        Image image = Raylib.GenImageColor(1, 1, Raylib.BLANK);
-        TextureLoader.Load(Raylib.LoadTextureFromImage(image));
-        SoundLoader.Load(new Sound());
-        MusicLoader.Load(new Music());
-        TextLoader.Load(new Dictionary<string, string>());
-        NPatchLoader.Load(new NPatchTexture(Raylib.LoadTextureFromImage(image), 0, 1, 0, 1));
+        foreach (ResourceLoader loader in ResourceLoaders)
+            loader.Load();
     }
 
     /// <summary>
     /// Unloads all resources.
     /// </summary>
     internal static void Unload() {
+        foreach (ResourceLoader loader in ResourceLoaders)
+            loader.Unload();
+
         DefaultTheme?.Unload();
         DefaultTheme?.Dispose();
 
         MainTheme?.Unload();
         MainTheme?.Dispose();
+    }
+
+    /// <summary>
+    /// Returns whether the resource is loaded.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    public static eResourceLoadStatus GetResourceState(string key) {
+        foreach (ResourceLoader loader in ResourceLoaders) {
+            if (loader.GetResourceState(key) is eResourceLoadStatus.Loading or eResourceLoadStatus.Loaded)
+                return loader.GetResourceState(key);
+        }
+
+        return eResourceLoadStatus.NotLoaded;
     }
 
     /// <summary>
@@ -94,13 +128,8 @@ internal static class ResourceManager {
         while (ResourceLoadingQueue.TryTake(out _)) ;
 
         Log.WriteLine("Reloading resources.");
-        ColorLoader.ReloadAll();
-        FontLoader.ReloadAll();
-        TextureLoader.ReloadAll();
-        SoundLoader.ReloadAll();
-        MusicLoader.ReloadAll();
-        TextLoader.ReloadAll();
-        NPatchLoader.ReloadAll();
+        foreach (ResourceLoader loader in ResourceLoaders)
+            loader.ReloadAll();
     }
 
     /// <summary>
@@ -119,12 +148,11 @@ internal static class ResourceManager {
     /// <param name="key">The key of the resource.</param>
     /// <param name="type">The type of the raylib resource type</param>
     private static void LoadResource(string key, Type type) {
-
-        if (type == typeof(Color)) {
+        if (type == typeof(Color4)) {
             ColorLoader.LoadResource(key);
-        } else if (type == typeof(Font)) {
+        } else if (type == typeof(FontFamilyData)) {
             FontLoader.LoadResource(key);
-        } else if (type == typeof(Texture)) {
+        } else if (type == typeof(Texture2D)) {
             TextureLoader.LoadResource(key);
         } else if (type == typeof(Sound)) {
             SoundLoader.LoadResource(key);

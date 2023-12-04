@@ -1,8 +1,10 @@
 ﻿// Entry point.
 
 using BlobGame;
+using BlobGame.App;
 using BlobGame.Game.GameModes;
-using BlobGame.Util;
+using SimpleGL;
+using SimpleGL.Util;
 using System.Diagnostics;
 using System.Text;
 
@@ -26,7 +28,7 @@ try {
                 continue;
 
             if (args[i] == "--debug")
-                Application.DRAW_DEBUG = true;
+                GameApplication.DRAW_DEBUG = true;
 
             if (args[i] == "--sockets" &&
                 i + 4 < args.Length &&
@@ -46,7 +48,7 @@ try {
         SocketApplication.Initialize(numParallelGames, useSeparateThreads, port, seed, gameModeKey);
         SocketApplication.Start();
     } else {
-        Application.Initialize();
+        Application.Initialize(new GameApplication());
         Application.Start();
     }
 } catch (Exception e) {

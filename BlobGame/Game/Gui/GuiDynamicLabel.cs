@@ -1,29 +1,32 @@
-﻿using BlobGame.Drawing;
-using Raylib_CsLo;
-using System.Numerics;
+﻿using BlobGame.ResourceHandling;
+using OpenTK.Mathematics;
+using SimpleGL.Graphics.Rendering;
 
 namespace BlobGame.Game.Gui;
 internal sealed class GuiDynamicLabel : GuiElement {
     public string Text { get; set; }
 
     private float FontSize { get; }
-    private float FontSpacing { get; }
+    private int FontSizeInt => (int)FontSize;
+    //private float FontSpacing { get; }
 
     private Vector2 TextPosition { get; }
 
-    public GuiDynamicLabel(float x, float y, string text, float fontSize, Vector2? pivot = null)
-        : base(x, y,
-            Raylib.MeasureTextEx(Renderer.GuiFont.Resource, text, fontSize, fontSize / 16f).X,
-            Raylib.MeasureTextEx(Renderer.GuiFont.Resource, text, fontSize, fontSize / 16f).Y, pivot) {
-
+    public GuiDynamicLabel(float x, float y, string text, float fontSize, int zIndex, Vector2? pivot = null)
+        : base(new Vector2(x, y), CalculateSize(fontSize, text), pivot, zIndex) {
         Text = text;
         FontSize = fontSize;
-        FontSpacing = FontSize / 64f;
+        //FontSpacing = FontSize / 64f;
         TextPosition = new Vector2(x, y);
     }
 
     protected override void DrawInternal() {
-        Raylib.DrawTextEx(Renderer.GuiFont.Resource, Text, TextPosition, FontSize, FontSpacing, Raylib.WHITE);
+        MeshFont font = Fonts.GetGuiFont(FontSizeInt);
+        Primitives.DrawText(font, Text, Color4.White, TextPosition, new Vector2(0.5f, 0.5f), 0, ZIndex);
     }
 
+    private static Vector2 CalculateSize(float fontSize, string text) {
+        MeshFont font = Fonts.GetGuiFont((int)fontSize);
+        return font.MeasureText(text);
+    }
 }

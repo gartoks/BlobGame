@@ -1,7 +1,7 @@
 ﻿using BlobGame.Game.GameControllers;
 using BlobGame.Game.GameModes;
 
-namespace BlobGame;
+namespace BlobGame.App;
 /// <summary>
 /// Static alternative application to run the game in a server-client architecture.
 /// </summary>

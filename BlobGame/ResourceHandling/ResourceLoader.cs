@@ -1,15 +1,26 @@
-﻿using BlobGame.Util;
+﻿using SimpleGL.Util;
 using System.Collections.Concurrent;
-using System.Globalization;
-using System.Reflection;
 
 namespace BlobGame.ResourceHandling;
+
+public enum eResourceLoadStatus { NotLoaded, Loading, Loaded, Unloaded }
+
+internal abstract class ResourceLoader {
+    internal abstract void Load();
+    internal abstract void Unload();
+    public abstract eResourceLoadStatus GetResourceState(string key);
+    public abstract void Load(params string[] keys);
+    public abstract void Unload(params string[] keys);
+    public abstract void ReloadAll();
+    internal abstract void LoadResource(string key);
+}
+
 /// <summary>
 /// Class for loading resources.
 /// </summary>
 /// <typeparam name="TResource"></typeparam>
 /// <typeparam name="TGameResource"></typeparam>
-internal abstract class ResourceLoader<TResource, TGameResource> where TGameResource : GameResource<TResource> {
+internal abstract class ResourceLoader<TResource> : ResourceLoader {
     /// <summary>
     /// Mirror of the resource loading queue in <see cref="ResourceManager"/>.
     /// </summary>
@@ -18,59 +29,36 @@ internal abstract class ResourceLoader<TResource, TGameResource> where TGameReso
     /// <summary>
     /// Loaded resources.
     /// </summary>
-    private ConcurrentDictionary<string, (TResource? baseResource, TGameResource resource)> Resources { get; }
+    private ConcurrentDictionary<string, TResource> LoadedResources { get; }
+    private ConcurrentDictionary<string, ManualResetEvent> LoadingResources { get; }
 
-    /// <summary>
-    /// Fall back resource. Used in case a resource has not yet been loaded.
-    /// </summary>
-    private TResource _Fallback { get; set; }
-    /// <summary>
-    /// The fallback game resource.
-    /// </summary>
-    internal TGameResource Fallback { get; private set; }
+    internal event Action<string, TResource> ResourceLoaded;
 
     internal ResourceLoader(BlockingCollection<(string key, Type type)> resourceLoadingQueue) {
         ResourceLoadingQueue = resourceLoadingQueue;
 
-        Resources = new ConcurrentDictionary<string, (TResource? baseResource, TGameResource resource)>();
+        LoadedResources = new();
+        LoadingResources = new();
     }
 
     /// <summary>
     /// Loads the resource loader.
     /// </summary>
-    /// <param name="fallbackResource"></param>
-    internal void Load(TResource fallbackResource) {
-        _Fallback = fallbackResource;
-        Fallback = Create("fallback");
+    internal override void Load() {
     }
 
     /// <summary>
     /// Unloads the resource loader.
     /// </summary>
-    internal void Unload() {
-        foreach (KeyValuePair<string, (TResource? baseResource, TGameResource resource)> item in Resources) {
-            Unload(item.Key);
-        }
-        Resources.Clear();
-    }
+    internal override void Unload() {
+        foreach (string key in LoadingResources.Keys.ToList())
+            Unload(key);
 
-    /// <summary>
-    /// Actually performs the loading of the resource.
-    /// </summary>
-    /// <param name="key"></param>
-    internal void LoadResource(string key) {
-        if (!Resources.TryGetValue(key, out (TResource? baseResource, TGameResource resource) val)) {
-            Log.WriteLine($"Unable to load {typeof(TResource).Name} resource '{key}'.", eLogType.Error);
-            return;
-        }
+        foreach (string key in LoadedResources.Keys.ToList())
+            Unload(key);
 
-        TResource? resource = LoadResourceInternal(key);
-        if (resource == null) {
-            Log.WriteLine($"The {typeof(TResource).Name} resource file for {key} does not exist.", eLogType.Error);
-            return;
-        }
-
-        Resources[key] = (resource!, val.resource);
+        LoadedResources.Clear();
+        LoadingResources.Clear();
     }
 
     /// <summary>
@@ -78,17 +66,13 @@ internal abstract class ResourceLoader<TResource, TGameResource> where TGameReso
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public bool IsLoaded(string key) {
-        return Resources.Any(pair => pair.Key == key && pair.Value.resource.IsLoaded);
-    }
-
-    /// <summary>
-    /// Returns whether the resource is loading.
-    /// </summary>
-    /// <param name="key"></param>
-    /// <returns></returns>
-    public bool IsLoading(string key) {
-        return ResourceLoadingQueue.Any(r => r.key == key);
+    public override eResourceLoadStatus GetResourceState(string key) {
+        if (LoadedResources.ContainsKey(key))
+            return eResourceLoadStatus.Loaded;
+        else if (LoadingResources.ContainsKey(key))
+            return eResourceLoadStatus.Loading;
+        else
+            return eResourceLoadStatus.NotLoaded;
     }
 
     /// <summary>
@@ -96,21 +80,14 @@ internal abstract class ResourceLoader<TResource, TGameResource> where TGameReso
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public TGameResource Get(string key) {
-        Load(key);
-        return Resources[key].resource;
-    }
+    public TResource GetResource(string key) {
+        if (LoadingResources.TryGetValue(key, out ManualResetEvent? loadWaiter))
+            loadWaiter.WaitOne();
 
-    /// <summary>
-    /// Marks a resource for loading.
-    /// </summary>
-    /// <param name="key"></param>
-    public void Load(string key) {    // TODO maybe internal
-        if (!IsLoaded(key) && !IsLoading(key)) {
-            TGameResource gameResource = Create(key);
-            Resources[key] = (default, gameResource);
-            ResourceLoadingQueue.Add((key, typeof(TResource)));
-        }
+        if (LoadedResources.TryGetValue(key, out TResource? resouce))
+            return resouce;
+
+        throw new InvalidOperationException($"Resource {key} is not loaded or loading");
     }
 
     /// <summary>
@@ -118,47 +95,86 @@ internal abstract class ResourceLoader<TResource, TGameResource> where TGameReso
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    private TResource? TryGetResource(string key) {
-        if (Resources.TryGetValue(key, out (TResource? baseResource, TGameResource resource) texture))
-            return texture.baseResource;
+    public bool TryGetResource(string key, out TResource? resource) {
+        return LoadedResources.TryGetValue(key, out resource);
+    }
 
-        return default;
+    /// <summary>
+    /// Marks a resource for loading.
+    /// </summary>
+    /// <param name="key"></param>
+    public override void Load(params string[] keys) {
+        foreach (string key in keys) {
+            if (GetResourceState(key) != eResourceLoadStatus.NotLoaded)
+                return;
+
+            LoadingResources[key] = new ManualResetEvent(false);
+            ResourceLoadingQueue.Add((key, typeof(TResource)));
+        }
     }
 
     /// <summary>
     /// Unloads the resource.
     /// </summary>
     /// <param name="key"></param>
-    public void Unload(string key) {    // TODO maybe internal
-        if (!Resources.TryGetValue(key, out (TResource? bR, TGameResource r) res))
-            return;
+    public override void Unload(params string[] keys) {    // TODO maybe internal
+        foreach (string key in keys) {
 
-        TGameResource resource = res.r;
-        UnloadResourceInternal(resource);
-        resource.Unload();
-        Resources[key] = (default, resource);
+
+            if (LoadingResources.TryRemove(key, out ManualResetEvent? loadWaiter)) {
+                loadWaiter?.Set();
+                return;
+            }
+
+            if (!LoadedResources.TryRemove(key, out TResource? res))
+                return;
+
+            UnloadResourceInternal(key, res);
+        }
     }
 
     /// <summary>
     /// Reloads all resources
     /// </summary>
-    public void ReloadAll() {
-        foreach (string key in Resources.Keys.ToList()) {
+    public override void ReloadAll() {
+        foreach (string key in LoadedResources.Keys.ToList()) {
             Unload(key);
             Load(key);
         }
     }
 
     /// <summary>
-    /// Creates a new game resource object.
+    /// Actually performs the loading of the resource.
     /// </summary>
     /// <param name="key"></param>
-    /// <returns></returns>
-    protected TGameResource Create(string key) {
-        ResourceRetrieverDelegate del = key => TryGetResource(key);
-        return (TGameResource?)Activator.CreateInstance(typeof(TGameResource), BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { key, _Fallback, del }, CultureInfo.InvariantCulture)!;
+    internal override void LoadResource(string key) {
+        // Resource is not added to "loaded" of it does not exist as a waiter.
+        // This can happen if the resource is unloaded before it is finished loading.
+        if (!LoadingResources.Remove(key, out ManualResetEvent? loadWaiter))
+            return;
+
+        TResource? resource = LoadResourceInternal(key);
+        if (resource == null) {
+            Log.WriteLine($"The {typeof(TResource).Name} resource file for {key} does not exist.", eLogType.Error);
+            return;
+        }
+
+        LoadedResources[key] = resource;
+        loadWaiter.Set();
+        ResourceLoaded?.Invoke(key, resource);
     }
 
+    /*
+        /// <summary>
+        /// Creates a new game resource object.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        protected TGameResource Create(string key) {
+            ResourceRetrieverDelegate del = key => TryGetResource(key);
+            return (TGameResource?)Activator.CreateInstance(typeof(TGameResource), BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { key, _Fallback, del }, CultureInfo.InvariantCulture)!;
+        }
+    */
     /// <summary>
     /// Performs the actual loading of the resource.
     /// </summary>
@@ -169,6 +185,6 @@ internal abstract class ResourceLoader<TResource, TGameResource> where TGameReso
     /// <summary>
     /// Unloads the actual resource.
     /// </summary>
-    /// <param name="resource"></param>
-    protected abstract void UnloadResourceInternal(TGameResource resource);
+    /// <param name="key">The key of the resource</param>
+    protected abstract void UnloadResourceInternal(string key, TResource resource);
 }

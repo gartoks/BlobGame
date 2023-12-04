@@ -1,31 +1,30 @@
 ﻿using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
-using Raylib_CsLo;
-using System.Numerics;
+using OpenTK.Mathematics;
+using SimpleGL.Graphics.Rendering;
 
 namespace BlobGame.Game.Gui;
 internal sealed class GuiPanel : GuiElement {
-    public ColorResource Color { get; set; }
-    public ColorResource AccentColor { get; set; }
+    public Color4 Color { get; set; }
+    public Color4 AccentColor { get; set; }
 
-    public GuiPanel(string boundsString, Vector2? pivot = null)
-        : this(GuiBoundsParser.Parse(boundsString), pivot) {
+    public GuiPanel(string boundsString, int zIndex, Vector2? pivot = null)
+        : this(GuiBoundsParser.Parse(boundsString), zIndex, pivot) {
     }
 
-    public GuiPanel(Rectangle bounds, Vector2? pivot = null)
-        : this(bounds.X, bounds.Y, bounds.width, bounds.height, pivot) {
+    public GuiPanel(Box2 bounds, int zIndex, Vector2? pivot = null)
+        : this(bounds.X(), bounds.Y(), bounds.Width(), bounds.Height(), zIndex, pivot) {
     }
 
-    public GuiPanel(float x, float y, float w, float h, Vector2? pivot = null)
-        : base(x, y, w, h, pivot) {
+    public GuiPanel(float x, float y, float w, float h, int zIndex, Vector2? pivot = null)
+        : base(x, y, w, h, pivot, zIndex) {
 
-        Color = ResourceManager.ColorLoader.Get("light_accent");
-        AccentColor = ColorResource.WHITE;
+        Color = ResourceManager.ColorLoader.GetResource("light_accent");
+        AccentColor = Color4.White;
     }
 
     protected override void DrawInternal() {
-        Raylib.DrawRectangleRounded(Bounds, 0.15f, 10, Color.Resource);
-        Raylib.DrawRectangleRoundedLines(Bounds, 0.15f, 10, 8, AccentColor.Resource);
+        Primitives.DrawRectangle(Bounds.Min, Bounds.Size, Pivot, 0, ZIndex, Color);
+        Primitives.DrawRectangleLines(Bounds.Min, Bounds.Size, 8, Pivot, 0, ZIndex, AccentColor);
     }
 }

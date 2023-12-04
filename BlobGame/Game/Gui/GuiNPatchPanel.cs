@@ -1,8 +1,9 @@
 ﻿using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
-using Raylib_CsLo;
-using System.Numerics;
+using OpenTK.Mathematics;
+using SimpleGL.Graphics;
+using SimpleGL.Graphics.Rendering;
+using SimpleGL.Graphics.Textures;
 
 namespace BlobGame.Game.Gui;
 internal sealed class GuiNPatchPanel : GuiElement {
@@ -11,40 +12,52 @@ internal sealed class GuiNPatchPanel : GuiElement {
     public string TextureKey {
         get => _TextureKey;
         set {
+            if (ResourceManager.NPatchLoader.GetResourceState(value) != eResourceLoadStatus.Loaded)
+                throw new ArgumentException($"Texture with key \"{value}\" is not loaded.");
+
             _TextureKey = value;
             Texture = null;
         }
     }
-    private NPatchTextureResource? Texture { get; set; }
+    private NPatchTexture? Texture { get; set; }
+    private NPatchSprite PanelSprite { get; set; }
 
-    public ColorResource Tint { get; set; }
+    public Color4 Tint { get; set; }
 
-    public GuiNPatchPanel(string boundsString, string textureKey, Vector2? pivot = null)
-        : this(GuiBoundsParser.Parse(boundsString), textureKey, pivot) {
+    public GuiNPatchPanel(string boundsString, string textureKey, int zIndex, Vector2? pivot = null)
+        : this(GuiBoundsParser.Parse(boundsString), textureKey, zIndex, pivot) {
     }
 
-    public GuiNPatchPanel(Rectangle bounds, string textureKey, Vector2? pivot = null)
-        : this(bounds.X, bounds.Y, bounds.width, bounds.height, textureKey, pivot) {
+    public GuiNPatchPanel(Box2 bounds, string textureKey, int zIndex, Vector2? pivot = null)
+        : this(bounds.Min.X, bounds.Min.Y, bounds.Size.X, bounds.Size.Y, textureKey, zIndex, pivot) {
     }
 
-    public GuiNPatchPanel(float x, float y, float w, float h, string textureKey, Vector2? pivot = null)
-        : base(x, y, w, h, pivot) {
+    public GuiNPatchPanel(float x, float y, float w, float h, string textureKey, int zIndex, Vector2? pivot = null)
+        : base(x, y, w, h, pivot, zIndex) {
 
         TextureKey = textureKey;
-        Tint = ColorResource.WHITE;
+        Tint = Color4.White;
     }
 
     internal override void Load() {
         base.Load();
 
-        Texture = ResourceManager.NPatchLoader.Get(TextureKey);
+        Texture = ResourceManager.NPatchLoader.GetResource(TextureKey);
+        PanelSprite = new NPatchSprite(Texture, GraphicsHelper.CreateDefaultTexturedShader());
     }
 
     protected override void DrawInternal() {
-        if (Texture == null)
-            Texture = ResourceManager.NPatchLoader.Get(TextureKey);
+        if (Texture == null) {
+            Texture = ResourceManager.NPatchLoader.GetResource(TextureKey);
+            PanelSprite.Texture = Texture;
+        }
 
-        Texture.Draw(Bounds, Pivot, Tint.Resource);
+        PanelSprite.Transform.Pivot = Pivot;
+        PanelSprite.Transform.Position = Bounds.Min;
+        PanelSprite.Transform.Scale = Bounds.Size;
+        PanelSprite.Transform.Rotation = 0;
+        PanelSprite.Transform.ZIndex = ZIndex;
+        PanelSprite.Render();
     }
 
 }

@@ -1,27 +1,30 @@
-﻿using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
-using Raylib_CsLo;
-using System.Numerics;
+﻿using BlobGame.App;
+using BlobGame.ResourceHandling;
+using OpenTK.Mathematics;
+using SimpleGL.Graphics.Rendering;
+using SimpleGL.Graphics.Textures;
+using static SimpleGL.Util.Math.MathUtils;
 
-namespace BlobGame.Drawing;
+namespace BlobGame.Rendering;
 /// <summary>
 /// Class to handle animated textures.
 /// </summary>
 internal sealed class AnimatedTexture {
-    private TextureResource Texture { get; }
+    private Texture Texture { get; }
 
-    private Vector2 Pivot { get; }
+    private int ZIndex { get; }
     private Vector2 Position { get; }
     private Vector2 Scale { get; }
     private float Rotation { get; }
-    private Color Color { get; }
+    private Vector2 Pivot { get; }
+    private Color4 Color { get; }
 
     private float Duration { get; }
 
     internal Func<float, Vector2>? PositionAnimator { get; init; }
     internal Func<float, Vector2>? ScaleAnimator { get; init; }
     internal Func<float, float>? RotationAnimator { get; init; }
-    internal Func<float, Color>? ColorAnimator { get; init; }
+    internal Func<float, Color4>? ColorAnimator { get; init; }
 
     /// <summary>
     /// Time when the animation started.
@@ -31,18 +34,18 @@ internal sealed class AnimatedTexture {
     /// <summary>
     /// Indicator if the animation has started and finished.
     /// </summary>
-    public bool IsFinished => Renderer.Time - StartTime >= Duration;
+    public bool IsFinished => GameApplication.RenderGameTime - StartTime >= Duration;
 
     /// <summary>
     /// Indicator if the animation has not yet started.
     /// </summary>
-    public bool IsReady => Renderer.Time - StartTime < 0;
+    public bool IsReady => GameApplication.RenderGameTime - StartTime < 0;
 
-    public AnimatedTexture(string textureKey, float duration, Vector2 position, Vector2 pivot, Vector2? scale = null, float rotation = 0, Color? color = null)
-        : this(ResourceManager.TextureLoader.Get(textureKey), duration, position, pivot, scale, rotation, color) {
+    public AnimatedTexture(string textureKey, float duration, Vector2 position, Vector2? scale, float rotation, int zIndex, Vector2 pivot, Color4? color = null)
+        : this(ResourceManager.TextureLoader.GetResource(textureKey), duration, position, scale, rotation, zIndex, pivot, color) {
     }
 
-    public AnimatedTexture(TextureResource texture, float duration, Vector2 position, Vector2? pivot = null, Vector2? scale = null, float rotation = 0, Color? color = null) {
+    public AnimatedTexture(Texture texture, float duration, Vector2 position, Vector2? scale, float rotation, int zIndex, Vector2? pivot = null, Color4? color = null) {
         if (pivot == null)
             pivot = Vector2.Zero;
 
@@ -50,7 +53,7 @@ internal sealed class AnimatedTexture {
             scale = Vector2.One;
 
         if (color == null)
-            color = Raylib.WHITE;
+            color = Color4.White;
 
         Texture = texture;
         Position = position;
@@ -59,6 +62,7 @@ internal sealed class AnimatedTexture {
         Rotation = rotation;
         Duration = duration;
         Color = color.Value;
+        ZIndex = zIndex;
 
         StartTime = -float.MinValue;
     }
@@ -67,7 +71,7 @@ internal sealed class AnimatedTexture {
     /// Starts the animation.
     /// </summary>
     public void Start() {
-        StartTime = Renderer.Time;
+        StartTime = GameApplication.RenderGameTime;
     }
 
     /// <summary>
@@ -77,20 +81,20 @@ internal sealed class AnimatedTexture {
         StartTime = -float.MinValue;
     }
 
-    public void Draw() {
+    public void Render() {
         float t;
         if (IsReady)
             t = 0;
         else if (IsFinished)
             t = 1;
         else
-            t = (Renderer.Time - StartTime) / Duration;
+            t = (GameApplication.RenderGameTime - StartTime) / Duration;
 
         Vector2 pos = Position + (PositionAnimator?.Invoke(t) ?? Vector2.Zero);
         Vector2 scale = Scale * (ScaleAnimator?.Invoke(t) ?? Vector2.One);
-        float rot = (/*Rotation + */(RotationAnimator?.Invoke(t) ?? Rotation)) * RayMath.RAD2DEG;
-        Color color = ColorAnimator?.Invoke(t) ?? Color;
+        float rot = (/*Rotation + */(RotationAnimator?.Invoke(t) ?? Rotation)).ToDeg();
+        Color4 color = ColorAnimator?.Invoke(t) ?? Color;
 
-        Texture.Draw(pos, Pivot, scale, rot, color);
+        Primitives.DrawSprite(pos, scale, Pivot, rot, ZIndex, Texture, color);
     }
 }

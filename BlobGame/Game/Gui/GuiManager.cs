@@ -1,6 +1,6 @@
 ﻿using BlobGame.App;
 using BlobGame.Audio;
-using Raylib_CsLo;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace BlobGame.Game.Gui;
 /// <summary>
@@ -21,11 +21,11 @@ internal static class GuiManager {
     }
 
     internal static void Load() {
-        Input.RegisterHotkey("confirm", KeyboardKey.KEY_ENTER);
-        Input.RegisterHotkey("next", KeyboardKey.KEY_DOWN);
-        Input.RegisterHotkey("previous", KeyboardKey.KEY_UP);
-        Input.RegisterHotkey("next_subItem", KeyboardKey.KEY_RIGHT);
-        Input.RegisterHotkey("previous_subItem", KeyboardKey.KEY_LEFT);
+        Input.RegisterHotkey("confirm", Keys.Enter);
+        Input.RegisterHotkey("next", Keys.Down);
+        Input.RegisterHotkey("previous", Keys.Up);
+        Input.RegisterHotkey("next_subItem", Keys.Right);
+        Input.RegisterHotkey("previous_subItem", Keys.Left);
     }
 
     internal static void Unload() {

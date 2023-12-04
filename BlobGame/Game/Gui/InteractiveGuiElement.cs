@@ -1,15 +1,13 @@
 ﻿using BlobGame.App;
-using BlobGame.Util;
-using Raylib_CsLo;
-using System.Numerics;
+using OpenTK.Mathematics;
 
 namespace BlobGame.Game.Gui;
 internal abstract class InteractiveGuiElement : GuiElement {
 
-    internal bool IsHovered => Bounds.Contains(Input.ScreenToWorld(Raylib.GetMousePosition()));
+    internal bool IsHovered => Bounds.ContainsInclusive(Input.GetMousePosition());
 
-    protected InteractiveGuiElement(float x, float y, float w, float h, Vector2? pivot)
-        : base(x, y, w, h, pivot) {
+    protected InteractiveGuiElement(float x, float y, float w, float h, int zIndex, Vector2? pivot)
+        : base(x, y, w, h, pivot, zIndex) {
     }
 
     internal void Focus() {

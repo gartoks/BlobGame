@@ -63,6 +63,7 @@ tomato + tomato = 15
 apple + apple = 21
 yuzu + yuzu = 28
 peach + peach = 36
-melon + melon = 45
+pineapple + pineapple = 45
 honeydew + honeydew = 55
+melon + melon = 66
 

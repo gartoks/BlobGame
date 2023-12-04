@@ -1,9 +1,9 @@
 ﻿using BlobGame.App;
 using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
-using Raylib_CsLo;
-using System.Numerics;
+using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace BlobGame.Game.Gui;
 internal class GuiTextbox : InteractiveGuiElement {
@@ -15,7 +15,7 @@ internal class GuiTextbox : InteractiveGuiElement {
         set {
             Label.Text = value;
 
-            if (Label.GetTextSize().X > Bounds.width - 2 * TEXT_SPACING)
+            if (Label.GetTextSize().X > Bounds.Width() - 2 * TEXT_SPACING)
                 Label.Text = Label.Text[..^1];
         }
     }
@@ -25,44 +25,58 @@ internal class GuiTextbox : InteractiveGuiElement {
 
     public Predicate<char>? CharFilter { get; init; }
 
-    public GuiTextbox(string boundsString, Vector2? pivot = null)
-        : this(GuiBoundsParser.Parse(boundsString), pivot) {
+    public GuiTextbox(string boundsString, int zIndex, Vector2? pivot = null)
+        : this(GuiBoundsParser.Parse(boundsString), zIndex, pivot) {
     }
 
-    private GuiTextbox(Rectangle bounds, Vector2? pivot = null)
-        : this(bounds.X, bounds.Y, bounds.width, bounds.height, pivot) {
+    private GuiTextbox(Box2 bounds, int zIndex, Vector2? pivot = null)
+        : this(bounds.X(), bounds.Y(), bounds.Width(), bounds.Height(), zIndex, pivot) {
     }
 
-    public GuiTextbox(float x, float y, float w, float h, Vector2? pivot = null)
-        : base(x, y, w, h, pivot) {
-        Panel = new GuiPanel(x, y, w, h, new Vector2(0, 0));
-        Label = new GuiLabel(x + TEXT_SPACING, y, w - 2 * TEXT_SPACING, h, string.Empty, new Vector2(0, 0));
+    public GuiTextbox(float x, float y, float w, float h, int zIndex, Vector2? pivot = null)
+        : base(x, y, w, h, zIndex, pivot) {
+        Panel = new GuiPanel(x, y, w, h, ZIndex, new Vector2(0, 0));
+        Label = new GuiLabel(x + TEXT_SPACING, y, w - 2 * TEXT_SPACING, h, string.Empty, ZIndex + 1, new Vector2(0, 0));
         Label.TextAlignment = eTextAlignment.Left;
+
+        GameApplication.Window.TextInput += OnTextInput;
+        GameApplication.Window.KeyDown += OnKeyDown;
+    }
+
+    ~GuiTextbox() {
+        GameApplication.Window.TextInput -= OnTextInput;
+    }
+
+    internal override void Load() {
+        base.Load();
+
+        Panel.Load();
+        Label.Load();
     }
 
     protected override void DrawInternal() {
-        bool shouldFocus = IsHovered && Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT);
+        bool shouldFocus = IsHovered && Input.IsMouseButtonActive(MouseButton.Left);
 
         if (shouldFocus)
             Focus();
 
-        if (HasFocus()) {
-            if (Raylib.IsKeyReleased(KeyboardKey.KEY_BACKSPACE) && Label.Text.Length > 0)
-                Text = Label.Text[..^1];
-            else {
-                char c = (char)Raylib.GetCharPressed();
-                if (ALLOWED_CHARS.Contains(c) && (CharFilter == null || CharFilter(c)))
-                    Text += c.ToString();
-            }
-        }
-
-        ColorResource accentColor = ColorResource.WHITE;
+        Color4 accentColor = Color4.White;
         if (HasFocus())
-            accentColor = ResourceManager.ColorLoader.Get("highlight");
+            accentColor = ResourceManager.ColorLoader.GetResource("highlight");
         Panel.AccentColor = accentColor;
 
         Panel.Draw();
         Label.Draw();
     }
 
+    private void OnTextInput(TextInputEventArgs args) {
+        char c = args.AsString.FirstOrDefault();
+        if (HasFocus() && ALLOWED_CHARS.Contains(c) && (CharFilter == null || CharFilter(c)))
+            Text += c.ToString();
+    }
+
+    private void OnKeyDown(KeyboardKeyEventArgs args) {
+        if (HasFocus() && Label.Text.Length > 0 && args.Key == Keys.Backspace)
+            Text = Label.Text[..^1];
+    }
 }

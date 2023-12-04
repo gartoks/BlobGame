@@ -1,6 +1,8 @@
-﻿using nkast.Aether.Physics2D.Common;
+﻿using BlobGame.App;
+using BlobGame.Util;
+using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
-using Raylib_CsLo;
+using SimpleGL.Graphics.Rendering;
 
 namespace BlobGame.Game;
 /// <summary>
@@ -27,10 +29,10 @@ internal sealed class Wall : GameObject {
     /// <param name="name">The name of wall</param>
     /// <param name="world">The world to add the physics engine body to.</param>
     /// <param name="bounds">The bounds of the wall. Used to position and scale it.</param>
-    public Wall(string name, World world, Rectangle bounds)
-        : base(name, world, new Vector2(bounds.x, bounds.y), 0, BodyType.Static) {
-        Width = bounds.width;
-        Height = bounds.height;
+    public Wall(string name, World world, OpenTK.Mathematics.Box2 bounds)
+        : base(name, world, new Vector2(bounds.X(), bounds.Y()), 0, BodyType.Static) {
+        Width = bounds.Width();
+        Height = bounds.Height();
 
         Fixture = Body.CreateRectangle(Width / 10f, Height / 10f, 1, new Vector2(Width / 10f / 2, Height / 10f / 2));
         Fixture.Restitution = 0;
@@ -41,8 +43,15 @@ internal sealed class Wall : GameObject {
     /// <summary>
     /// Custom wall drawing logic.
     /// </summary>
-    protected internal override void DrawInternal() {
-        if (Application.DRAW_DEBUG)
-            Raylib.DrawRectangleLinesEx(new Rectangle(0, 0, Width, Height), 2, Raylib.WHITE);
+    public override void Render(OpenTK.Mathematics.Vector2 offset) {
+        if (GameApplication.DRAW_DEBUG)
+            Primitives.DrawRectangleLines(
+                OpenTK.Mathematics.Vector2.Zero,
+                new OpenTK.Mathematics.Vector2(Width, Height),
+                2f,
+                OpenTK.Mathematics.Vector2.Zero,
+                0,
+                100,
+                OpenTK.Mathematics.Color4.White);
     }
 }

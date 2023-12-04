@@ -20,7 +20,12 @@ internal abstract class Scene {
     /// <summary>
     /// Called every frame to draw the scene. Override this method to provide custom scene rendering logic.
     /// </summary>
-    internal virtual void Draw() { }
+    internal virtual void Render() { }
+
+    /// <summary>
+    /// Called every frame to draw the scene's gui. Override this method to provide custom scene rendering logic.
+    /// </summary>
+    internal virtual void RenderGui() { }
 
     /// <summary>
     /// Called when the scene is about to be unloaded or replaced by another scene. Override this method to provide custom cleanup or deinitialization logic and to unload resources.

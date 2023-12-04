@@ -1,5 +1,4 @@
-﻿using Raylib_CsLo;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace BlobGame;
 internal static class DEBUGStuff {
@@ -15,7 +14,7 @@ internal static class DEBUGStuff {
     }
 
     public static void DEBUG_PrintNPatchJson() {
-        NPatchInfo npi = new NPatchInfo(new Rectangle(0, 0, 500, 400), 65, 50, 856, 167, NPatchLayout.NPATCH_NINE_PATCH);
+        /*NPatchInfo npi = new NPatchInfo(new Rectangle(0, 0, 500, 400), 65, 50, 856, 167, NPatchLayout.NPATCH_NINE_PATCH);
 
         string json = JsonSerializer.Serialize<Dictionary<string, int>>(new() {
             { "left", npi.left },
@@ -26,6 +25,6 @@ internal static class DEBUGStuff {
         }, new JsonSerializerOptions() { WriteIndented = true });
 
         Dictionary<string, int>? dict = JsonSerializer.Deserialize<Dictionary<string, int>>(json);
-        NPatchInfo npi2 = new NPatchInfo(new Rectangle(0, 0, 500, 400), dict["left"], dict["right"], dict["top"], dict["bottom"], (NPatchLayout)dict["layout"]);
+        NPatchInfo npi2 = new NPatchInfo(new Rectangle(0, 0, 500, 400), dict["left"], dict["right"], dict["top"], dict["bottom"], (NPatchLayout)dict["layout"]);*/
     }
 }

@@ -1,6 +1,9 @@
 ﻿using BlobGame.Audio;
 using BlobGame.ResourceHandling;
-using Raylib_CsLo;
+using OpenTK.Windowing.Common;
+using OpenTK.Windowing.Desktop;
+using SimpleGL;
+using SimpleGL.Graphics;
 using System.Dynamic;
 using System.Text.Json;
 
@@ -30,6 +33,16 @@ internal sealed class Settings {
     /// The current screen mode.
     /// </summary>
     public eScreenMode ScreenMode { get; private set; }
+
+    /// <summary>
+    /// The current inner window resolution.
+    /// </summary>
+    public (int w, int h) Resolution => (Application.Window.ClientSize.X, Application.Window.ClientSize.X);
+
+    ///// <summary>
+    ///// The name of the monitor the window is on.
+    ///// </summary>
+    //public string Monitor => Monitors.GetMonitorFromWindow(Application.Window).Name;
 
     /// <summary>
     /// The music volume from 0 to 100. It is internally stored as 0 to 100 because easier comparison when adjusting settings.
@@ -94,6 +107,32 @@ internal sealed class Settings {
         Save();
     }
 
+    /// <summary>
+    /// Set the windows screen mode.
+    /// </summary>
+    /// <param name="mode"></param>
+    public void SetScreenMode(eScreenMode mode) {
+        switch (mode) {
+            case eScreenMode.Fullscreen:
+                Application.Window.WindowState = WindowState.Fullscreen;
+                /*Application.Window.WindowBorder = WindowBorder.Hidden;
+                Raylib.SetWindowSize(GetCurrentResolution().w, GetCurrentResolution().h);
+                Raylib.SetWindowPosition(0, 0);*/
+                break;
+            case eScreenMode.Borderless:
+                Application.Window.WindowBorder = WindowBorder.Hidden;
+                Application.Window.ClientLocation = new(0, 0);
+                Application.Window.ClientSize = Monitors.GetMonitorFromWindow(Application.Window).ClientArea.Size;
+                break;
+            case eScreenMode.Windowed:
+                Application.Window.WindowState = WindowState.Normal;
+                Application.Window.WindowBorder = WindowBorder.Fixed;
+                break;
+        }
+
+        ScreenMode = mode;
+        Save();
+    }
 
     /// <summary>
     /// Sets the resolution to the given width and height. Only works if the screen mode is not borderless.
@@ -104,7 +143,7 @@ internal sealed class Settings {
         if (ScreenMode == eScreenMode.Borderless)
             return;
 
-        Raylib.SetWindowSize(w, h);
+        Application.Window.ClientSize = new(w, h);
         Save();
     }
 
@@ -113,7 +152,8 @@ internal sealed class Settings {
     /// </summary>
     /// <param name="monitor"></param>
     public void SetMonitor(int monitor) {
-        return; // Disableb because it's not working properly. Try it out
+        // TODO
+        /*Application.Window.CurrentMonitor =
 
         if (monitor < 0 || monitor >= Raylib.GetMonitorCount())
             return;
@@ -136,83 +176,23 @@ internal sealed class Settings {
         }
 
         Raylib.SetWindowMonitor(monitor);
-        Save();
-    }
-
-    /// <summary>
-    /// Set the windows screen mode.
-    /// </summary>
-    /// <param name="mode"></param>
-    public void SetScreenMode(eScreenMode mode) {
-        switch (mode) {
-            case eScreenMode.Fullscreen:
-                Raylib.SetWindowState(ConfigFlags.FLAG_FULLSCREEN_MODE);
-                Raylib.SetWindowSize(GetCurrentResolution().w, GetCurrentResolution().h);
-                Raylib.SetWindowPosition(0, 0);
-                break;
-            case eScreenMode.Borderless:
-                Raylib.ClearWindowState(ConfigFlags.FLAG_FULLSCREEN_MODE);
-                Raylib.SetWindowState(ConfigFlags.FLAG_WINDOW_UNDECORATED);
-                Raylib.SetWindowSize(GetCurrentMonitorResolution().w, GetCurrentMonitorResolution().h);
-                Raylib.SetWindowPosition(0, 0);
-                break;
-            case eScreenMode.Windowed:
-                Raylib.ClearWindowState(ConfigFlags.FLAG_WINDOW_UNDECORATED | ConfigFlags.FLAG_FULLSCREEN_MODE);
-                break;
-        }
-
-        ScreenMode = mode;
-        Save();
-    }
-
-    /// <summary>
-    /// Gets the index of the current monitor.
-    /// </summary>
-    public int GetCurrentMonitor() {
-        return GetMonitors()[Raylib.GetCurrentMonitor()].monitor;
+        Save();*/
     }
 
     /// <summary>
     /// Gets the indices and names of all monitors.
     /// </summary>
     /// <returns></returns>
-    public (int monitor, string name)[] GetMonitors() {
-        int count = Raylib.GetMonitorCount();
-        (int monitor, string name)[] monitors = new (int monitor, string name)[count];
-        for (int i = 0; i < count; i++) {
-            monitors[i] = (i, Raylib.GetMonitorName_(i));
-        }
-        return monitors;
-    }
-
-    /// <summary>
-    /// Gets the current resolution of the game window.
-    /// </summary>
-    public (int w, int h) GetCurrentResolution() {
-        return (Raylib.GetRenderWidth(), Raylib.GetRenderHeight());
+    public (int index, string name)[] GetMonitors() {
+        return GraphicsHelper.GetMonitors().Select((m, i) => (i, m.Name)).ToArray();
     }
 
     /// <summary>
     /// Gets the resolution of the monitor the game is currently displayed on.
     /// </summary>
     public (int w, int h) GetCurrentMonitorResolution() {
-        int curMonitor = Raylib.GetCurrentMonitor();
-        return GetMonitorResolution(curMonitor);
-    }
-    /// <summary>
-    /// Gets the name of the theme the game is currently using.
-    /// </summary>
-    public string GetCurrentThemeName() {
-        return ThemeName;
-    }
-
-    /// <summary>
-    /// Gets the resolution of the monitor with the given index.
-    /// </summary>
-    /// <param name="monitor"></param>
-    /// <returns></returns>
-    private (int w, int h) GetMonitorResolution(int monitor) {
-        return (Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
+        MonitorInfo monitor = Application.Window.GetMonitor();
+        return (monitor.HorizontalResolution, monitor.VerticalResolution);
     }
 
     /// <summary>
@@ -224,9 +204,9 @@ internal sealed class Settings {
         dynamic settingsData = new ExpandoObject();
 
         settingsData.ScreenMode = ScreenMode.ToString();
-        settingsData.Monitor = Raylib.GetCurrentMonitor();
-        settingsData.ResolutionW = Raylib.GetScreenWidth();
-        settingsData.ResolutionH = Raylib.GetScreenHeight();
+        settingsData.Monitor = GraphicsHelper.GetMonitors().ToList().IndexOf(Application.Window.GetMonitor());
+        settingsData.ResolutionW = Application.Window.ClientSize.X;
+        settingsData.ResolutionH = Application.Window.ClientSize.Y;
         settingsData.MusicVolume = _MusicVolume;
         settingsData.SoundVolume = _SoundVolume;
         settingsData.IsTutorialEnabled = _IsTutorialEnabled;
@@ -239,7 +219,7 @@ internal sealed class Settings {
     /// Loads the settings from a file. If the file does not exist or is invalid, the default settings are used.
     /// </summary>
     public void Load() {
-        int monitor = Raylib.GetCurrentMonitor();
+        //int monitor = GraphicsHelper.GetMonitors().ToList().IndexOf(Application.Window.GetMonitor());    // TODO TEST
         (int w, int h) resolution = AVAILABLE_RESOLUTIONS[0];
         eScreenMode screenMode = eScreenMode.Windowed;
         int musicVolume = 100;
@@ -255,7 +235,7 @@ internal sealed class Settings {
                 if (Enum.TryParse(settingsData!.ScreenMode, out eScreenMode screenMode2))
                     screenMode = screenMode2;
 
-                monitor = settingsData.Monitor;
+                //monitor = settingsData.Monitor;
                 resolution = (settingsData.ResolutionW, settingsData.ResolutionH);
                 musicVolume = settingsData.MusicVolume;
                 soundVolume = settingsData.SoundVolume;
@@ -266,7 +246,7 @@ internal sealed class Settings {
 
         SetScreenMode(screenMode);
         SetResolution(resolution.w, resolution.h);
-        SetMonitor(monitor);
+        //SetMonitor(monitor);
         MusicVolume = musicVolume;
         SoundVolume = soundVolume;
         IsTutorialEnabled = isTutorialEnabled;

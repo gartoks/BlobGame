@@ -1,33 +1,35 @@
-﻿using BlobGame.Audio;
-using BlobGame.Drawing;
+﻿using BlobGame.App;
+using BlobGame.Audio;
 using BlobGame.Game.Blobs;
 using BlobGame.Game.GameControllers;
 using BlobGame.Game.GameModes;
 using BlobGame.Game.Gui;
 using BlobGame.Game.Tutorial;
 using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
-using Raylib_CsLo;
+using OpenTK.Mathematics;
+using SimpleGL.Graphics.Rendering;
+using SimpleGL.Graphics.Textures;
+using SimpleGL.Util.Math;
 using System.Diagnostics;
-using System.Numerics;
 
 namespace BlobGame.Game.Scenes;
 internal sealed class GameScene : Scene {
-    private const float ARENA_OFFSET_X = Application.BASE_WIDTH * 0.5f;
+    private const float ARENA_OFFSET_X = GameApplication.PROJECTION_WIDTH * 0.5f;
     private const float ARENA_OFFSET_Y = 150;
     private const float DROP_INDICATOR_WIDTH = 10;
+    internal static Vector2 ARENA_OFFSET = new Vector2(ARENA_OFFSET_X, ARENA_OFFSET_Y);
 
     internal IGameController Controller { get; }
     internal IGameMode Game { get; private set; }
 
-    private TextureResource TitleTexture { get; set; }
-    private TextureResource RankupArrowTexture { get; set; }
-    private TextureResource ArenaTexture { get; set; }
-    private TextureResource MarkerTexture { get; set; }
-    private TextureResource DropperTexture { get; set; }
-    private TextureResource CurrentBlobTexture { get; set; }
-    private TextureResource NextBlobTexture { get; set; }
+    private Texture TitleTexture { get; set; }
+    private Texture RankupArrowTexture { get; set; }
+    private Texture ArenaTexture { get; set; }
+    private Texture MarkerTexture { get; set; }
+    private Texture DropperTexture { get; set; }
+    private Texture? CurrentBlobTexture { get; set; }
+    private Texture NextBlobTexture { get; set; }
 
     private GuiPanel GameOverPanel { get; }
     private GuiLabel GameOverLabel { get; }
@@ -47,19 +49,21 @@ internal sealed class GameScene : Scene {
         Game.OnGameOver += Game_OnGameOver;
 
         RetryButton = new GuiTextButton(
-            Application.BASE_WIDTH * 0.37f, Application.BASE_HEIGHT * 0.625f,
-            Application.BASE_WIDTH * 0.2f, 100,
+            GameApplication.PROJECTION_WIDTH * 0.37f, GameApplication.PROJECTION_HEIGHT * 0.625f,
+            GameApplication.PROJECTION_WIDTH * 0.2f, 100,
             "Retry",
+            10,
             new Vector2(0.5f, 0.5f));
         ToMainMenuButton = new GuiTextButton(
-            Application.BASE_WIDTH * 0.62f, Application.BASE_HEIGHT * 0.625f,
-            Application.BASE_WIDTH * 0.2f, 100,
+            GameApplication.PROJECTION_WIDTH * 0.62f, GameApplication.PROJECTION_HEIGHT * 0.625f,
+            GameApplication.PROJECTION_WIDTH * 0.2f, 100,
             "To Menu",
+            10,
             new Vector2(0.5f, 0.5f));
-        GameOverPanel = new GuiPanel("0.5 0.5 1100px 500px", new Vector2(0.5f, 0.5f));
-        GameOverLabel = new GuiLabel("0.5 0.35 1100px 120px", "Game over", new Vector2(0.5f, 0.5f));
+        GameOverPanel = new GuiPanel("0.5 0.5 1100px 500px", 9, new Vector2(0.5f, 0.5f));
+        GameOverLabel = new GuiLabel("0.5 0.35 1100px 120px", "Game over", 10, new Vector2(0.5f, 0.5f));
 
-        if (Application.Settings.IsTutorialEnabled)
+        if (GameApplication.Settings.IsTutorialEnabled)
             Tutorial = new TutorialDisplay();
     }
 
@@ -69,8 +73,8 @@ internal sealed class GameScene : Scene {
     internal override void Load() {
         // Loads all the blob textures
         for (int i = 0; i <= 10; i++) {
-            ResourceManager.TextureLoader.Get($"{i}");
-            ResourceManager.TextureLoader.Get($"{i}_shadow");
+            ResourceManager.TextureLoader.GetResource($"{i}");
+            ResourceManager.TextureLoader.GetResource($"{i}_shadow");
         }
 
         LoadAllGuiElements();
@@ -78,13 +82,13 @@ internal sealed class GameScene : Scene {
         Game.Load();
         Controller.Load();
 
-        TitleTexture = ResourceManager.TextureLoader.Get("title_logo");
-        RankupArrowTexture = ResourceManager.TextureLoader.Get("rankup_arrow");
-        ArenaTexture = ResourceManager.TextureLoader.Get("arena_bg");
-        MarkerTexture = ResourceManager.TextureLoader.Get("marker");
-        DropperTexture = ResourceManager.TextureLoader.Get("dropper");
-        CurrentBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.CurrentBlob}");
-        NextBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.NextBlob}");
+        TitleTexture = ResourceManager.TextureLoader.GetResource("title_logo");
+        RankupArrowTexture = ResourceManager.TextureLoader.GetResource("rankup_arrow");
+        ArenaTexture = ResourceManager.TextureLoader.GetResource("arena_bg");
+        MarkerTexture = ResourceManager.TextureLoader.GetResource("marker");
+        DropperTexture = ResourceManager.TextureLoader.GetResource("dropper");
+        CurrentBlobTexture = ResourceManager.TextureLoader.GetResource($"{(int)Game.CurrentBlob}");
+        NextBlobTexture = ResourceManager.TextureLoader.GetResource($"{(int)Game.NextBlob}");
 
         Tutorial?.Load();
     }
@@ -98,17 +102,17 @@ internal sealed class GameScene : Scene {
             Tutorial.Update(dT);
 
             if (Tutorial.IsFinished)
-                Application.Settings.IsTutorialEnabled = false;
+                GameApplication.Settings.IsTutorialEnabled = false;
         } else {
             Game.Update(dT);
             Controller.Update(dT, Game);
 
             if (Game.CanSpawnBlob) {
-                CurrentBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.CurrentBlob}");
-                NextBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.NextBlob}");
+                CurrentBlobTexture = ResourceManager.TextureLoader.GetResource($"{(int)Game.CurrentBlob}");
+                NextBlobTexture = ResourceManager.TextureLoader.GetResource($"{(int)Game.NextBlob}");
             } else {
-                CurrentBlobTexture = ResourceManager.TextureLoader.Fallback;
-                NextBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.CurrentBlob}");
+                CurrentBlobTexture = null;
+                NextBlobTexture = ResourceManager.TextureLoader.GetResource($"{(int)Game.CurrentBlob}");
             }
 
             if (Game.CanSpawnBlob && Controller.SpawnBlob(Game, out float t)) {
@@ -121,17 +125,14 @@ internal sealed class GameScene : Scene {
     /// <summary>
     /// Called every frame to draw the scene. Override this method to provide custom scene rendering logic.
     /// </summary>
-    internal override void Draw() {
-        RlGl.rlPushMatrix();
+    internal override void Render() {
         DrawScoreboard();
         DrawRankupChart();
-
-        RlGl.rlTranslatef(ARENA_OFFSET_X, ARENA_OFFSET_Y, 0);
 
         DrawArena();
         DrawTitle();
 
-        Game.GameObjects.Enumerate(item => item.Draw());
+        Game.GameObjects.Enumerate(item => item.Render(ARENA_OFFSET));
 
         float t = Tutorial != null && !Tutorial.IsFinished ? 0.5f : Math.Clamp(Controller.GetCurrentT(), 0, 1);
         float indicatorOffset = DROP_INDICATOR_WIDTH / 2f + 1;
@@ -150,9 +151,13 @@ internal sealed class GameScene : Scene {
         }
         DrawDropper(x);
 
-        RlGl.rlPopMatrix();
-
         Tutorial?.Draw();
+
+    }
+
+    internal override void RenderGui() {
+        base.RenderGui();
+
 
         if (Game.IsGameOver)
             DrawGameOverScreen();
@@ -177,16 +182,7 @@ internal sealed class GameScene : Scene {
     }
 
     internal void DrawTitle() {
-        float w = TitleTexture.Resource.width;
-        float h = TitleTexture.Resource.height;
-
-        Raylib.DrawTexturePro(
-            TitleTexture.Resource,
-            new Rectangle(0, 0, w, h),
-            new Rectangle(-970, -35, w * 0.7f, h * 0.7f),
-            new Vector2(0, 0),
-            -12.5f,
-            Raylib.WHITE);
+        Primitives.DrawSprite(new Vector2(-970, -35) + ARENA_OFFSET, new Vector2(400, 200), Vector2.Zero, -12.5f.ToRad(), 10, TitleTexture, Color4.White);
     }
 
     private void Game_OnGameOver(IGameMode sender) {
@@ -200,20 +196,10 @@ internal sealed class GameScene : Scene {
         const float size = 75;
         const float radius = 200;
 
-        float ruaW = RankupArrowTexture.Resource.width;
-        float ruaH = RankupArrowTexture.Resource.height;
+        const float cX = 1640;
+        const float cY = 635f;
 
-        float cX = 1640;
-        float cY = 635f;
-
-        Raylib.DrawTexturePro(
-            RankupArrowTexture.Resource,
-            new Rectangle(0, 0, ruaW, ruaH),
-            new Rectangle(cX, cY, ruaW * 1.3f, ruaH * 1.3f),
-            new Vector2(ruaW * 1.3f / 2, ruaH * 1.3f / 2),
-            0,
-            new Color(255, 255, 255, 255));
-        //new Color(234, 89, 203, 255));
+        Primitives.DrawSprite(new Vector2(cX, cY), new Vector2(), new Vector2(0.5f, 0.5f), 0, 10, RankupArrowTexture, Color4.White);
 
         int numBlobTypes = Enum.GetValues<eBlobType>().Length;
         for (int i = 0; i < numBlobTypes; i++) {
@@ -222,15 +208,9 @@ internal sealed class GameScene : Scene {
             float x = cX + radius * MathF.Cos(angle);
             float y = cY + radius * MathF.Sin(angle);
 
-            Texture tex = ResourceManager.TextureLoader.Get($"{i}_shadow").Resource;
-            float w = tex.width;
-            float h = tex.height;
+            Texture tex = ResourceManager.TextureLoader.GetResource($"{i}_shadow");
 
-            Raylib.DrawTexturePro(
-                ResourceManager.TextureLoader.Get($"{i}_shadow").Resource,
-                new Rectangle(0, 0, w, h),
-                new Rectangle(x, y, size, size),
-                new Vector2(size / 2, size / 2), 0, Raylib.WHITE);
+            Primitives.DrawSprite(new Vector2(x, y), new Vector2(size, size), new Vector2(0.5f, 0.5f), 0, 10, tex, Color4.White);
         }
     }
 
@@ -244,77 +224,51 @@ internal sealed class GameScene : Scene {
     }
 
     internal void DrawArena() {
-        float w = ArenaTexture.Resource.width;
-        float h = ArenaTexture.Resource.height;
-
-        Raylib.DrawTexturePro(
-            ArenaTexture.Resource,
-            new Rectangle(0, 0, w, h),
-            new Rectangle(0, 0, w, h),
-            new Vector2(w / 2, 0),
-            0,
-            Raylib.WHITE);
+        Primitives.DrawSprite(new Vector2(ARENA_OFFSET_X, ARENA_OFFSET_Y), new Vector2(695, 858), new Vector2(0.5f, 0), 0, 3, ArenaTexture, Color4.White);
     }
 
     internal void DrawNextBlob() {
-        float mW = MarkerTexture.Resource.width;
-        float mH = MarkerTexture.Resource.height;
+        float mW = MarkerTexture.Width;
+        float mH = MarkerTexture.Height;
 
         // Hightlight
-        MarkerTexture.Draw(new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, 0), new Vector2(0.5f, 0.5f), null, 0, ResourceManager.ColorLoader.Get("light_accent").Resource);
+        Primitives.DrawSprite(new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, 0) + ARENA_OFFSET, new Vector2(100, 100), new Vector2(0.5f, 0.5f), 0, 2, MarkerTexture, ResourceManager.ColorLoader.GetResource("light_accent"));
 
         // Blob
-        NextBlobTexture.Draw(
-            new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, 0),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.25f, 0.25f));
+        (string name, eBlobType type, int score, float radius, float mass, string textureKey) nextBlob = BlobData.Data.Single(d => d.type == Game.NextBlob);
+        Primitives.DrawSprite(new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, 0) + ARENA_OFFSET, new Vector2(nextBlob.radius, nextBlob.radius), new Vector2(0.5f, 0.5f), 0, 3, NextBlobTexture, Color4.White);
 
         Vector2 textPos = new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, -310);
-        Raylib.DrawTextPro(
-            Renderer.MainFont.Resource,
-            "NEXT",
-            textPos,
-            textPos / 2f,
-            -25.5f,
-            80, 5, ResourceManager.ColorLoader.Get("dark_accent").Resource);
+        MeshFont font = Fonts.GetMainFont(80);
+        Primitives.DrawText(font, "NEXT", ResourceManager.ColorLoader.GetResource("dark_accent"), textPos + ARENA_OFFSET, new Vector2(0.5f, 0.5f), -25.5f.ToRad(), 4);
     }
 
     internal void DrawDropper(float x) {
-        DropperTexture.Draw(
-            new Vector2(x + 30, 3.5f * ClassicGameMode.ARENA_SPAWN_Y_OFFSET),
-            new Vector2(0.33f, 0.5f),
-            new Vector2(3f / 8f, 3f / 8f));
+        Primitives.DrawSprite(new Vector2(x + 30, 3.5f * ClassicGameMode.ARENA_SPAWN_Y_OFFSET) + ARENA_OFFSET, new Vector2(192, 192), new Vector2(1 / 3f, 0.5f), 0, 6, DropperTexture, Color4.White);
     }
 
     internal void DrawDropIndicator(float x) {
-        Raylib.DrawRectanglePro(
-            new Rectangle(x, 0, DROP_INDICATOR_WIDTH, ClassicGameMode.ARENA_HEIGHT),
-            new Vector2(DROP_INDICATOR_WIDTH / 2f, 0),
-            0,
-            ResourceManager.ColorLoader.Get("background").Resource.ChangeAlpha(128));
+        Primitives.DrawRectangle(new Vector2(x, 0) + ARENA_OFFSET, new Vector2(DROP_INDICATOR_WIDTH, ClassicGameMode.ARENA_HEIGHT), new Vector2(0.5f, 0), 0, 4, ResourceManager.ColorLoader.GetResource("background").ChangeAlpha(128));
     }
 
     internal void DrawCurrentBlob(float x) {
-        CurrentBlobTexture.Draw(
-            new Vector2(x, ClassicGameMode.ARENA_SPAWN_Y_OFFSET),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.25f, 0.25f));
+        if (CurrentBlobTexture == null)
+            return;
+
+        (string name, eBlobType type, int score, float radius, float mass, string textureKey) currentBlob = BlobData.Data.Single(d => d.type == Game.CurrentBlob);
+        Primitives.DrawSprite(new Vector2(x, ClassicGameMode.ARENA_SPAWN_Y_OFFSET) + ARENA_OFFSET, new Vector2(currentBlob.radius, currentBlob.radius), new Vector2(0.5f, 0.5f), 0, 5, CurrentBlobTexture, Color4.White);
     }
 
     private void DrawCurrentScore(float x, float y, float w) {
-        Raylib.DrawRectangleRoundedLines(
-            new Rectangle(x, y, w, 150),
-            0.3f, 10, 8, Raylib.WHITE);
+        Primitives.DrawRectangleLines(new Vector2(x, y), new Vector2(w, 150), 8, new Vector2(0.5f, 0.5f), 0, 2, Color4.White);
 
         DrawScoreValue(x, y + 30, w, Game.Score);
     }
 
     private void DrawHighscores(float x, float y, float w) {
-        Raylib.DrawRectangleRoundedLines(
-            new Rectangle(x, y, w, 550),
-            0.15f, 10, 8, Raylib.WHITE);
+        Primitives.DrawRectangleLines(new Vector2(x, y), new Vector2(w, 550), 8, new Vector2(0.5f, 0.5f), 0, 2, Color4.White);
 
-        Raylib.DrawLineEx(new Vector2(x, y + 125), new Vector2(x + w, y + 125), 8, Raylib.WHITE);
+        Primitives.DrawLine(new Vector2(x, y + 125), new Vector2(x + w, y + 125), 8, 3, Color4.White);
 
         DrawScoreValue(x, y + 15, w, GameManager.Scoreboard.GlobalHighscore);
         for (int i = 0; i < GameManager.Scoreboard.DailyHighscores.Count; i++) {
@@ -324,14 +278,10 @@ internal sealed class GameScene : Scene {
 
     private void DrawScoreValue(float x, float y, float w, int score) {
         string scoreStr = $"{score}";
-        Vector2 scoreTextSize = Raylib.MeasureTextEx(Renderer.MainFont.Resource, scoreStr, 100, 10);
-        Raylib.DrawTextEx(
-            Renderer.MainFont.Resource,
-            scoreStr,
-            new Vector2(x + w - 50 - scoreTextSize.X, y),
-            100,
-            10,
-            ResourceManager.ColorLoader.Get("dark_accent").Resource);
+
+        MeshFont font = Fonts.GetMainFont(100);
+        Vector2 scoreTextSize = font.MeasureText(scoreStr);
+        Primitives.DrawText(font, scoreStr, ResourceManager.ColorLoader.GetResource("dark_accent"), new Vector2(x + w - 50 - scoreTextSize.X, y), new Vector2(0.5f, 0.5f), 0, 3);
     }
 
     private void DrawGameOverScreen() {
@@ -344,7 +294,7 @@ internal sealed class GameScene : Scene {
         bool isNewHighscore = Game.Score > GameManager.Scoreboard.GlobalHighscore;
         GuiLabel ScoreLabel = new GuiLabel("0.5 0.45 1100px 90px",
             $"{(isNewHighscore ? "New Highscore!\n" : "")}Score: {Game.Score}",
-            new Vector2(0.5f, 0.5f));
+            8, new Vector2(0.5f, 0.5f));
         ScoreLabel.Draw();
 
         if (RetryButton.IsClicked)
@@ -359,8 +309,8 @@ internal sealed class GameScene : Scene {
     /// <param name="pos"></param>
     /// <returns></returns>
     public static Vector2 ScreenToArenaPosition(Vector2 pos) {
-        float x = pos.X / Application.WorldToScreenMultiplierX - ARENA_OFFSET_X + ClassicGameMode.ARENA_WIDTH / 2;
-        float y = pos.Y / Application.WorldToScreenMultiplierY - ARENA_OFFSET_Y;
+        float x = pos.X/* / GameApplication.WorldToScreenMultiplierX*/ - ARENA_OFFSET_X + ClassicGameMode.ARENA_WIDTH / 2;
+        float y = pos.Y/* / GameApplication.WorldToScreenMultiplierY*/ - ARENA_OFFSET_Y;
         return new Vector2(x, y);
     }
 }

@@ -17,7 +17,12 @@
 
   <ItemGroup>
     <PackageReference Include="Aether.Physics2D" Version="2.0.0" />
-    <PackageReference Include="Raylib-CsLo" Version="4.2.0.9" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="SixLabors.Fonts" Version="2.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SimpleGL\SimpleGL\SimpleGL.csproj" />
   </ItemGroup>
 
   <ItemGroup>
