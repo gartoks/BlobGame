@@ -1,6 +1,6 @@
 torch
 torchvision
-pygame
+opencv-python
 gymnasium
 matplotlib
 torchrl

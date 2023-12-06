@@ -6,13 +6,13 @@ from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList,
 from GymEnvironment import BlobEnvironment
 
 MOVE_STEP_SIZE = 0.01
-MOVE_PENALTY_THRESHOLD = (1.0 / MOVE_STEP_SIZE) * 1.5
+MOVE_PENALTY_THRESHOLD = (1.0 / MOVE_STEP_SIZE) * 2
 DROP_PENALTY_THRESHOLD = 5
 
 if __name__ == "__main__":
     env_fns = [
         functools.partial(
-            BlobEnvironment, str(i), bool(i != 0), DROP_PENALTY_THRESHOLD, MOVE_PENALTY_THRESHOLD, MOVE_STEP_SIZE, is_eval=False
+            BlobEnvironment, "train " + str(i), bool(i != 0), DROP_PENALTY_THRESHOLD, MOVE_PENALTY_THRESHOLD, MOVE_STEP_SIZE, is_eval=False
         )
         for i in range(16)
     ]
@@ -26,12 +26,13 @@ if __name__ == "__main__":
     eval_env = VecMonitor(VecFrameStack(SubprocVecEnv(env_fns_eval), n_stack=4))
 
 
-    model = DQN(
-        "MlpPolicy", env, verbose=1, tensorboard_log="./AI/a2c_cartpole_tensorboard/", batch_size=32
+    model = PPO(
+        "MultiInputPolicy", env, verbose=1, tensorboard_log="./AI/a2c_cartpole_tensorboard/", batch_size=128,
+        learning_rate=5e-5
     )
     # model.set_parameters("./AI/dqn_success1_models/rl_model_dqn__9600000_steps.zip", exact_match=False)
     model.learn(
-        total_timesteps=2_500_000,
+        total_timesteps=10_000_000,
         tb_log_name="first_run",
         progress_bar=True,
         callback=CallbackList(
