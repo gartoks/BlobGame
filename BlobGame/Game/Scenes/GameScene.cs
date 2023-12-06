@@ -9,7 +9,6 @@ using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
-using System.Diagnostics;
 using System.Numerics;
 
 namespace BlobGame.Game.Scenes;
@@ -21,13 +20,17 @@ internal sealed class GameScene : Scene {
     internal IGameController Controller { get; }
     internal IGameMode Game { get; private set; }
 
-    private TextureResource TitleTexture { get; set; }
     private TextureResource RankupArrowTexture { get; set; }
-    private TextureResource ArenaTexture { get; set; }
+    private TextureResource ArenaBackgroundTexture { get; set; }
+    private TextureResource ArenaBoxTexture { get; set; }
     private TextureResource MarkerTexture { get; set; }
     private TextureResource DropperTexture { get; set; }
+    private NPatchTextureResource CurrentScoreTexture { get; set; }
+    private TextureAtlasResource CurrentScoreBitmapFont { get; set; }
+    private TextureResource ScoresBackgroundTexture { get; set; }
     private TextureResource CurrentBlobTexture { get; set; }
     private TextureResource NextBlobTexture { get; set; }
+    private TextureResource HeldBlobTexture { get; set; }
 
     private GuiPanel GameOverPanel { get; }
     private GuiLabel GameOverLabel { get; }
@@ -67,24 +70,29 @@ internal sealed class GameScene : Scene {
     /// Called when the scene is loaded. Override this method to provide custom scene initialization logic and to load resources.
     /// </summary>
     internal override void Load() {
-        // Loads all the blob textures
-        for (int i = 0; i <= 10; i++) {
-            ResourceManager.TextureLoader.Get($"{i}");
-            ResourceManager.TextureLoader.Get($"{i}_shadow");
-        }
-
         LoadAllGuiElements();
 
         Game.Load();
         Controller.Load();
 
-        TitleTexture = ResourceManager.TextureLoader.Get("title_logo");
+        // Loads all the blob textures
+
+        foreach (BlobData blobType in Game.Blobs.Values) {
+            ResourceManager.TextureLoader.Load($"{blobType.Id}");
+            ResourceManager.TextureLoader.Load($"{blobType.Id}_shadow");
+        }
+
         RankupArrowTexture = ResourceManager.TextureLoader.Get("rankup_arrow");
-        ArenaTexture = ResourceManager.TextureLoader.Get("arena_bg");
+        ArenaBackgroundTexture = ResourceManager.TextureLoader.Get("arena_bg");
+        ArenaBoxTexture = ResourceManager.TextureLoader.Get("arena_box");
         MarkerTexture = ResourceManager.TextureLoader.Get("marker");
         DropperTexture = ResourceManager.TextureLoader.Get("dropper");
-        CurrentBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.CurrentBlob}");
-        NextBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.NextBlob}");
+        CurrentScoreTexture = ResourceManager.NPatchTextureLoader.Get("currentScore_bg");
+        CurrentScoreBitmapFont = ResourceManager.TextureAtlasLoader.Get("score_spritefont");
+        ScoresBackgroundTexture = ResourceManager.TextureLoader.Get("scores_bg");
+        CurrentBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.CurrentBlob].TextureKey);
+        NextBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.NextBlob].TextureKey);
+        HeldBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.NextBlob].TextureKey);
 
         Tutorial?.Load();
     }
@@ -104,16 +112,21 @@ internal sealed class GameScene : Scene {
             Controller.Update(dT, Game);
 
             if (Game.CanSpawnBlob) {
-                CurrentBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.CurrentBlob}");
-                NextBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.NextBlob}");
+                CurrentBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.CurrentBlob].TextureKey);
+                NextBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.NextBlob].TextureKey);
             } else {
                 CurrentBlobTexture = ResourceManager.TextureLoader.Fallback;
-                NextBlobTexture = ResourceManager.TextureLoader.Get($"{(int)Game.CurrentBlob}");
+                NextBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.CurrentBlob].TextureKey);
             }
 
             if (Game.CanSpawnBlob && Controller.SpawnBlob(Game, out float t)) {
                 t = Math.Clamp(t, 0, 1);
                 Game.TrySpawnBlob(t);
+            } else if (Controller.HoldBlob()) {
+                Game.HoldBlob();
+                CurrentBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.CurrentBlob].TextureKey);
+                NextBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.NextBlob].TextureKey);
+                HeldBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.HeldBlob].TextureKey);
             }
         }
     }
@@ -128,14 +141,13 @@ internal sealed class GameScene : Scene {
 
         RlGl.rlTranslatef(ARENA_OFFSET_X, ARENA_OFFSET_Y, 0);
 
-        DrawArena();
-        DrawTitle();
+        DrawArenaBackground();
 
         Game.GameObjects.Enumerate(item => item.Draw());
 
         float t = Tutorial != null && !Tutorial.IsFinished ? 0.5f : Math.Clamp(Controller.GetCurrentT(), 0, 1);
         float indicatorOffset = DROP_INDICATOR_WIDTH / 2f + 1;
-        float x = -ClassicGameMode.ARENA_WIDTH / 2f + indicatorOffset + t * (ClassicGameMode.ARENA_WIDTH - 2 * indicatorOffset);
+        float x = -IGameMode.ARENA_WIDTH / 2f + indicatorOffset + t * (IGameMode.ARENA_WIDTH - 2 * indicatorOffset);
 
         if (Game.IsGameOver)
             x = LastDropIndicatorX;
@@ -144,11 +156,16 @@ internal sealed class GameScene : Scene {
 
         DrawNextBlob();
 
+        if (Game is not ClassicGameMode)
+            DrawHeldBlob();
+
         if (Game.CanSpawnBlob) {
             DrawDropIndicator(x);
             DrawCurrentBlob(x);
         }
         DrawDropper(x);
+
+        DrawArenaBox();
 
         RlGl.rlPopMatrix();
 
@@ -162,7 +179,7 @@ internal sealed class GameScene : Scene {
     /// Called when the scene is about to be unloaded or replaced by another scene. Override this method to provide custom cleanup or deinitialization logic and to unload resources.
     /// </summary>
     internal override void Unload() {
-        GameManager.Scoreboard.AddScore(Game.Score);
+        GameManager.Scoreboard.AddScore(Game, Game.Score);
         Controller.Close();
         // TODO unload NOT NEEDED resources
     }
@@ -171,26 +188,12 @@ internal sealed class GameScene : Scene {
     /// Called when two blobs combine.
     /// </summary>
     /// <param name="newType">The type of newly created blob.</param>
-    private void Game_OnBlobsCombined(IGameMode sender, eBlobType newType) {
+    private void Game_OnBlobsCombined(IGameMode sender, int newType) {
         AudioManager.PlaySound("piece_combination");
-        Debug.WriteLine($"Blobs combined. New type: {newType}");
-    }
-
-    internal void DrawTitle() {
-        float w = TitleTexture.Resource.width;
-        float h = TitleTexture.Resource.height;
-
-        Raylib.DrawTexturePro(
-            TitleTexture.Resource,
-            new Rectangle(0, 0, w, h),
-            new Rectangle(-970, -35, w * 0.7f, h * 0.7f),
-            new Vector2(0, 0),
-            -12.5f,
-            Raylib.WHITE);
     }
 
     private void Game_OnGameOver(IGameMode sender) {
-        if (sender.Score > GameManager.Scoreboard.GlobalHighscore)
+        if (sender.Score > GameManager.Scoreboard.GetGlobalHighscore(sender))
             AudioManager.PlaySound("new_highscore");
         else
             AudioManager.PlaySound("game_loss");
@@ -215,40 +218,50 @@ internal sealed class GameScene : Scene {
             new Color(255, 255, 255, 255));
         //new Color(234, 89, 203, 255));
 
-        int numBlobTypes = Enum.GetValues<eBlobType>().Length;
-        for (int i = 0; i < numBlobTypes; i++) {
-            float angle = (i + 1) / (float)(numBlobTypes + 1) * MathF.Tau - MathF.PI / 2f;
+        int i = 0;
+        foreach (BlobData blobType in Game.Blobs.Values) {
+            float angle = (i + 1) / (float)(Game.Blobs.Count + 1) * MathF.Tau - MathF.PI / 2f;
 
             float x = cX + radius * MathF.Cos(angle);
             float y = cY + radius * MathF.Sin(angle);
 
-            Texture tex = ResourceManager.TextureLoader.Get($"{i}_shadow").Resource;
+            string texKey = Game.Blobs[blobType.Id].TextureKey;
+            Texture tex = ResourceManager.TextureLoader.Get($"{texKey}_shadow").Resource;
             float w = tex.width;
             float h = tex.height;
 
             Raylib.DrawTexturePro(
-                ResourceManager.TextureLoader.Get($"{i}_shadow").Resource,
+                tex,
                 new Rectangle(0, 0, w, h),
                 new Rectangle(x, y, size, size),
                 new Vector2(size / 2, size / 2), 0, Raylib.WHITE);
+            i++;
         }
     }
 
-    internal void DrawScoreboard() {
-        const float x = 122.5f;
-        const float y = 250;
-        const float w = 400;
+    internal void DrawArenaBackground() {
+        float w = ArenaBackgroundTexture.Resource.width;
+        float h = ArenaBackgroundTexture.Resource.height;
 
-        DrawCurrentScore(x, y, w);
-        DrawHighscores(x, y + 200, w);
-    }
-
-    internal void DrawArena() {
-        float w = ArenaTexture.Resource.width;
-        float h = ArenaTexture.Resource.height;
+        //ArenaTexture.Draw(new Rectangle(0, 0, 695, 858), new Vector2(w / 2f, 0));
 
         Raylib.DrawTexturePro(
-            ArenaTexture.Resource,
+            ArenaBackgroundTexture.Resource,
+            new Rectangle(0, 0, w, h),
+            new Rectangle(0, 0, w, h),
+            new Vector2(w / 2, 0),
+            0,
+            Raylib.WHITE);
+    }
+
+    internal void DrawArenaBox() {
+        float w = ArenaBoxTexture.Resource.width;
+        float h = ArenaBoxTexture.Resource.height;
+
+        //ArenaTexture.Draw(new Rectangle(0, 0, 695, 858), new Vector2(w / 2f, 0));
+
+        Raylib.DrawTexturePro(
+            ArenaBoxTexture.Resource,
             new Rectangle(0, 0, w, h),
             new Rectangle(0, 0, w, h),
             new Vector2(w / 2, 0),
@@ -257,38 +270,56 @@ internal sealed class GameScene : Scene {
     }
 
     internal void DrawNextBlob() {
-        float mW = MarkerTexture.Resource.width;
-        float mH = MarkerTexture.Resource.height;
-
         // Hightlight
-        MarkerTexture.Draw(new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, 0), new Vector2(0.5f, 0.5f), null, 0, ResourceManager.ColorLoader.Get("light_accent").Resource);
+        MarkerTexture.Draw(new Vector2(IGameMode.ARENA_WIDTH * 0.75f, 0), new Vector2(0.5f, 0.5f), null, 0, ResourceManager.ColorLoader.Get("light_accent").Resource);
 
         // Blob
         NextBlobTexture.Draw(
-            new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, 0),
+            new Vector2(IGameMode.ARENA_WIDTH * 0.75f, 0),
             new Vector2(0.5f, 0.5f),
             new Vector2(0.25f, 0.25f));
 
-        Vector2 textPos = new Vector2(ClassicGameMode.ARENA_WIDTH * 0.75f, -310);
+        Vector2 textPos = new Vector2(IGameMode.ARENA_WIDTH * 0.75f, -310);
         Raylib.DrawTextPro(
             Renderer.MainFont.Resource,
             "NEXT",
             textPos,
             textPos / 2f,
             -25.5f,
-            80, 5, ResourceManager.ColorLoader.Get("dark_accent").Resource);
+            80, 5, ResourceManager.ColorLoader.Get("font_dark").Resource);
+    }
+
+    internal void DrawHeldBlob() {
+        // Hightlight
+        MarkerTexture.Draw(new Vector2(IGameMode.ARENA_WIDTH * -0.75f, 0), new Vector2(0.5f, 0.5f), null, 0, ResourceManager.ColorLoader.Get("light_accent").Resource);
+
+        if (Game.HeldBlob != -1) {
+            // Blob
+            HeldBlobTexture.Draw(
+                new Vector2(IGameMode.ARENA_WIDTH * -0.75f, 0),
+                new Vector2(0.5f, 0.5f),
+                new Vector2(0.25f, 0.25f));
+        }
+
+        Vector2 textPos = new Vector2(IGameMode.ARENA_WIDTH * -1.85f, -280);
+        Raylib.DrawTextPro(
+            Renderer.MainFont.Resource,
+            "HELD",
+            textPos,
+            textPos / 2f,
+            0,
+            80, 5, ResourceManager.ColorLoader.Get("font_dark").Resource);
     }
 
     internal void DrawDropper(float x) {
         DropperTexture.Draw(
-            new Vector2(x + 30, 3.5f * ClassicGameMode.ARENA_SPAWN_Y_OFFSET),
-            new Vector2(0.33f, 0.5f),
-            new Vector2(3f / 8f, 3f / 8f));
+            new Rectangle(x, 3f * IGameMode.ARENA_SPAWN_Y_OFFSET, 220, 150),
+            new Vector2(0.5f, 0.5f));
     }
 
     internal void DrawDropIndicator(float x) {
         Raylib.DrawRectanglePro(
-            new Rectangle(x, 0, DROP_INDICATOR_WIDTH, ClassicGameMode.ARENA_HEIGHT),
+            new Rectangle(x, 0, DROP_INDICATOR_WIDTH, IGameMode.ARENA_HEIGHT),
             new Vector2(DROP_INDICATOR_WIDTH / 2f, 0),
             0,
             ResourceManager.ColorLoader.Get("background").Resource.ChangeAlpha(128));
@@ -296,42 +327,53 @@ internal sealed class GameScene : Scene {
 
     internal void DrawCurrentBlob(float x) {
         CurrentBlobTexture.Draw(
-            new Vector2(x, ClassicGameMode.ARENA_SPAWN_Y_OFFSET),
+            new Vector2(x, IGameMode.ARENA_SPAWN_Y_OFFSET),
             new Vector2(0.5f, 0.5f),
-            new Vector2(0.25f, 0.25f));
+            new Vector2(0.25f, 0.25f),
+            Game.SpawnRotation * RayMath.RAD2DEG);
+    }
+
+    private void DrawScoreboard() {
+        const float x = 122.5f;
+        const float y = 350;
+        const float w = 400;
+
+        DrawCurrentScore(x, y - 100, w);
+        DrawHighscores(x, y + 120, w);
     }
 
     private void DrawCurrentScore(float x, float y, float w) {
-        Raylib.DrawRectangleRoundedLines(
-            new Rectangle(x, y, w, 150),
-            0.3f, 10, 8, Raylib.WHITE);
-
-        DrawScoreValue(x, y + 30, w, Game.Score);
+        CurrentScoreBitmapFont.DrawAsBitmapFont(Game.Score.ToString(), 10, 120, new Vector2(x + w * 0.85f, y), new Vector2(1, 0));
     }
 
     private void DrawHighscores(float x, float y, float w) {
-        Raylib.DrawRectangleRoundedLines(
-            new Rectangle(x, y, w, 550),
-            0.15f, 10, 8, Raylib.WHITE);
+        ScoresBackgroundTexture.Draw(
+            new Rectangle(x - w * 0.4f, y - 7, w * 1.6f, w * 1.65f));
 
-        Raylib.DrawLineEx(new Vector2(x, y + 125), new Vector2(x + w, y + 125), 8, Raylib.WHITE);
+        DrawScoreValue(x, y, w, GameManager.Scoreboard.GetGlobalHighscore(Game), "font_dark");
 
-        DrawScoreValue(x, y + 15, w, GameManager.Scoreboard.GlobalHighscore);
-        for (int i = 0; i < GameManager.Scoreboard.DailyHighscores.Count; i++) {
-            DrawScoreValue(x, y + 160 + 130 * i, w, GameManager.Scoreboard.DailyHighscores[i]);
+        for (int i = 0; i < GameManager.Scoreboard.GetDailyHighscores(Game).Count; i++) {
+            DrawScoreValue(x, y + 160 + 130 * i, w, GameManager.Scoreboard.GetDailyHighscores(Game)[i]);
         }
     }
 
-    private void DrawScoreValue(float x, float y, float w, int score) {
+    private void DrawScoreValue(float x, float y, float w, int score, string colorKey = null, bool useMainFont = false, float fontSize = 90) {
+        if (colorKey == null)
+            colorKey = "font_light";
+
+        FontResource font = useMainFont ? Renderer.MainFont : Renderer.GuiFont;
+
         string scoreStr = $"{score}";
-        Vector2 scoreTextSize = Raylib.MeasureTextEx(Renderer.MainFont.Resource, scoreStr, 100, 10);
-        Raylib.DrawTextEx(
-            Renderer.MainFont.Resource,
-            scoreStr,
-            new Vector2(x + w - 50 - scoreTextSize.X, y),
-            100,
-            10,
-            ResourceManager.ColorLoader.Get("dark_accent").Resource);
+        Vector2 scoreTextSize = Raylib.MeasureTextEx(font.Resource, scoreStr, 100, 10);
+        Raylib.DrawTextPro(
+                font.Resource,
+                scoreStr,
+                new Vector2(x + w - 50 - scoreTextSize.X, y + 5),
+                new Vector2(scoreTextSize.Y / 2f, 0),
+                0,
+                fontSize,
+                10,
+                ResourceManager.ColorLoader.Get(colorKey).Resource);
     }
 
     private void DrawGameOverScreen() {
@@ -341,7 +383,7 @@ internal sealed class GameScene : Scene {
         RetryButton.Draw();
         ToMainMenuButton.Draw();
 
-        bool isNewHighscore = Game.Score > GameManager.Scoreboard.GlobalHighscore;
+        bool isNewHighscore = Game.Score > GameManager.Scoreboard.GetGlobalHighscore(Game);
         GuiLabel ScoreLabel = new GuiLabel("0.5 0.45 1100px 90px",
             $"{(isNewHighscore ? "New Highscore!\n" : "")}Score: {Game.Score}",
             new Vector2(0.5f, 0.5f));
@@ -359,7 +401,7 @@ internal sealed class GameScene : Scene {
     /// <param name="pos"></param>
     /// <returns></returns>
     public static Vector2 ScreenToArenaPosition(Vector2 pos) {
-        float x = pos.X / Application.WorldToScreenMultiplierX - ARENA_OFFSET_X + ClassicGameMode.ARENA_WIDTH / 2;
+        float x = pos.X / Application.WorldToScreenMultiplierX - ARENA_OFFSET_X + IGameMode.ARENA_WIDTH / 2;
         float y = pos.Y / Application.WorldToScreenMultiplierY - ARENA_OFFSET_Y;
         return new Vector2(x, y);
     }

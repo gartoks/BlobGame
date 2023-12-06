@@ -37,12 +37,12 @@ internal sealed class GuiNPatchPanel : GuiElement {
     internal override void Load() {
         base.Load();
 
-        Texture = ResourceManager.NPatchLoader.Get(TextureKey);
+        Texture = ResourceManager.NPatchTextureLoader.Get(TextureKey);
     }
 
     protected override void DrawInternal() {
         if (Texture == null)
-            Texture = ResourceManager.NPatchLoader.Get(TextureKey);
+            Texture = ResourceManager.NPatchTextureLoader.Get(TextureKey);
 
         Texture.Draw(Bounds, Pivot, Tint.Resource);
     }

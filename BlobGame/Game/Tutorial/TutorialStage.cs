@@ -13,7 +13,7 @@ internal abstract class TutorialStage {
     internal virtual bool IsFadeOutFinished => true;
 
     internal virtual void Load() {
-        AvatarTexture = ResourceManager.TextureLoader.Get("melba_avatar");
+        AvatarTexture = ResourceManager.TextureLoader.Get("avatar");
         LMBTexture = ResourceManager.TextureLoader.Get("lmb");
         PointerTexture = ResourceManager.TextureLoader.Get("pointer");
     }

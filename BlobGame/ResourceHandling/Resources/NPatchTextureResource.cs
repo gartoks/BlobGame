@@ -1,6 +1,5 @@
 ﻿using Raylib_CsLo;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Numerics;
 
 namespace BlobGame.ResourceHandling.Resources;
@@ -47,7 +46,6 @@ internal sealed class NPatchTextureResource : GameResource<NPatchTexture> {
                     tint != null ? tint.Value : Raylib.WHITE);
         }
 
-        Debug.WriteLine("");
         // Top left
         Draw(
             0, 0,
@@ -108,36 +106,6 @@ internal sealed class NPatchTextureResource : GameResource<NPatchTexture> {
                 Resource.left * wScale, Resource.top * hScale,
                 centerW, centerH);
         }
-
-        /*float x0 = 0;
-        float y0 = 0;
-        float w0 = Resource.left / (float)Resource.Texture.width;
-        float h0 = Resource.top / (float)Resource.Texture.height;
-        float x1 = w0;
-        float y1 = h0;
-        float w1 = Resource.right / (float)Resource.Texture.width - w0;
-        float h1 = Resource.bottom / (float)Resource.Texture.height - h0;
-        float x2 = w0 + w1;
-        float y2 = h0 + h1;
-        float w2 = 1 - w0 - w1;
-        float h2 = 1 - h0 - h1;
-
-        float[] x = new float[] { x0, x1, x2 };
-        float[] y = new float[] { y0, y1, y2 };
-        float[] w = new float[] { w0, w1, w2 };
-        float[] h = new float[] { h0, h1, h2 };
-
-        for (int yi = 0; yi <= 2; yi++) {
-            for (int xi = 0; xi <= 2; xi++) {
-                Raylib.DrawTexturePro(
-                    Resource.Texture,
-                    new Rectangle(x[xi] * tw, y[yi] * th, w[xi] * tw, h[yi] * th),
-                    new Rectangle(bounds.x + x[xi] * bw, bounds.y + y[yi] * bh, w[xi] * bw, h[yi] * bh),
-                    Vector2.Zero,   // TODO
-                    0,  // TODO
-                    tint != null ? tint.Value : Raylib.WHITE);
-            }
-        }*/
     }
 }
 

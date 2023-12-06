@@ -6,6 +6,8 @@ using BlobGame.Util;
 using System.Diagnostics;
 using System.Text;
 
+ConsoleControl.Hide();
+
 bool socketMode = false;
 int numParallelGames = 1;
 bool useSeparateThreads = false;
@@ -13,11 +15,8 @@ int port = 0;
 int seed = 0;
 string gameModeKey = "Classic";
 
-DEBUGStuff.DEBUG_PrintNPatchJson();
-
 Log.OnLog += (msg, type) => Console.WriteLine(msg);
 Log.OnLog += (msg, type) => Debug.WriteLine(msg);
-
 
 try {
     if (args.Length > 0) {
@@ -46,6 +45,7 @@ try {
         SocketApplication.Initialize(numParallelGames, useSeparateThreads, port, seed, gameModeKey);
         SocketApplication.Start();
     } else {
+        //Application.DRAW_DEBUG = true;  // TODO
         Application.Initialize();
         Application.Start();
     }

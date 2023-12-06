@@ -28,7 +28,7 @@ internal class SocketController : IGameController {
 
     internal bool IsConnected => Client != null && Client.Connected;
 
-    private (float t, bool shouldDrop)? FrameInputs { get; set; }
+    private (float t, bool shouldDrop, bool shouldHold)? FrameInputs { get; set; }
 
     public SocketController(int gameIndex, int port) {
         GameIndex = gameIndex;
@@ -72,13 +72,16 @@ internal class SocketController : IGameController {
     /// <param name="t">The t value at which the blob is spawned, which represents the position of the dropper above the arena..</param>
     /// <returns>True if blob spawning was attempted, otherwise false.</returns>
     public bool SpawnBlob(IGameMode simulation, out float t) {
-        t = -1;
+        t = GetCurrentT();
+
         if (!simulation.CanSpawnBlob)
             return false;
 
-        t = GetCurrentT();
-
         return FrameInputs != null && FrameInputs.Value.shouldDrop;
+    }
+
+    public bool HoldBlob() {
+        return FrameInputs != null && FrameInputs.Value.shouldHold;
     }
 
     public void Update(float dT, IGameMode simulation) {
@@ -105,10 +108,11 @@ internal class SocketController : IGameController {
         foreach (Blob blob in blobs) {
             buffer = buffer.Concat(BitConverter.GetBytes(blob.Position.X));
             buffer = buffer.Concat(BitConverter.GetBytes(blob.Position.Y));
-            buffer = buffer.Concat(BitConverter.GetBytes((int)blob.Type));
+            buffer = buffer.Concat(BitConverter.GetBytes(blob.Type));
         }
-        buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.CurrentBlob));
-        buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.NextBlob));
+        buffer = buffer.Concat(BitConverter.GetBytes(simulation.CurrentBlob));
+        buffer = buffer.Concat(BitConverter.GetBytes(simulation.NextBlob));
+        buffer = buffer.Concat(BitConverter.GetBytes(simulation.HeldBlob));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.Score));
         buffer = buffer.Concat(BitConverter.GetBytes(GameIndex));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.CanSpawnBlob));
@@ -136,7 +140,7 @@ internal class SocketController : IGameController {
     /// Waits for the next frame of inputs and stores them in frameInputs.
     /// </summary>
     public void ReceiveInputs() {
-        byte[] buffer = new byte[5];
+        byte[] buffer = new byte[6];
         bool failed = false;
         try {
             Stream?.ReadExactly(buffer, 0, 5);
@@ -155,7 +159,8 @@ internal class SocketController : IGameController {
         }
 
         float t = BitConverter.ToSingle(buffer, 0);
-        bool shouldDrop = BitConverter.ToBoolean(buffer, 4);
-        FrameInputs = (t, shouldDrop);
+        bool shouldDrop = BitConverter.ToBoolean(buffer, sizeof(float));
+        bool shouldHold = BitConverter.ToBoolean(buffer, sizeof(float) + sizeof(bool));
+        FrameInputs = (t, shouldDrop, shouldHold);
     }
 }

@@ -19,7 +19,7 @@ internal class MouseController : IGameController {
     /// <returns>The current value of t.</returns>
     public float GetCurrentT() {
         Vector2 mPos = GameScene.ScreenToArenaPosition(Raylib.GetMousePosition());
-        float t = mPos.X / ClassicGameMode.ARENA_WIDTH;
+        float t = mPos.X / IGameMode.ARENA_WIDTH;
         return t;
     }
 
@@ -30,7 +30,7 @@ internal class MouseController : IGameController {
     /// <param name="t">The t value at which the blob is spawned, which represents the position of the dropper above the arena..</param>
     /// <returns>True if blob spawning was attempted, otherwise false.</returns>
     public bool SpawnBlob(IGameMode simulation, out float t) {
-        t = -1;
+        t = GetCurrentT();
 
         if (!simulation.CanSpawnBlob)
             return false;
@@ -40,9 +40,18 @@ internal class MouseController : IGameController {
 
         Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT] = true;
 
-        t = GetCurrentT();
         return true;
     }
+
+    public bool HoldBlob() {
+        if (!Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_MIDDLE))
+            return false;
+
+        Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_MIDDLE] = true;
+
+        return true;
+    }
+
     public void Update(float dT, IGameMode simulation) { }
 
     public void Close() { }

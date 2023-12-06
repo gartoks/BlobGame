@@ -1,6 +1,9 @@
 ﻿using BlobGame.Game.Blobs;
 using BlobGame.Game.GameObjects;
 using BlobGame.Game.Util;
+using BlobGame.ResourceHandling;
+using BlobGame.ResourceHandling.Resources;
+using BlobGame.Util;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
 using nkast.Aether.Physics2D.Dynamics.Contacts;
@@ -12,16 +15,16 @@ namespace BlobGame.Game.GameModes;
 /// It is separated from the drawing logic to allow for a headless version of the game. *wink wink* Tutel *wink wink*
 /// </summary>
 internal sealed class ClassicGameMode : IGameMode {
-    /// <summary>
-    /// Constants derived from the original game. Manually figured out and hard coded.
-    /// </summary>
-    internal const float GRAVITY = 111.3f;
-    internal const float ARENA_WIDTH = 670;
-    internal const float ARENA_HEIGHT = 846;
-    internal const float ARENA_HEIGHT_LOWER = 750;
-    internal const float ARENA_WALL_THICKNESS = 20;
-    internal const float ARENA_SPAWN_Y_OFFSET = -22.5f;
     internal const int HIGHEST_SPAWNABLE_BLOB_INDEX = 4;
+    /// <summary>
+    /// The id of the game mode. This must never change for a given game mode.
+    /// </summary>
+    public Guid Id { get; } = Guid.Parse("9445DAB4-AC62-40EE-B908-C89FBDE2D42C");
+
+    /// <summary>
+    /// The blob data loaded from the resource file.
+    /// </summary>
+    public IReadOnlyDictionary<int, BlobData> Blobs { get; private set; }
 
     /// <summary>
     /// Collection of all game objects. This includes blobs and walls.
@@ -49,11 +52,15 @@ internal sealed class ClassicGameMode : IGameMode {
     /// <summary>
     /// The type of the currently spawned blob.
     /// </summary>
-    public eBlobType CurrentBlob { get; private set; }
+    public int CurrentBlob { get; private set; }
     /// <summary>
     /// The type of the next blob to be spawned.
     /// </summary>
-    public eBlobType NextBlob { get; private set; }
+    public int NextBlob { get; private set; }
+    /// <summary>
+    /// The type of the currently held blob.
+    /// </summary>
+    public int HeldBlob => -1;
     /// <summary>
     /// Wether or not the player can currently spawn a blob. This is false when the last spawned blob is still falling.
     /// </summary>
@@ -83,6 +90,11 @@ internal sealed class ClassicGameMode : IGameMode {
     private Blob? LastSpawned { get; set; }
 
     /// <summary>
+    /// The rotation of the next blob to be spawned.
+    /// </summary>
+    public float SpawnRotation { get; private set; }
+
+    /// <summary>
     /// Event that is fired when a blob is spawned.
     /// </summary>
     public event BlobEventHandler OnBlobSpawned;
@@ -105,10 +117,12 @@ internal sealed class ClassicGameMode : IGameMode {
     /// </summary>
     /// <param name="seed">The seed used to initialize the random blob generator.</param>
     public ClassicGameMode(int seed) {
+        Blobs = new Dictionary<int, BlobData>();
+
         _GameObjects = new GameObjectCollection();
 
         Random = new Random(seed);
-        World = new World(new Vector2(0, GRAVITY));
+        World = new World(new Vector2(0, IGameMode.GRAVITY));
 
         CollidedBlobs = new HashSet<Blob>();
         Collisions = new List<(Blob, Blob)>();
@@ -123,7 +137,12 @@ internal sealed class ClassicGameMode : IGameMode {
     /// Initializes the simulation. Creates the arena walls physics bodies. Determines the first blob types to be spawned.
     /// </summary>
     public void Load() {
+        TextResource blobDataText = ResourceManager.TextLoader.Get("blobs_classic");
+        blobDataText.WaitForLoad();
+        Blobs = blobDataText.Resource.Select(kvp => BlobData.Parse(kvp.Key, kvp.Value)).ToDictionary(d => d.Id, d => d);
+
         CurrentBlob = GenerateRandomBlobType();
+        SpawnRotation = Random.NextSingle() * MathF.Tau;
         NextBlob = GenerateRandomBlobType();
         _GameObjects.AddRange(CreateArena(World));
         GroundWall = (GameObjects.FindByName("Ground") as Wall)!;
@@ -160,15 +179,17 @@ internal sealed class ClassicGameMode : IGameMode {
         if (!CanSpawnBlob || IsGameOver)
             return false;
 
-        eBlobType type = CurrentBlob;
+        int type = CurrentBlob;
 
+        float rot = SpawnRotation;
+        SpawnRotation = Random.NextSingle() * MathF.Tau;
         CurrentBlob = NextBlob;
         NextBlob = GenerateRandomBlobType();
 
-        float x = (t - 0.5f) * ARENA_WIDTH;
-        float y = ARENA_SPAWN_Y_OFFSET;
+        float x = (t - 0.5f) * IGameMode.ARENA_WIDTH;
+        float y = IGameMode.ARENA_SPAWN_Y_OFFSET;
 
-        LastSpawned = CreateBlob(new Vector2(x, y), type);
+        LastSpawned = CreateBlob(new Vector2(x, y), rot, type);
         CanSpawnBlob = false;
 
         OnBlobSpawned?.Invoke(this, type);
@@ -177,17 +198,32 @@ internal sealed class ClassicGameMode : IGameMode {
     }
 
     /// <summary>
+    /// Attempts to hold the current blob. If a blob is already held, the current blob is swapped with the held blob.
+    /// </summary>
+    public void HoldBlob() {
+        // Do nothing
+    }
+
+    /// <summary>
     /// Resolves any blob collisions that have occured this frame.
     /// </summary>
     private void ResolveBlobCollision() {
         foreach ((Blob b0, Blob b1) in Collisions) {
-            Score += b0.Score;
+            if (b0.Type != b1.Type) {
+                Log.WriteLine($"Collision between blobs of different types: {b0.Id} and {b1.Id}.", eLogType.Warning);
+                continue;
+            }
+
+            Score += b0.Data.Score;
 
             Vector2 midPoint = (b0.Position + b1.Position) / 2f;
             RemoveBlob(b0);
             RemoveBlob(b1);
-            CreateBlob(midPoint, b0.Type + 1);
-            OnBlobsCombined?.Invoke(this, b0.Type + 1);
+
+            if (b0.Data.MergeBlobId != -1)
+                CreateBlob(midPoint, (b0.Rotation + b1.Rotation) / 2f, b0.Data.MergeBlobId);
+
+            OnBlobsCombined?.Invoke(this, b0.Data.MergeBlobId);
         }
         Collisions.Clear();
         CollidedBlobs.Clear();
@@ -199,8 +235,9 @@ internal sealed class ClassicGameMode : IGameMode {
     /// <param name="position"></param>
     /// <param name="type"></param>
     /// <returns></returns>
-    private Blob CreateBlob(Vector2 position, eBlobType type) {
-        Blob blob = Blob.Create(World, position, type);
+    private Blob CreateBlob(Vector2 position, float rotation, int type) {
+        BlobData blobData = Blobs[type];
+        Blob blob = new Blob(blobData, World, position, rotation);
         _GameObjects.Add(blob);
         blob.Body.OnCollision += OnBlobCollision;
 
@@ -252,7 +289,7 @@ internal sealed class ClassicGameMode : IGameMode {
         if (senderBlob == null || otherBlob == null)
             return true;
 
-        if (senderBlob.Type != otherBlob.Type || senderBlob.Type == eBlobType.Watermelon)
+        if (senderBlob.Type != otherBlob.Type)
             return true;
 
         if (CollidedBlobs.Contains(senderBlob) || CollidedBlobs.Contains(otherBlob))
@@ -282,7 +319,7 @@ internal sealed class ClassicGameMode : IGameMode {
             other.Body.Tag is Blob otherBlob2 && otherBlob2 != LastSpawned;
 
         if (isLastSpawnedBlob && (isGroundWall || isOtherBlob)) {
-            eBlobType lastSpawnedType = LastSpawned!.Type;
+            int lastSpawnedType = LastSpawned!.Type;
             CanSpawnBlob = true;
             LastSpawned = null;
 
@@ -294,8 +331,8 @@ internal sealed class ClassicGameMode : IGameMode {
     /// Generates a random blob type up to the maximum spawnable blob type.
     /// </summary>
     /// <returns></returns>
-    private eBlobType GenerateRandomBlobType() {
-        return (eBlobType)Random.Next(HIGHEST_SPAWNABLE_BLOB_INDEX + 1);
+    private int GenerateRandomBlobType() {
+        return Random.Next(HIGHEST_SPAWNABLE_BLOB_INDEX + 1);
     }
 
     /// <summary>
@@ -304,15 +341,15 @@ internal sealed class ClassicGameMode : IGameMode {
     /// <param name="world">The physics engine world</param>
     /// <returns>Returns an enumerable with the wall game objects.</returns>
     private static IEnumerable<GameObject> CreateArena(World world) {
-        float totalWidth = ARENA_WIDTH + 2 * ARENA_WALL_THICKNESS;
+        float totalWidth = IGameMode.ARENA_WIDTH + 2 * IGameMode.ARENA_WALL_THICKNESS;
 
         float x = -totalWidth / 2;
         float y = 0;
 
         GameObject[] walls = new GameObject[] {
-            new Wall("Ground", world, new Rectangle(x, y + ARENA_HEIGHT, totalWidth, ARENA_WALL_THICKNESS)),
-            new Wall("Left Wall", world, new Rectangle(x, y - 100, ARENA_WALL_THICKNESS, ARENA_HEIGHT + 100)),
-            new Wall("Right Wall", world, new Rectangle(x + ARENA_WIDTH + ARENA_WALL_THICKNESS, y - 100, ARENA_WALL_THICKNESS, ARENA_HEIGHT + 100))
+            new Wall("Ground", world, new Rectangle(x, y + IGameMode.ARENA_HEIGHT, totalWidth, IGameMode.ARENA_WALL_THICKNESS)),
+            new Wall("Left Wall", world, new Rectangle(x, y - 100, IGameMode.ARENA_WALL_THICKNESS, IGameMode.ARENA_HEIGHT + 100)),
+            new Wall("Right Wall", world, new Rectangle(x + IGameMode.ARENA_WIDTH + IGameMode.ARENA_WALL_THICKNESS, y - 100, IGameMode.ARENA_WALL_THICKNESS, IGameMode.ARENA_HEIGHT + 100))
         };
 
         return walls;

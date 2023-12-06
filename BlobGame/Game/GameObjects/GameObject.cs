@@ -7,6 +7,8 @@ namespace BlobGame.Game;
 /// Base class for all game objects included in the game simulation.
 /// </summary>
 public abstract class GameObject : IEquatable<GameObject?> {
+    public const float POSITION_MULTIPLIER = 10f;
+
     /// <summary>
     /// The id uniqyely identifying this game object.
     /// </summary>
@@ -20,7 +22,7 @@ public abstract class GameObject : IEquatable<GameObject?> {
     /// The position of the game object in arena coordinates.
     /// Since the physics engine works better with smaller values, the position is scaled by 10.
     /// </summary>
-    public Vector2 Position => Body.Position * 10f;
+    public Vector2 Position => Body.Position * POSITION_MULTIPLIER;
     /// <summary>
     /// The rotation of the game object in radians.
     /// </summary>
@@ -44,7 +46,7 @@ public abstract class GameObject : IEquatable<GameObject?> {
         Name = name;
         ZIndex = 0;
 
-        Body = world.CreateBody(new Vector2(position.X / 10f, position.Y / 10f), rotation, bodyType);
+        Body = world.CreateBody(new Vector2(position.X / POSITION_MULTIPLIER, position.Y / POSITION_MULTIPLIER), rotation, bodyType);
         Body.Tag = this;
     }
 

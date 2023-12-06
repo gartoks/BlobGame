@@ -59,13 +59,7 @@ public static class GameManager {
         Tumbler.Load();
 
         Music = new MusicResource[] {
-            ResourceManager.MusicLoader.Get("crossinglike"),
-            ResourceManager.MusicLoader.Get("Melba_1"),
-            ResourceManager.MusicLoader.Get("Melba_2"),
-            ResourceManager.MusicLoader.Get("Melba_3"),
-            ResourceManager.MusicLoader.Get("Melba_s_Toasty_Game"),
-            ResourceManager.MusicLoader.Get("On_the_Surface"),
-            ResourceManager.MusicLoader.Get("synthyupdated"),
+            ResourceManager.MusicLoader.Get("music_1"),
         };
 
         GuiManager.Load();

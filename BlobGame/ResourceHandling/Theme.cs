@@ -1,4 +1,5 @@
 using BlobGame.ResourceHandling.Resources;
+using BlobGame.Util;
 using Raylib_CsLo;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -313,6 +314,55 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
             return null;
 
         return new NPatchTexture(texture, dict["left"], dict["right"], dict["top"], dict["bottom"]);
+    }
+
+    /// <summary>
+    /// Tries to load a TextureAtlas from the zip archive.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <exception cref="InvalidOperationException">Thrown if the theme was not loaded.</exception>
+    public TextureAtlas? LoadTextureAtlas(string key) {
+        if (!WasLoaded)
+            throw new InvalidOperationException("Theme was not loaded.");
+
+        Texture texture = (Texture)LoadTexture(key);
+
+        string path = $"Textures/TextureAtlasData/{key}.json";
+        ZipArchiveEntry? zippedText = ThemeArchive!.GetEntry(path);
+
+        if (zippedText == null) {
+            Debug.WriteLine($"TextureAtlasData {key} doesn't exist in this theme");
+            return null;
+        }
+
+        using Stream textStream = zippedText.Open();
+        Dictionary<string, string>? dict = JsonSerializer.Deserialize<Dictionary<string, string>>(textStream);
+
+        if (dict == null)
+            return null;
+
+        Dictionary<string, (int x, int y, int w, int h)> subTextures = new();
+        foreach (KeyValuePair<string, string> item in dict) {
+            string id = item.Key;
+            string[] components = item.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (components.Length != 4) {
+                Log.WriteLine($"TextureAtlasData {key} has an invalid format.", eLogType.Error);
+                continue;
+            }
+
+            if (!int.TryParse(components[0], out int x) ||
+                !int.TryParse(components[1], out int y) ||
+                !int.TryParse(components[2], out int w) ||
+                !int.TryParse(components[3], out int h)) {
+                Log.WriteLine($"TextureAtlasData {key} has an invalid format.", eLogType.Error);
+                continue;
+            }
+
+            subTextures[id] = (x, y, w, h);
+        }
+
+        return new TextureAtlas(texture, subTextures);
     }
 
     private void Dispose(bool disposing) {

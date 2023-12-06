@@ -1,5 +1,6 @@
 ﻿using BlobGame.App;
 using BlobGame.Game.Gui;
+using BlobGame.ResourceHandling;
 using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
@@ -186,9 +187,9 @@ internal class SettingsScene : Scene {
     }
 
     private (GuiSelector, GuiLabel) CreateSettingsEntry(string title, float xOffset, SelectionElement[] selectionElements, int selectedIndex) {
-        GuiLabel label = new GuiLabel($"0.1 {xOffset} 0.25 {1f / 10f}", title, new Vector2(0, 0.5f));
-        label.TextAlignment = eTextAlignment.Center;
-        label.DrawOutline = true;
+        GuiLabel label = new GuiLabel($"0.135 {xOffset} 0.25 {1f / 10f}", title, new Vector2(0, 0.5f));
+        label.TextAlignment = eTextAlignment.Left;
+        label.Color = ResourceManager.ColorLoader.Get("font_dark");
 
         GuiSelector selector = new GuiSelector($"0.35 {xOffset} 0.5 {1f / 16f}",
             selectionElements, selectedIndex < 0 ? 0 : selectedIndex,

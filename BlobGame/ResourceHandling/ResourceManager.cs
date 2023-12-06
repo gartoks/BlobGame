@@ -25,7 +25,8 @@ internal static class ResourceManager {
     public static SoundResourceLoader SoundLoader { get; }
     public static MusicResourceLoader MusicLoader { get; }
     public static TextResourceLoader TextLoader { get; }
-    public static NPatchTextureResourceLoader NPatchLoader { get; }
+    public static NPatchTextureResourceLoader NPatchTextureLoader { get; }
+    public static TextureAtlasResourceLoader TextureAtlasLoader { get; }
 
     /// <summary>
     /// Base theme.
@@ -48,7 +49,8 @@ internal static class ResourceManager {
         SoundLoader = new(ResourceLoadingQueue);
         MusicLoader = new(ResourceLoadingQueue);
         TextLoader = new(ResourceLoadingQueue);
-        NPatchLoader = new(ResourceLoadingQueue);
+        NPatchTextureLoader = new(ResourceLoadingQueue);
+        TextureAtlasLoader = new(ResourceLoadingQueue);
 
         DefaultTheme = new Theme(Files.GetResourceFilePath("MelbaToast.theme"));
         MainTheme = DefaultTheme;
@@ -73,7 +75,8 @@ internal static class ResourceManager {
         SoundLoader.Load(new Sound());
         MusicLoader.Load(new Music());
         TextLoader.Load(new Dictionary<string, string>());
-        NPatchLoader.Load(new NPatchTexture(Raylib.LoadTextureFromImage(image), 0, 1, 0, 1));
+        NPatchTextureLoader.Load(new NPatchTexture(Raylib.LoadTextureFromImage(image), 0, 1, 0, 1));
+        TextureAtlasLoader.Load(new TextureAtlas(Raylib.LoadTextureFromImage(image), new Dictionary<string, (int, int, int, int)>()));
     }
 
     /// <summary>
@@ -100,7 +103,8 @@ internal static class ResourceManager {
         SoundLoader.ReloadAll();
         MusicLoader.ReloadAll();
         TextLoader.ReloadAll();
-        NPatchLoader.ReloadAll();
+        NPatchTextureLoader.ReloadAll();
+        TextureAtlasLoader.ReloadAll();
     }
 
     /// <summary>
@@ -119,7 +123,6 @@ internal static class ResourceManager {
     /// <param name="key">The key of the resource.</param>
     /// <param name="type">The type of the raylib resource type</param>
     private static void LoadResource(string key, Type type) {
-
         if (type == typeof(Color)) {
             ColorLoader.LoadResource(key);
         } else if (type == typeof(Font)) {
@@ -133,7 +136,9 @@ internal static class ResourceManager {
         } else if (type == typeof(IReadOnlyDictionary<string, string>)) {
             TextLoader.LoadResource(key);
         } else if (type == typeof(NPatchTexture)) {
-            NPatchLoader.LoadResource(key);
+            NPatchTextureLoader.LoadResource(key);
+        } else if (type == typeof(TextureAtlas)) {
+            TextureAtlasLoader.LoadResource(key);
         } else {
             Debug.WriteLine($"Resource type {type} is not supported");
         }

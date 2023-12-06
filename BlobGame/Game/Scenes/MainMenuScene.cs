@@ -55,7 +55,7 @@ internal sealed class MainMenuScene : Scene {
 
     internal override void Load() {
         TitleTexture = ResourceManager.TextureLoader.Get("title_logo");
-        AvatarTexture = ResourceManager.TextureLoader.Get("melba_avatar");
+        AvatarTexture = ResourceManager.TextureLoader.Get("avatar");
 
         LoadAllGuiElements();
 

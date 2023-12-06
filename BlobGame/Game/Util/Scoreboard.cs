@@ -1,4 +1,5 @@
 ﻿using BlobGame.App;
+using BlobGame.Game.GameModes;
 using System.Text.Json;
 
 namespace BlobGame.Game.Util;
@@ -9,24 +10,13 @@ public sealed class Scoreboard {
     /// <summary>
     /// The highest score ever achieved.
     /// </summary>
-    public int GlobalHighscore { get; private set; }
-
-    /// <summary>
-    /// The highest scores achieved today. The first element is the highest score, the second element is the second highest score and so on.
-    /// Currently lists the top 3 scores.
-    /// </summary>
-    private int[] _DailyHighscores { get; }
-    /// <summary>
-    /// A read-only version of the daily highscores. Used for access outside of this class.
-    /// </summary>
-    public IReadOnlyList<int> DailyHighscores => _DailyHighscores;
+    private Dictionary<Guid, (int global, int[] daily)> Highscores { get; }
 
     /// <summary>
     /// Static constructor to initialize the score values.
     /// </summary>
     public Scoreboard() {
-        GlobalHighscore = 0;
-        _DailyHighscores = new int[3];
+        Highscores = new Dictionary<Guid, (int global, int[] daily)>();
     }
 
     /// <summary>
@@ -38,21 +28,37 @@ public sealed class Scoreboard {
         if (!File.Exists(file))
             return;
 
-        ScoreboardData? scoreData = JsonSerializer.Deserialize<ScoreboardData>(File.ReadAllText(file));
+        Highscores.Clear();
 
-        if (scoreData == null)
+        ScoreboardData[]? scoreDatas = JsonSerializer.Deserialize<ScoreboardData[]>(File.ReadAllText(file));
+
+        if (scoreDatas == null)
             return;
 
-        int globalHighscore = scoreData.GlobalHighscore;
-        DateTime date = scoreData.Date;
-        int[] dailyHighscores = scoreData.DailyHighscores;
+        foreach (ScoreboardData scoreData in scoreDatas) {
+            int globalHighscore = scoreData.GlobalHighscore;
+            DateTime date = scoreData.Date;
+            int[] dailyHighscores = scoreData.DailyHighscores;
 
-        GlobalHighscore = globalHighscore;
+            bool isDateValid = date.Date == DateTime.Today;
+            for (int i = 0; i < dailyHighscores.Length; i++) {
+                dailyHighscores[i] = isDateValid ? dailyHighscores[i] : 0;
+            }
 
-        bool isDateValid = date.Date == DateTime.Today;
-        for (int i = 0; i < _DailyHighscores.Length; i++) {
-            _DailyHighscores[i] = isDateValid ? dailyHighscores[i] : 0;
+            Highscores.Add(scoreData.gameModeId, (globalHighscore, dailyHighscores));
         }
+    }
+
+    internal int GetGlobalHighscore(IGameMode gameMode) {
+        if (Highscores.TryGetValue(gameMode.Id, out (int global, int[] daily) score))
+            return score.global;
+        return 0;
+    }
+
+    internal IReadOnlyList<int> GetDailyHighscores(IGameMode gameMode) {
+        if (Highscores.TryGetValue(gameMode.Id, out (int global, int[] daily) score))
+            return score.daily;
+        return new int[3];
     }
 
     /// <summary>
@@ -60,18 +66,25 @@ public sealed class Scoreboard {
     /// Also saves the score board to the disk.
     /// </summary>
     /// <param name="score"></param>
-    internal void AddScore(int score) {
-        if (score > GlobalHighscore)
-            GlobalHighscore = score;
+    internal void AddScore(IGameMode gameMode, int score) {
+        if (!Highscores.TryGetValue(gameMode.Id, out (int global, int[] daily) scores)) {
+            scores = (0, new int[3]);
+            Highscores.Add(gameMode.Id, scores);
+        }
 
-        for (int i = 0; i < _DailyHighscores.Length; i++) {
-            if (score > _DailyHighscores[i]) {
-                int lastScore = _DailyHighscores[i];
-                _DailyHighscores[i] = score;
+        if (score > scores.global)
+            scores.global = score;
+
+        for (int i = 0; i < scores.daily.Length; i++) {
+            if (score > scores.daily[i]) {
+                int lastScore = scores.daily[i];
+                scores.daily[i] = score;
 
                 score = lastScore;
             }
         }
+
+        Highscores[gameMode.Id] = scores;
 
         Save();
     }
@@ -80,11 +93,7 @@ public sealed class Scoreboard {
     /// Resets all scores and the highscore.
     /// </summary>
     public void Reset() {
-        GlobalHighscore = 0;
-        for (int i = 0; i < _DailyHighscores.Length; i++) {
-            _DailyHighscores[i] = 0;
-        }
-
+        Highscores.Clear();
         Save();
     }
 
@@ -94,10 +103,14 @@ public sealed class Scoreboard {
     private void Save() {
         string file = Files.GetConfigFilePath("scores.sav");
 
-        ScoreboardData scoreData = new ScoreboardData(GlobalHighscore, DateTime.Today, _DailyHighscores);
+        List<ScoreboardData> scoreboardDatas = new List<ScoreboardData>();
+        foreach (KeyValuePair<Guid, (int global, int[] daily)> item in Highscores) {
+            ScoreboardData scoreData = new ScoreboardData(item.Key, item.Value.global, DateTime.Today, item.Value.daily);
+            scoreboardDatas.Add(scoreData);
+        }
 
-        File.WriteAllText(file, JsonSerializer.Serialize(scoreData));
+        File.WriteAllText(file, JsonSerializer.Serialize(scoreboardDatas.ToArray()));
     }
 
-    private record ScoreboardData(int GlobalHighscore, DateTime Date, int[] DailyHighscores);
+    private record ScoreboardData(Guid gameModeId, int GlobalHighscore, DateTime Date, int[] DailyHighscores);
 }
