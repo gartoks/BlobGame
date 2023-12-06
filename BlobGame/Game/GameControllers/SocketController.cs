@@ -2,6 +2,7 @@
 using BlobGame.Game.GameObjects;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Text;
 
 namespace BlobGame.Game.GameControllers;
 
@@ -103,6 +104,9 @@ internal class SocketController : IGameController {
             }
         });
 
+        string? gameModeKey = IGameMode.GameModeTypes.Where(k => k.Value == simulation.GetType()).Select(k => k.Key).SingleOrDefault();
+
+
         IEnumerable<byte> buffer = new byte[0];
         buffer = buffer.Concat(BitConverter.GetBytes(blobs.Count));
         foreach (Blob blob in blobs) {
@@ -117,7 +121,7 @@ internal class SocketController : IGameController {
         buffer = buffer.Concat(BitConverter.GetBytes(GameIndex));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.CanSpawnBlob));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.IsGameOver));
-        //buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.GameMode));
+        buffer = buffer.Concat(Encoding.UTF8.GetBytes(gameModeKey == null ? "" : gameModeKey));
 
         bool failed = false;
         try {

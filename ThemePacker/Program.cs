@@ -1,21 +1,30 @@
-﻿
-using System.IO.Compression;
+﻿using System.IO.Compression;
 
-if (args.Length != 2)
-    throw new Exception("Invalid number of arguments");
-
-if (!Directory.Exists(args[0]))
-    throw new Exception("Source directory does not exist");
-
-if (!Directory.Exists(args[1]))
-    Directory.CreateDirectory(args[1]);
-
-foreach (string dirPath in Directory.EnumerateDirectories(args[0])) {
-    string dirName = Path.GetFileName(dirPath);
-    string zipPath = Path.Combine(args[1], dirName + ".theme");
-
-    if (File.Exists(zipPath))
-        File.Delete(zipPath);
-
-    ZipFile.CreateFromDirectory(dirPath, zipPath);
+if (args.Length != 2) {
+    Console.WriteLine("Invalid number of arguments");
+    return;
 }
+
+if (!Directory.Exists(args[0])) {
+    Console.WriteLine("Source directory does not exist");
+    return;
+}
+
+try {
+    if (!Directory.Exists(args[1]))
+        Directory.CreateDirectory(args[1]);
+
+    foreach (string dirPath in Directory.EnumerateDirectories(args[0])) {
+        string dirName = Path.GetFileName(dirPath);
+        string zipPath = Path.Combine(args[1], dirName + ".theme");
+
+        if (File.Exists(zipPath))
+            File.Delete(zipPath);
+
+        ZipFile.CreateFromDirectory(dirPath, zipPath);
+    }
+
+} catch (Exception e) {
+    Console.WriteLine(e);
+}
+
