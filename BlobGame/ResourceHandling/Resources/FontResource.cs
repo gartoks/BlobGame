@@ -17,18 +17,20 @@ internal sealed class FontResource : GameResource<Font> {
         : base(key, fallback, resourceRetriever) {
     }
 
-    internal void Draw(string text, float fontSize, ColorResource tint, Vector2 position, /*Vector2? pivot = null, */float rotation = 0) {
-        Draw(text, fontSize, tint.Resource, position, /*pivot, */rotation);
+    internal void Draw(string text, float fontSize, ColorResource tint, Vector2 position, Vector2? pivot = null, float rotation = 0) {
+        Draw(text, fontSize, tint.Resource, position, pivot, rotation);
     }
-    internal void Draw(string text, float fontSize, Color tint, Vector2 position, /*Vector2? pivot = null, */float rotation = 0) {
-        /*if (pivot == null)
+    internal void Draw(string text, float fontSize, Color tint, Vector2 position, Vector2? pivot = null, float rotation = 0) {
+        if (pivot == null)
             pivot = Vector2.Zero;
-*/
+
+        Vector2 textSize = Raylib.MeasureTextEx(Resource, text, fontSize, fontSize / 16f);
+
         Raylib.DrawTextPro(
             Resource,
             text,
             position,
-            new Vector2(),
+            textSize * pivot.Value,
             rotation,
             fontSize,
             fontSize / 16f,

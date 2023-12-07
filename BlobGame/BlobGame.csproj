@@ -32,6 +32,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Resources\HowToSocketControl.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Resources\MelbaToast.theme">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

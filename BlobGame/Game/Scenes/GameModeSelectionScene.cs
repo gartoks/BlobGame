@@ -54,7 +54,7 @@ internal class GameModeSelectionScene : Scene {
         PortTextBox = new GuiTextbox($"0.35 {yOffset} 0.125 0.0625", new Vector2(0, 0.5f)) {
             CharFilter = char.IsDigit
         };
-        PortTextBox.Text = "13327";
+        PortTextBox.Text = "1337";
         PortTextBox.Enabled = false;
         yOffset += 0.1f;
 

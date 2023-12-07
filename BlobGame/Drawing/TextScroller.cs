@@ -72,7 +72,7 @@ internal sealed class TextScroller {
         Renderer.MainFont.Draw(
             Scroller.Value.text, 200,
             ResourceManager.ColorLoader.Get("background"),
-            pos, -12.5f);
+            pos, Vector2.Zero, -12.5f);
 
         if (traversedDistance > distance) {
             NextScrollTime = Renderer.Time + MinScrollInterval + Random.NextSingle() * (MaxScrollInterval - MinScrollInterval);
