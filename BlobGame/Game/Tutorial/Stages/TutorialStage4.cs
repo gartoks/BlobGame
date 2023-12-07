@@ -15,7 +15,7 @@ internal class TutorialStage4 : TutorialStage {
     private Vector2 PointerAnimationDirection { get; }
 
     internal override bool IsFadeInFinished => true;
-    internal override bool IsFadeOutFinished => AnimatedAvatarFadeOut.IsFinished;
+    internal override bool IsFadeOutFinished => AnimatedAvatarFadeOut != null && AnimatedAvatarFadeOut.IsFinished;
 
     private bool PlayedSound { get; set; }
 

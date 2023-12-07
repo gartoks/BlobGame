@@ -14,7 +14,7 @@ internal class TutorialStage7 : TutorialStage {
     private AnimatedTexture AnimatedAvatarFadeOut { get; set; }
 
     internal override bool IsFadeInFinished => true;
-    internal override bool IsFadeOutFinished => AnimatedAvatarFadeOut.IsFinished;
+    internal override bool IsFadeOutFinished => AnimatedAvatarFadeOut != null && AnimatedAvatarFadeOut.IsFinished;
 
     private bool PlayedSound { get; set; }
 
