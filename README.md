@@ -22,16 +22,18 @@ If you have questions, please reach out to gartoks on Discord.
 - Monitor switching is currently disabled.
 
 ## TODO:
-- Pack sprites into a texture atlas.
-- The smallest two Blobs allow for three Blobs to be combined into one if the simultaneously collide.
-- Fully implement menus
-- Add a custom physics engine (maybe)
-- Resource unloading on scene switch (might not be necessary, since the files are so small and there aren't that many)
-- no "back" button in play screen
-- Jam Jar is drawn too big
-- Feature: holding a blob
-- Feature: shoving the arena
-- Feature: alternate startup mode to run multiple game sims and interaction with sockets
+- [ ] Pack sprites into a texture atlas.
+- [ ] The smallest two Blobs allow for three Blobs to be combined into one if the simultaneously collide.
+- [ ] Fully implement menus
+- [ ] Add a custom physics engine (maybe)
+- [ ] Resource unloading on scene switch (might not be necessary, since the files are so small and there aren't that many)
+- [ ] Feature: shoving the arena
+- [ ] Create socket documentation
+- [x] Fix banana collision
+- [x] no "back" button in play screen
+- [x] Jam Jar is drawn too big
+- [x] Feature: holding a blob
+- [x] Feature: alternate startup mode to run multiple game sims and interaction with sockets
 
 ## Acknowledgments
 Inspired by SUIKA for the game, and Melba Toast for the theme.

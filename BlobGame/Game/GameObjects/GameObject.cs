@@ -37,9 +37,9 @@ public abstract class GameObject : IEquatable<GameObject?> {
     /// </summary>
     internal Body Body { get; }
     /// <summary>
-    /// The physics engine fixture of the game object.
+    /// The physics engine fixtures of the game object.
     /// </summary>
-    protected abstract Fixture Fixture { get; }
+    protected abstract List<Fixture> Fixtures { get; }
 
     protected internal GameObject(string name, World world, Vector2 position, float rotation, BodyType bodyType) {
         Id = Guid.NewGuid();

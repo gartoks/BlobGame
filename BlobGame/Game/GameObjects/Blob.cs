@@ -22,9 +22,9 @@ internal sealed class Blob : GameObject {
     public BlobData Data { get; }
 
     /// <summary>
-    /// The physics engine fixture attached to the blob's body.
+    /// The physics engine fixtures attached to the blob's body.
     /// </summary>
-    protected override Fixture Fixture { get; }
+    protected override List<Fixture> Fixtures { get; }
 
     /// <summary>
     /// The texture of the blob.
@@ -44,9 +44,12 @@ internal sealed class Blob : GameObject {
         Type = data.Id;
         Data = data;
 
-        Fixture = data.CreateFixture(Body);
-        Fixture.Restitution = 0.15f;
-        Fixture.Friction = 0.1f;
+        Fixtures = data.CreateFixtures(Body);
+        foreach (Fixture fixture in Fixtures){
+            fixture.Restitution = 0.15f;
+            fixture.Friction = 0.1f;
+        }
+
         Body.Mass = data.Mass;
         Body.AngularDamping = 0.9f;
         Body.Rotation = rotation;

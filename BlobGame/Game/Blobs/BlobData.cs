@@ -1,4 +1,5 @@
 ﻿using nkast.Aether.Physics2D.Common;
+using nkast.Aether.Physics2D.Common.Decomposition;
 using nkast.Aether.Physics2D.Dynamics;
 
 namespace BlobGame.Game.Blobs;
@@ -87,17 +88,18 @@ public record BlobData {
         return true;
     }
 
-    internal Fixture CreateFixture(Body body) {
+    internal List<Fixture> CreateFixtures(Body body) {
         char colliderType = ColliderData[0];
         string[] colliderValues = ColliderData[1..].Split(',', StringSplitOptions.TrimEntries);
 
         switch (colliderType) {
             case 'c':
                 float radius = float.Parse(colliderValues[0]) / GameObject.POSITION_MULTIPLIER;
-                return body.CreateCircle(radius, 1);
+                return new List<Fixture>(){ body.CreateCircle(radius, 1) };
             case 'p':
                 Vertices vertices = new Vertices(ParseVertices(Origin, colliderValues));
-                return body.CreatePolygon(vertices, 1);
+                List<Vertices> convexVertices = Triangulate.ConvexPartition(vertices, TriangulationAlgorithm.Bayazit);
+                return body.CreateCompoundPolygon(convexVertices, 1);
             default:
                 throw new Exception($"Unknown collider type '{colliderType}'");
         }

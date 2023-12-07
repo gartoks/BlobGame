@@ -37,11 +37,15 @@ internal static class GuiManager {
 
     internal static void Update(float dT) {
         if (Input.IsHotkeyActive("next")) {
+            if (InteractiveElements.Count == 0)
+                return;
             do {
                 FocusedElementIndex = (FocusedElementIndex + 1) % InteractiveElements.Count;
             } while (!InteractiveElements[FocusedElementIndex].Enabled);
             AudioManager.PlaySound("ui_interaction");
         } else if (Input.IsHotkeyActive("previous")) {
+            if (InteractiveElements.Count == 0)
+                return;
             do {
                 FocusedElementIndex = (FocusedElementIndex - 1 + InteractiveElements.Count) % InteractiveElements.Count;
             } while (!InteractiveElements[FocusedElementIndex].Enabled);
