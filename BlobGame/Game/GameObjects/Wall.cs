@@ -8,9 +8,9 @@ namespace BlobGame.Game;
 /// </summary>
 internal sealed class Wall : GameObject {
     /// <summary>
-    /// The physics engine fixture attached to the wall's body.
+    /// The physics engine fixtures attached to the wall's body.
     /// </summary>
-    protected override Fixture Fixture { get; }
+    protected override List<Fixture> Fixtures { get; }
 
     /// <summary>
     /// The width of the wall.
@@ -32,9 +32,11 @@ internal sealed class Wall : GameObject {
         Width = bounds.width;
         Height = bounds.height;
 
-        Fixture = Body.CreateRectangle(Width / POSITION_MULTIPLIER, Height / POSITION_MULTIPLIER, 1, new Vector2(Width / POSITION_MULTIPLIER / 2, Height / POSITION_MULTIPLIER / 2));
-        Fixture.Restitution = 0;
-        Fixture.Friction = 0.15f;
+        Fixtures = new List<Fixture>(){
+            Body.CreateRectangle(Width / POSITION_MULTIPLIER, Height / POSITION_MULTIPLIER, 1, new Vector2(Width / POSITION_MULTIPLIER / 2, Height / POSITION_MULTIPLIER / 2))
+        };
+        Fixtures[0].Restitution = 0;
+        Fixtures[0].Friction = 0.15f;
         ZIndex = 0;
     }
 

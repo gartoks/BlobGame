@@ -29,7 +29,7 @@ If you have questions, please reach out to gartoks on Discord.
 - [ ] Resource unloading on scene switch (might not be necessary, since the files are so small and there aren't that many)
 - [ ] Feature: shoving the arena
 - [ ] Create socket documentation
-- [ ] Fix banana collision
+- [x] Fix banana collision
 - [x] no "back" button in play screen
 - [x] Jam Jar is drawn too big
 - [x] Feature: holding a blob
