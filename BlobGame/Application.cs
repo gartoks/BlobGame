@@ -93,6 +93,7 @@ internal static class Application {
 
         IsRunning = true;
 
+        Raylib.SetConfigFlags(ConfigFlags.FLAG_MSAA_4X_HINT);
         Raylib.InitWindow(BASE_WIDTH, BASE_HEIGHT, NAME);
         Raylib.SetTargetFPS(FPS);
         Raylib.SetExitKey(KeyboardKey.KEY_NULL);

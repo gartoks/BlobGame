@@ -38,7 +38,7 @@ internal sealed partial class GameScene : Scene {
             float rotation = splat.Value.rotation;
             Vector2 position = splat.Value.position;
 
-            texture.Draw(new Rectangle(position.X, position.Y, 200, 200), new Vector2(0.5f, 0.5f), rotation * RayMath.RAD2DEG, Raylib.WHITE.ChangeAlpha((int)(255 * alpha)));
+            texture.Draw(new Rectangle(position.X, position.Y, 200, 200), new Vector2(0.5f, 0.5f), rotation, Raylib.WHITE.ChangeAlpha((int)(255 * alpha)));
 
             float newAlpha = alpha - 2 * dT;
 

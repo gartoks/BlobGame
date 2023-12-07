@@ -9,7 +9,7 @@ internal record NPatchTexture(Texture Texture, int left, int right, int top, int
 /// <summary>
 /// Game resource for npatch textures.
 /// </summary>
-internal sealed class NPatchTextureResource : GameResource<NPatchTexture> {
+internal sealed class NPatchTextureResource : GameResource<NPatchTexture>, IDrawableResource {
     /// <summary>
     /// Constructor for a new npatch texture resource.
     /// </summary>
@@ -20,16 +20,21 @@ internal sealed class NPatchTextureResource : GameResource<NPatchTexture> {
         : base(key, fallback, resourceRetriever) {
     }
 
-    internal void Draw(Rectangle bounds, Vector2? pivot = null, Color? tint = null) {
+    public void Draw(Rectangle bounds, Vector2? pivot = null, float rotation = 0, Color? tint = null) {
         if (pivot == null)
             pivot = Vector2.Zero;
 
-        float tw = Resource.Texture.width;
-        float th = Resource.Texture.height;
+        float sin = MathF.Sin(rotation);
+        float cos = MathF.Cos(rotation);
+        rotation *= RayMath.RAD2DEG;
+
         float bw = bounds.width;
         float bh = bounds.height;
         float r = Resource.Texture.width - Resource.right;
         float b = Resource.Texture.height - Resource.bottom;
+
+        float offsetX = bw * pivot.Value.X;
+        float offsetY = bh * pivot.Value.Y;
 
         float centerW = Math.Max(0, bounds.width - r - Resource.left);
         float centerH = Math.Max(0, bounds.height - b - Resource.top);
@@ -37,12 +42,17 @@ internal sealed class NPatchTextureResource : GameResource<NPatchTexture> {
         float hScale = Math.Min(1, bh / (Resource.top + b));
 
         void Draw(float xT, float yT, float wT, float hT, float xB, float yB, float wB, float hB) {
+            xB -= offsetX;
+            yB -= offsetY;
+            float x = cos * xB - sin * yB + bounds.x;
+            float y = cos * yB + sin * xB + bounds.y;
+
             Raylib.DrawTexturePro(
                     Resource.Texture,
                     new Rectangle(xT, yT, wT, hT),
-                    new Rectangle(bounds.x + xB, bounds.y + yB, wB, hB),
-                    Vector2.Zero,   // TODO
-                    0,  // TODO
+                    new Rectangle(x, y, wB, hB),
+                    Vector2.Zero,
+                    rotation,
                     tint != null ? tint.Value : Raylib.WHITE);
         }
 

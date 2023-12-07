@@ -44,7 +44,7 @@ internal sealed class GuiNPatchPanel : GuiElement {
         if (Texture == null)
             Texture = ResourceManager.NPatchTextureLoader.Get(TextureKey);
 
-        Texture.Draw(Bounds, Pivot, Tint.Resource);
+        Texture.Draw(Bounds, Pivot, 0, Tint.Resource);
     }
 
 }

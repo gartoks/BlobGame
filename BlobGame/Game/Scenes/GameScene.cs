@@ -84,8 +84,12 @@ internal sealed partial class GameScene : Scene {
         Random = new Random();
         Splats = new();
 
-        if (Application.Settings.IsTutorialEnabled)
-            Tutorial = new TutorialDisplay();
+        string gameModeKey = IGameMode.GameModeTypes.Where(k => k.Value == Game.GetType()).Select(k => k.Key).Single();
+        if (Application.Settings.GetTutorialEnabled(gameModeKey)) {
+
+            if (gameModeKey != null)
+                Tutorial = new TutorialDisplay(gameModeKey);
+        }
     }
 
     /// <summary>
@@ -144,8 +148,10 @@ internal sealed partial class GameScene : Scene {
         if (IsTutorialEnabled) {
             Tutorial!.Update(dT);
 
-            if (Tutorial.IsFinished)
-                Application.Settings.IsTutorialEnabled = false;
+            if (Tutorial.IsFinished) {
+                string gameModeKey = IGameMode.GameModeTypes.Where(k => k.Value == Game.GetType()).Select(k => k.Key).Single();
+                Application.Settings.SetTutorialEnabled(gameModeKey, false);
+            }
         }
 
         if (!IsTutorialEnabled && Input.IsHotkeyActive("open_menu"))
@@ -204,7 +210,7 @@ internal sealed partial class GameScene : Scene {
 
         RlGl.rlPopMatrix();
 
-        Tutorial?.Draw();
+        Tutorial?.Draw(dT);
 
         if (Game.IsGameOver) {
             IsMenuOpen = false;

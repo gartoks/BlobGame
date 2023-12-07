@@ -143,7 +143,7 @@ internal class SettingsScene : Scene {
         if (ResetScoreButton.IsClicked)
             GameManager.Scoreboard.Reset();
         if (ResetTutorialButton.IsClicked)
-            Application.Settings.IsTutorialEnabled = true;
+            Application.Settings.ResetTutorial();
     }
 
     private void ApplySettings() {
