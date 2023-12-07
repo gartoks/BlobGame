@@ -15,7 +15,6 @@ namespace BlobGame.Game.GameModes;
 /// It is separated from the drawing logic to allow for a headless version of the game. *wink wink* Tutel *wink wink*
 /// </summary>
 internal sealed class ClassicGameMode : IGameMode {
-    internal const int HIGHEST_SPAWNABLE_BLOB_INDEX = 4;
     /// <summary>
     /// The id of the game mode. This must never change for a given game mode.
     /// </summary>
@@ -108,6 +107,11 @@ internal sealed class ClassicGameMode : IGameMode {
     public event BlobEventHandler OnBlobsCombined;
 
     /// <summary>
+    /// Event that is fired when a blob is destroyed. The argument is the type of the blob that was destroyed.
+    /// </summary>
+    public event BlobEventHandler OnBlobDestroyed;
+
+    /// <summary>
     /// Event that is fired when the game is over.
     /// </summary>
     public event GameEventHandler OnGameOver;
@@ -192,7 +196,7 @@ internal sealed class ClassicGameMode : IGameMode {
         LastSpawned = CreateBlob(new Vector2(x, y), rot, type);
         CanSpawnBlob = false;
 
-        OnBlobSpawned?.Invoke(this, type);
+        OnBlobSpawned?.Invoke(this, new System.Numerics.Vector2(x, y), type);
 
         return true;
     }
@@ -223,7 +227,7 @@ internal sealed class ClassicGameMode : IGameMode {
             if (b0.Data.MergeBlobId != -1)
                 CreateBlob(midPoint, (b0.Rotation + b1.Rotation) / 2f, b0.Data.MergeBlobId);
 
-            OnBlobsCombined?.Invoke(this, b0.Data.MergeBlobId);
+            OnBlobsCombined?.Invoke(this, new System.Numerics.Vector2(b0.Position.X, b0.Position.Y), b0.Data.MergeBlobId);
         }
         Collisions.Clear();
         CollidedBlobs.Clear();
@@ -323,7 +327,9 @@ internal sealed class ClassicGameMode : IGameMode {
             CanSpawnBlob = true;
             LastSpawned = null;
 
-            OnBlobPlaced?.Invoke(this, lastSpawnedType);
+            Blob blob = sender.Body.Tag is Blob b0 ? b0 : (Blob)other.Body.Tag;
+
+            OnBlobPlaced?.Invoke(this, new System.Numerics.Vector2(blob.Position.X, blob.Position.Y), lastSpawnedType);
         }
     }
 
@@ -332,7 +338,16 @@ internal sealed class ClassicGameMode : IGameMode {
     /// </summary>
     /// <returns></returns>
     private int GenerateRandomBlobType() {
-        return Random.Next(HIGHEST_SPAWNABLE_BLOB_INDEX + 1);
+        float totalSpawnWeight = Blobs.Values.Sum(b => b.SpawnWeight);
+        float spawnValue = Random.NextSingle() * totalSpawnWeight;
+
+        foreach (BlobData blobData in Blobs.Values) {
+            spawnValue -= blobData.SpawnWeight;
+            if (spawnValue <= 0)
+                return blobData.Id;
+        }
+
+        return 0;
     }
 
     /// <summary>

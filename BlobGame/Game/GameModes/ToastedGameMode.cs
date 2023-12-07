@@ -3,7 +3,6 @@ using BlobGame.Game.GameObjects;
 using BlobGame.Game.Util;
 using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
-using BlobGame.Util;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
 using nkast.Aether.Physics2D.Dynamics.Contacts;
@@ -105,6 +104,11 @@ internal sealed class ToastedGameMode : IGameMode {
     public event BlobEventHandler OnBlobsCombined;
 
     /// <summary>
+    /// Event that is fired when a blob is destroyed. The argument is the type of the blob that was destroyed.
+    /// </summary>
+    public event BlobEventHandler OnBlobDestroyed;
+
+    /// <summary>
     /// Event that is fired when the game is over.
     /// </summary>
     public event GameEventHandler OnGameOver;
@@ -190,7 +194,7 @@ internal sealed class ToastedGameMode : IGameMode {
         LastSpawned = CreateBlob(new Vector2(x, y), rot, type);
         CanSpawnBlob = false;
 
-        OnBlobSpawned?.Invoke(this, type);
+        OnBlobSpawned?.Invoke(this, new System.Numerics.Vector2(x, y), type);
 
         return true;
     }
@@ -215,11 +219,11 @@ internal sealed class ToastedGameMode : IGameMode {
     /// </summary>
     private void ResolveBlobCollision() {
         foreach ((Blob b0, Blob? b1) in Collisions) {
-            if (b0.Type == 1)
-                Log.WriteLine($"CVel: {b0.Name}:{b0.Body.LinearVelocity.Length()}");
+            //if (b0.Type == 1)
+            //    Log.WriteLine($"CVel: {b0.Name}:{b0.Body.LinearVelocity.Length()}");
 
-            if (b1 != null && b1.Type == 1)
-                Log.WriteLine($"CVel: {b1.Name}:{b1.Body.LinearVelocity.Length()}");
+            //if (b1 != null && b1.Type == 1)
+            //    Log.WriteLine($"CVel: {b1.Name}:{b1.Body.LinearVelocity.Length()}");
 
 
             if (b1 != null) {
@@ -233,14 +237,21 @@ internal sealed class ToastedGameMode : IGameMode {
                     if (b0.Data.MergeBlobId != -1)
                         CreateBlob(midPoint, (b0.Rotation + b1.Rotation) / 2f, b0.Data.MergeBlobId);
 
-                    OnBlobsCombined?.Invoke(this, b0.Data.MergeBlobId);
+                    if (b0.Data.MergeBlobId != -1)
+                        OnBlobsCombined?.Invoke(this, new System.Numerics.Vector2(b0.Position.X, b0.Position.Y), b0.Data.MergeBlobId);
+                    else
+                        OnBlobDestroyed?.Invoke(this, new System.Numerics.Vector2(midPoint.X, midPoint.Y), b0.Type);
+
                 } else if (b0.Data.ShatterSpeed > 0 && b0.Data.ShatterSpeed < b0.Body.LinearVelocity.Length()) {
                     RemoveBlob(b0);
+                    OnBlobDestroyed?.Invoke(this, new System.Numerics.Vector2(b0.Position.X, b0.Position.Y), b0.Type);
                 } else if (b1.Data.ShatterSpeed > 0 && b1.Data.ShatterSpeed < b1.Body.LinearVelocity.Length()) {
                     RemoveBlob(b1);
+                    OnBlobDestroyed?.Invoke(this, new System.Numerics.Vector2(b1.Position.X, b1.Position.Y), b1.Type);
                 }
             } else if (b0.Data.ShatterSpeed != 0 && Math.Abs(b0.Data.ShatterSpeed / 4f) < b0.Data.ShatterSpeed) {
                 RemoveBlob(b0);
+                OnBlobDestroyed?.Invoke(this, new System.Numerics.Vector2(b0.Position.X, b0.Position.Y), b0.Type);
             }
 
         }
@@ -351,7 +362,8 @@ internal sealed class ToastedGameMode : IGameMode {
             CanSpawnBlob = true;
             LastSpawned = null;
 
-            OnBlobPlaced?.Invoke(this, lastSpawnedType);
+            Blob blob = sender.Body.Tag is Blob b0 ? b0 : (Blob)other.Body.Tag;
+            OnBlobPlaced?.Invoke(this, new System.Numerics.Vector2(blob.Position.X, blob.Position.Y), lastSpawnedType);
         }
     }
 
@@ -360,7 +372,16 @@ internal sealed class ToastedGameMode : IGameMode {
     /// </summary>
     /// <returns></returns>
     private int GenerateRandomBlobType() {
-        return Random.Next(HIGHEST_SPAWNABLE_BLOB_INDEX + 1);
+        float totalSpawnWeight = Blobs.Values.Sum(b => b.SpawnWeight);
+        float spawnValue = Random.NextSingle() * totalSpawnWeight;
+
+        foreach (BlobData blobData in Blobs.Values) {
+            spawnValue -= blobData.SpawnWeight;
+            if (spawnValue <= 0)
+                return blobData.Id;
+        }
+
+        return 0;
     }
 
     /// <summary>

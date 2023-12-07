@@ -113,7 +113,7 @@ internal class SettingsScene : Scene {
         LoadAllGuiElements();
     }
 
-    internal override void Draw() {
+    internal override void Draw(float dT) {
         BackgroundPanel.Draw();
         BackButton.Draw();
         ApplyButton.Draw();

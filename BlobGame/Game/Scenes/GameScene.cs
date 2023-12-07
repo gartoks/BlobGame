@@ -1,5 +1,5 @@
-﻿using BlobGame.Audio;
-using BlobGame.Drawing;
+﻿using BlobGame.App;
+using BlobGame.Audio;
 using BlobGame.Game.Blobs;
 using BlobGame.Game.GameControllers;
 using BlobGame.Game.GameModes;
@@ -7,12 +7,11 @@ using BlobGame.Game.Gui;
 using BlobGame.Game.Tutorial;
 using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
-using BlobGame.Util;
 using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Scenes;
-internal sealed class GameScene : Scene {
+internal sealed partial class GameScene : Scene {
     private const float ARENA_OFFSET_X = Application.BASE_WIDTH * 0.5f;
     private const float ARENA_OFFSET_Y = 150;
     private const float DROP_INDICATOR_WIDTH = 10;
@@ -25,20 +24,30 @@ internal sealed class GameScene : Scene {
     private TextureResource ArenaBoxTexture { get; set; }
     private TextureResource MarkerTexture { get; set; }
     private TextureResource DropperTexture { get; set; }
-    private NPatchTextureResource CurrentScoreTexture { get; set; }
+    private TextureResource CurrentScoreBackgroundTexture { get; set; }
     private TextureAtlasResource CurrentScoreBitmapFont { get; set; }
     private TextureResource ScoresBackgroundTexture { get; set; }
-    private TextureResource CurrentBlobTexture { get; set; }
-    private TextureResource NextBlobTexture { get; set; }
-    private TextureResource HeldBlobTexture { get; set; }
+    private TextureResource GameOverTexture { get; set; }
 
-    private GuiPanel GameOverPanel { get; }
-    private GuiLabel GameOverLabel { get; }
+    private Dictionary<Guid, (TextureResource tex, float alpha, float rotation, Vector2 position)> Splats { get; }
+
+    private GuiNPatchPanel GameOverPanel { get; }
+    private GuiNPatchPanel MenuPanel { get; }
     private GuiTextButton RetryButton { get; }
+    private GuiLabel MenuLabel { get; }
+    private GuiTextButton ContinueButton { get; }
     private GuiTextButton ToMainMenuButton { get; }
     private float LastDropIndicatorX { get; set; }
 
-    private TutorialDisplay? Tutorial { get; }
+    private GuiTextButton MenuButton { get; }
+
+    private TutorialDisplay? Tutorial { get; set; }
+
+    private Random Random { get; }
+
+    private bool IsTutorialEnabled => Tutorial != null && !Tutorial.IsFinished;
+    private bool IsMenuOpen { get; set; }
+    private bool IsPaused => IsMenuOpen || IsTutorialEnabled || Game.IsGameOver;
 
     /// <summary>
     /// Creates a new game scene.
@@ -47,6 +56,7 @@ internal sealed class GameScene : Scene {
         Controller = controller;
         Game = gameMode;
         Game.OnBlobsCombined += Game_OnBlobsCombined;
+        Game.OnBlobDestroyed += Game_OnBlobDestroyed;
         Game.OnGameOver += Game_OnGameOver;
 
         RetryButton = new GuiTextButton(
@@ -54,13 +64,25 @@ internal sealed class GameScene : Scene {
             Application.BASE_WIDTH * 0.2f, 100,
             "Retry",
             new Vector2(0.5f, 0.5f));
+        ContinueButton = new GuiTextButton(
+            Application.BASE_WIDTH * 0.37f, Application.BASE_HEIGHT * 0.625f,
+            Application.BASE_WIDTH * 0.2f, 100,
+            "Continue",
+            new Vector2(0.5f, 0.5f));
         ToMainMenuButton = new GuiTextButton(
             Application.BASE_WIDTH * 0.62f, Application.BASE_HEIGHT * 0.625f,
             Application.BASE_WIDTH * 0.2f, 100,
             "To Menu",
             new Vector2(0.5f, 0.5f));
-        GameOverPanel = new GuiPanel("0.5 0.5 1100px 500px", new Vector2(0.5f, 0.5f));
-        GameOverLabel = new GuiLabel("0.5 0.35 1100px 120px", "Game over", new Vector2(0.5f, 0.5f));
+        GameOverPanel = new GuiNPatchPanel("0.5 0.4 1100px 700px", "panel", new Vector2(0.5f, 0.5f));
+        MenuPanel = new GuiNPatchPanel("0.5 0.5 1100px 500px", "panel", new Vector2(0.5f, 0.5f));
+        MenuLabel = new GuiLabel("0.5 0.45 1100px 250px", "Paused", new Vector2(0.5f, 0.5f));
+        MenuLabel.Color = ResourceManager.ColorLoader.Get("font_dark");
+
+        MenuButton = new GuiTextButton("1 1 100px 50px", "Menu", Vector2.One);
+
+        Random = new Random();
+        Splats = new();
 
         if (Application.Settings.IsTutorialEnabled)
             Tutorial = new TutorialDisplay();
@@ -70,6 +92,8 @@ internal sealed class GameScene : Scene {
     /// Called when the scene is loaded. Override this method to provide custom scene initialization logic and to load resources.
     /// </summary>
     internal override void Load() {
+        Input.RegisterHotkey("open_menu", KeyboardKey.KEY_ESCAPE);
+
         LoadAllGuiElements();
 
         Game.Load();
@@ -78,8 +102,19 @@ internal sealed class GameScene : Scene {
         // Loads all the blob textures
 
         foreach (BlobData blobType in Game.Blobs.Values) {
-            ResourceManager.TextureLoader.Load($"{blobType.Id}");
-            ResourceManager.TextureLoader.Load($"{blobType.Id}_shadow");
+            ResourceManager.TextureLoader.Load($"{blobType.Name}");
+
+            if (ResourceManager.TextureLoader.ResourceExists($"{blobType.Name}_shadow"))
+                ResourceManager.TextureLoader.Load($"{blobType.Name}_shadow");
+
+            if (ResourceManager.TextureLoader.ResourceExists($"{blobType.Name}_splat"))
+                ResourceManager.TextureLoader.Load($"{blobType.Name}_splat");
+
+            if (ResourceManager.SoundLoader.ResourceExists($"{blobType.Name}_created"))
+                ResourceManager.SoundLoader.Load($"{blobType.Name}_created");
+
+            if (ResourceManager.SoundLoader.ResourceExists($"{blobType.Name}_destroyed"))
+                ResourceManager.SoundLoader.Load($"{blobType.Name}_destroyed");
         }
 
         RankupArrowTexture = ResourceManager.TextureLoader.Get("rankup_arrow");
@@ -87,14 +122,15 @@ internal sealed class GameScene : Scene {
         ArenaBoxTexture = ResourceManager.TextureLoader.Get("arena_box");
         MarkerTexture = ResourceManager.TextureLoader.Get("marker");
         DropperTexture = ResourceManager.TextureLoader.Get("dropper");
-        CurrentScoreTexture = ResourceManager.NPatchTextureLoader.Get("currentScore_bg");
+        CurrentScoreBackgroundTexture = ResourceManager.TextureLoader.Get("score_bg");
         CurrentScoreBitmapFont = ResourceManager.TextureAtlasLoader.Get("score_spritefont");
         ScoresBackgroundTexture = ResourceManager.TextureLoader.Get("scores_bg");
-        CurrentBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.CurrentBlob].TextureKey);
-        NextBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.NextBlob].TextureKey);
-        HeldBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.NextBlob].TextureKey);
+        GameOverTexture = ResourceManager.TextureLoader.Get("game_over");
 
         Tutorial?.Load();
+        IsMenuOpen = false;
+
+        ResourceManager.WaitForLoading();
     }
 
     /// <summary>
@@ -102,39 +138,37 @@ internal sealed class GameScene : Scene {
     /// </summary>
     /// <param name="dT">The delta time since the last frame, typically used for frame-rate independent updates.</param>
     internal override void Update(float dT) {
-        if (Tutorial != null && !Tutorial.IsFinished) {
-            Tutorial.Update(dT);
+        if (Controller is SocketController)
+            Tutorial = null;
+
+        if (IsTutorialEnabled) {
+            Tutorial!.Update(dT);
 
             if (Tutorial.IsFinished)
                 Application.Settings.IsTutorialEnabled = false;
-        } else {
+        }
+
+        if (!IsTutorialEnabled && Input.IsHotkeyActive("open_menu"))
+            IsMenuOpen = !IsMenuOpen;
+
+        if (!IsPaused) {
             Game.Update(dT);
             Controller.Update(dT, Game);
-
-            if (Game.CanSpawnBlob) {
-                CurrentBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.CurrentBlob].TextureKey);
-                NextBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.NextBlob].TextureKey);
-            } else {
-                CurrentBlobTexture = ResourceManager.TextureLoader.Fallback;
-                NextBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.CurrentBlob].TextureKey);
-            }
 
             if (Game.CanSpawnBlob && Controller.SpawnBlob(Game, out float t)) {
                 t = Math.Clamp(t, 0, 1);
                 Game.TrySpawnBlob(t);
             } else if (Controller.HoldBlob()) {
                 Game.HoldBlob();
-                CurrentBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.CurrentBlob].TextureKey);
-                NextBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.NextBlob].TextureKey);
-                HeldBlobTexture = ResourceManager.TextureLoader.Get(Game.Blobs[Game.HeldBlob].TextureKey);
             }
         }
+
     }
 
     /// <summary>
     /// Called every frame to draw the scene. Override this method to provide custom scene rendering logic.
     /// </summary>
-    internal override void Draw() {
+    internal override void Draw(float dT) {
         RlGl.rlPushMatrix();
         DrawScoreboard();
         DrawRankupChart();
@@ -144,12 +178,13 @@ internal sealed class GameScene : Scene {
         DrawArenaBackground();
 
         Game.GameObjects.Enumerate(item => item.Draw());
+        DrawSplats(dT);
 
         float t = Tutorial != null && !Tutorial.IsFinished ? 0.5f : Math.Clamp(Controller.GetCurrentT(), 0, 1);
         float indicatorOffset = DROP_INDICATOR_WIDTH / 2f + 1;
         float x = -IGameMode.ARENA_WIDTH / 2f + indicatorOffset + t * (IGameMode.ARENA_WIDTH - 2 * indicatorOffset);
 
-        if (Game.IsGameOver)
+        if (Game.IsGameOver || IsMenuOpen)
             x = LastDropIndicatorX;
         else
             LastDropIndicatorX = x;
@@ -171,14 +206,24 @@ internal sealed class GameScene : Scene {
 
         Tutorial?.Draw();
 
-        if (Game.IsGameOver)
+        if (Game.IsGameOver) {
+            IsMenuOpen = false;
             DrawGameOverScreen();
+        }
+
+        if (!IsTutorialEnabled && !Game.IsGameOver && !IsMenuOpen)
+            DrawMenuButton();
+
+        if (IsMenuOpen)
+            DrawMenu();
     }
 
     /// <summary>
     /// Called when the scene is about to be unloaded or replaced by another scene. Override this method to provide custom cleanup or deinitialization logic and to unload resources.
     /// </summary>
     internal override void Unload() {
+        Input.UnregisterHotkey("open_menu");
+
         GameManager.Scoreboard.AddScore(Game, Game.Score);
         Controller.Close();
         // TODO unload NOT NEEDED resources
@@ -188,8 +233,38 @@ internal sealed class GameScene : Scene {
     /// Called when two blobs combine.
     /// </summary>
     /// <param name="newType">The type of newly created blob.</param>
-    private void Game_OnBlobsCombined(IGameMode sender, int newType) {
-        AudioManager.PlaySound("piece_combination");
+    private void Game_OnBlobsCombined(IGameMode sender, Vector2 position, int newType) {
+        string key = $"{Game.Blobs[newType].Name}_created";
+        if (ResourceManager.SoundLoader.ResourceExists(key)) {
+            if (!ResourceManager.SoundLoader.IsLoaded(key))
+                ResourceManager.SoundLoader.Load(key);
+            else
+                AudioManager.PlaySound(key);
+        } else {
+            AudioManager.PlaySound("piece_combination");
+        }
+    }
+
+    private void Game_OnBlobDestroyed(IGameMode sender, Vector2 position, int type) {
+        string soundKey = $"{Game.Blobs[type].Name}_destroyed";
+        if (ResourceManager.SoundLoader.ResourceExists(soundKey)) {
+            if (!ResourceManager.SoundLoader.IsLoaded(soundKey)) {
+                ResourceManager.SoundLoader.Load(soundKey);
+                ResourceManager.SoundLoader.Get(soundKey).WaitForLoad();
+            }
+            AudioManager.PlaySound(soundKey);
+        }
+
+        string splatKey = $"{Game.Blobs[type].Name}_splat";
+        if (ResourceManager.TextureLoader.ResourceExists(splatKey)) {
+            if (!ResourceManager.TextureLoader.IsLoaded(splatKey)) {
+                ResourceManager.TextureLoader.Load(splatKey);
+                ResourceManager.TextureLoader.Get(splatKey).WaitForLoad();
+            }
+
+            TextureResource tex = ResourceManager.TextureLoader.Get(splatKey);
+            Splats[Guid.NewGuid()] = (tex, 1f, Random.NextSingle() * MathF.Tau, position);
+        }
     }
 
     private void Game_OnGameOver(IGameMode sender) {
@@ -197,202 +272,6 @@ internal sealed class GameScene : Scene {
             AudioManager.PlaySound("new_highscore");
         else
             AudioManager.PlaySound("game_loss");
-    }
-
-    internal void DrawRankupChart() {
-        const float size = 75;
-        const float radius = 200;
-
-        float ruaW = RankupArrowTexture.Resource.width;
-        float ruaH = RankupArrowTexture.Resource.height;
-
-        float cX = 1640;
-        float cY = 635f;
-
-        Raylib.DrawTexturePro(
-            RankupArrowTexture.Resource,
-            new Rectangle(0, 0, ruaW, ruaH),
-            new Rectangle(cX, cY, ruaW * 1.3f, ruaH * 1.3f),
-            new Vector2(ruaW * 1.3f / 2, ruaH * 1.3f / 2),
-            0,
-            new Color(255, 255, 255, 255));
-        //new Color(234, 89, 203, 255));
-
-        int i = 0;
-        foreach (BlobData blobType in Game.Blobs.Values) {
-            float angle = (i + 1) / (float)(Game.Blobs.Count + 1) * MathF.Tau - MathF.PI / 2f;
-
-            float x = cX + radius * MathF.Cos(angle);
-            float y = cY + radius * MathF.Sin(angle);
-
-            string texKey = Game.Blobs[blobType.Id].TextureKey;
-            Texture tex = ResourceManager.TextureLoader.Get($"{texKey}_shadow").Resource;
-            float w = tex.width;
-            float h = tex.height;
-
-            Raylib.DrawTexturePro(
-                tex,
-                new Rectangle(0, 0, w, h),
-                new Rectangle(x, y, size, size),
-                new Vector2(size / 2, size / 2), 0, Raylib.WHITE);
-            i++;
-        }
-    }
-
-    internal void DrawArenaBackground() {
-        float w = ArenaBackgroundTexture.Resource.width;
-        float h = ArenaBackgroundTexture.Resource.height;
-
-        //ArenaTexture.Draw(new Rectangle(0, 0, 695, 858), new Vector2(w / 2f, 0));
-
-        Raylib.DrawTexturePro(
-            ArenaBackgroundTexture.Resource,
-            new Rectangle(0, 0, w, h),
-            new Rectangle(0, 0, w, h),
-            new Vector2(w / 2, 0),
-            0,
-            Raylib.WHITE);
-    }
-
-    internal void DrawArenaBox() {
-        float w = ArenaBoxTexture.Resource.width;
-        float h = ArenaBoxTexture.Resource.height;
-
-        //ArenaTexture.Draw(new Rectangle(0, 0, 695, 858), new Vector2(w / 2f, 0));
-
-        Raylib.DrawTexturePro(
-            ArenaBoxTexture.Resource,
-            new Rectangle(0, 0, w, h),
-            new Rectangle(0, 0, w, h),
-            new Vector2(w / 2, 0),
-            0,
-            Raylib.WHITE);
-    }
-
-    internal void DrawNextBlob() {
-        // Hightlight
-        MarkerTexture.Draw(new Vector2(IGameMode.ARENA_WIDTH * 0.75f, 0), new Vector2(0.5f, 0.5f), null, 0, ResourceManager.ColorLoader.Get("light_accent").Resource);
-
-        // Blob
-        NextBlobTexture.Draw(
-            new Vector2(IGameMode.ARENA_WIDTH * 0.75f, 0),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.25f, 0.25f));
-
-        Vector2 textPos = new Vector2(IGameMode.ARENA_WIDTH * 0.75f, -310);
-        Raylib.DrawTextPro(
-            Renderer.MainFont.Resource,
-            "NEXT",
-            textPos,
-            textPos / 2f,
-            -25.5f,
-            80, 5, ResourceManager.ColorLoader.Get("font_dark").Resource);
-    }
-
-    internal void DrawHeldBlob() {
-        // Hightlight
-        MarkerTexture.Draw(new Vector2(IGameMode.ARENA_WIDTH * -0.75f, 0), new Vector2(0.5f, 0.5f), null, 0, ResourceManager.ColorLoader.Get("light_accent").Resource);
-
-        if (Game.HeldBlob != -1) {
-            // Blob
-            HeldBlobTexture.Draw(
-                new Vector2(IGameMode.ARENA_WIDTH * -0.75f, 0),
-                new Vector2(0.5f, 0.5f),
-                new Vector2(0.25f, 0.25f));
-        }
-
-        Vector2 textPos = new Vector2(IGameMode.ARENA_WIDTH * -1.85f, -280);
-        Raylib.DrawTextPro(
-            Renderer.MainFont.Resource,
-            "HELD",
-            textPos,
-            textPos / 2f,
-            0,
-            80, 5, ResourceManager.ColorLoader.Get("font_dark").Resource);
-    }
-
-    internal void DrawDropper(float x) {
-        DropperTexture.Draw(
-            new Rectangle(x, 3f * IGameMode.ARENA_SPAWN_Y_OFFSET, 220, 150),
-            new Vector2(0.5f, 0.5f));
-    }
-
-    internal void DrawDropIndicator(float x) {
-        Raylib.DrawRectanglePro(
-            new Rectangle(x, 0, DROP_INDICATOR_WIDTH, IGameMode.ARENA_HEIGHT),
-            new Vector2(DROP_INDICATOR_WIDTH / 2f, 0),
-            0,
-            ResourceManager.ColorLoader.Get("background").Resource.ChangeAlpha(128));
-    }
-
-    internal void DrawCurrentBlob(float x) {
-        CurrentBlobTexture.Draw(
-            new Vector2(x, IGameMode.ARENA_SPAWN_Y_OFFSET),
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.25f, 0.25f),
-            Game.SpawnRotation * RayMath.RAD2DEG);
-    }
-
-    private void DrawScoreboard() {
-        const float x = 122.5f;
-        const float y = 350;
-        const float w = 400;
-
-        DrawCurrentScore(x, y - 100, w);
-        DrawHighscores(x, y + 120, w);
-    }
-
-    private void DrawCurrentScore(float x, float y, float w) {
-        CurrentScoreBitmapFont.DrawAsBitmapFont(Game.Score.ToString(), 10, 120, new Vector2(x + w * 0.85f, y), new Vector2(1, 0));
-    }
-
-    private void DrawHighscores(float x, float y, float w) {
-        ScoresBackgroundTexture.Draw(
-            new Rectangle(x - w * 0.4f, y - 7, w * 1.6f, w * 1.65f));
-
-        DrawScoreValue(x, y, w, GameManager.Scoreboard.GetGlobalHighscore(Game), "font_dark");
-
-        for (int i = 0; i < GameManager.Scoreboard.GetDailyHighscores(Game).Count; i++) {
-            DrawScoreValue(x, y + 160 + 130 * i, w, GameManager.Scoreboard.GetDailyHighscores(Game)[i]);
-        }
-    }
-
-    private void DrawScoreValue(float x, float y, float w, int score, string colorKey = null, bool useMainFont = false, float fontSize = 90) {
-        if (colorKey == null)
-            colorKey = "font_light";
-
-        FontResource font = useMainFont ? Renderer.MainFont : Renderer.GuiFont;
-
-        string scoreStr = $"{score}";
-        Vector2 scoreTextSize = Raylib.MeasureTextEx(font.Resource, scoreStr, 100, 10);
-        Raylib.DrawTextPro(
-                font.Resource,
-                scoreStr,
-                new Vector2(x + w - 50 - scoreTextSize.X, y + 5),
-                new Vector2(scoreTextSize.Y / 2f, 0),
-                0,
-                fontSize,
-                10,
-                ResourceManager.ColorLoader.Get(colorKey).Resource);
-    }
-
-    private void DrawGameOverScreen() {
-        GameOverPanel.Draw();
-        GameOverLabel.Draw();
-
-        RetryButton.Draw();
-        ToMainMenuButton.Draw();
-
-        bool isNewHighscore = Game.Score > GameManager.Scoreboard.GetGlobalHighscore(Game);
-        GuiLabel ScoreLabel = new GuiLabel("0.5 0.45 1100px 90px",
-            $"{(isNewHighscore ? "New Highscore!\n" : "")}Score: {Game.Score}",
-            new Vector2(0.5f, 0.5f));
-        ScoreLabel.Draw();
-
-        if (RetryButton.IsClicked)
-            GameManager.SetScene(new GameScene(Controller, IGameMode.CreateGameMode(Game.GetType(), new Random().Next())));
-        if (ToMainMenuButton.IsClicked)
-            GameManager.SetScene(new MainMenuScene());
     }
 
     /// <summary>

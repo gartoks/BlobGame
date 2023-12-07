@@ -2,7 +2,6 @@
 using BlobGame.Game.Gui;
 using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
-using Raylib_CsLo;
 using System.Numerics;
 
 namespace BlobGame.Game.Scenes;
@@ -18,33 +17,39 @@ internal sealed class MainMenuScene : Scene {
     private GUIImage TitleImage { get; }
     private GuiTextButton PlayButton { get; }
     private GuiTextButton SettingsButton { get; }
+    private GuiTextButton ControlsButton { get; }
     private GuiTextButton CreditsButton { get; }
     private GuiTextButton QuitButton { get; }
 
     public MainMenuScene() {
         Scroller = new TextScroller(5, 15, 30, 15);
 
-        float yOffset = 0.45f;
+        float yOffset = 0.4f;
         PlayButton = new GuiTextButton(
-            $"0.5 {yOffset} 0.25 0.125",
+            $"0.5 {yOffset} 0.25 0.1",
             "Play",
             new Vector2(0.5f, 0.5f));
-        yOffset += 0.15f;
+        yOffset += 0.125f;
         SettingsButton = new GuiTextButton(
-            $"0.5 {yOffset} 0.25 0.125",
+            $"0.5 {yOffset} 0.25 0.1",
             "Settings",
             new Vector2(0.5f, 0.5f));
-        yOffset += 0.15f;
+        yOffset += 0.125f;
+        ControlsButton = new GuiTextButton(
+            $"0.5 {yOffset} 0.25 0.1",
+            "Controls",
+            new Vector2(0.5f, 0.5f));
+        yOffset += 0.125f;
         CreditsButton = new GuiTextButton(
-            $"0.5 {yOffset} 0.25 0.125",
+            $"0.5 {yOffset} 0.25 0.1",
             "Credits",
             new Vector2(0.5f, 0.5f));
-        yOffset += 0.15f;
+        yOffset += 0.125f;
         QuitButton = new GuiTextButton(
-            $"0.5 {yOffset} 0.25 0.125",
+            $"0.5 {yOffset} 0.25 0.1",
             "Quit",
             new Vector2(0.5f, 0.5f));
-        yOffset += 0.15f;
+        yOffset += 0.125f;
 
         TitleImage = new GUIImage(
             Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT * 0.05f,
@@ -67,11 +72,12 @@ internal sealed class MainMenuScene : Scene {
     internal override void Update(float dT) {
     }
 
-    internal override void Draw() {
+    internal override void Draw(float dT) {
         Scroller.Draw();
 
         PlayButton.Draw();
         SettingsButton.Draw();
+        ControlsButton.Draw();
         CreditsButton.Draw();
         QuitButton.Draw();
 
@@ -79,6 +85,8 @@ internal sealed class MainMenuScene : Scene {
             GameManager.SetScene(new GameModeSelectionScene());
         if (SettingsButton.IsClicked)
             GameManager.SetScene(new SettingsScene());
+        if (ControlsButton.IsClicked)
+            GameManager.SetScene(new ControlsScene());
         if (CreditsButton.IsClicked)
             GameManager.SetScene(new CreditsScene());
         if (QuitButton.IsClicked)
@@ -88,26 +96,26 @@ internal sealed class MainMenuScene : Scene {
         TitleImage.Scale = 0.485f + 0.03f * t;
         TitleImage.Draw();
 
-        // TODO: Is tmp, will fix when back
+        /*// TODO: Is tmp, will fix when back
         TestDraw(-130, Application.BASE_HEIGHT * 1f + 130, 150, -150, 45, 10);
-        TestDraw(Application.BASE_WIDTH * 0.7f, Application.BASE_HEIGHT * 1f + 170, 0, -150, 0, 14);
+        TestDraw(Application.BASE_WIDTH * 0.7f, Application.BASE_HEIGHT * 1f + 170, 0, -150, 0, 14);*/
     }
+    /*
+        // TODO: Is tmp, will fix when back
+        private void TestDraw(float x, float y, float dx, float dy, float rot, float time) {
+            int w = AvatarTexture.Resource.width;
+            int h = AvatarTexture.Resource.height;
 
-    // TODO: Is tmp, will fix when back
-    private void TestDraw(float x, float y, float dx, float dy, float rot, float time) {
-        int w = AvatarTexture.Resource.width;
-        int h = AvatarTexture.Resource.height;
+            float dX = 0;
+            float dY = 0;
+            if (Renderer.Time > time) {
+                float t2 = -MathF.Pow(2 * (Renderer.Time - time) - 1, 4) + 1;
+                dX = t2 * dx;
+                dY = t2 * dy;
+            }
 
-        float dX = 0;
-        float dY = 0;
-        if (Renderer.Time > time) {
-            float t2 = -MathF.Pow(2 * (Renderer.Time - time) - 1, 4) + 1;
-            dX = t2 * dx;
-            dY = t2 * dy;
-        }
-
-        Raylib.DrawTexturePro(AvatarTexture.Resource, new Rectangle(0, 0, w, h), new Rectangle(x + dX, y + dY, w / 4f, h / 4f), new Vector2(w / 2f / 4f, h / 2f / 4f), rot, Raylib.WHITE);
-    }
+            Raylib.DrawTexturePro(AvatarTexture.Resource, new Rectangle(0, 0, w, h), new Rectangle(x + dX, y + dY, w / 4f, h / 4f), new Vector2(w / 2f / 4f, h / 2f / 4f), rot, Raylib.WHITE);
+        }*/
 
     internal override void Unload() {
         Scroller.Unload();

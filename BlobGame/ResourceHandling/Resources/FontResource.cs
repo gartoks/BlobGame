@@ -41,6 +41,10 @@ internal sealed class FontResourceLoader : ResourceLoader<Font, FontResource> {
         : base(resourceLoadingQueue) {
     }
 
+    protected override bool ResourceExistsInternal(string key) {
+        return ResourceManager.MainTheme.DoesFontExist(key);
+    }
+
     protected override Font LoadResourceInternal(string key) {
         Font? res = ResourceManager.MainTheme.LoadFont(key) ?? ResourceManager.DefaultTheme.LoadFont(key);
         return res ?? Fallback.Resource;

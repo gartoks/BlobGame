@@ -103,7 +103,7 @@ public static class GameManager {
         if (!WasSceneLoaded)
             return;
 
-        Scene.Draw();
+        Scene.Draw(dT);
     }
 
     /// <summary>

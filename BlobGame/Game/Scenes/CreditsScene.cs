@@ -120,7 +120,7 @@ internal class CreditsScene : Scene {
         LoadAllGuiElements();
     }
 
-    internal override void Draw() {
+    internal override void Draw(float dT) {
         if (!IsLoaded && ResourceManager.TextLoader.Get("credits").IsLoaded) {
             TextResource credits = ResourceManager.TextLoader.Get("credits");
             ProgrammersLabel.Text = credits.Resource["programming"];

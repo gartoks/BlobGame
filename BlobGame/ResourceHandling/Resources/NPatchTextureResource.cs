@@ -114,6 +114,10 @@ internal sealed class NPatchTextureResourceLoader : ResourceLoader<NPatchTexture
         : base(resourceLoadingQueue) {
     }
 
+    protected override bool ResourceExistsInternal(string key) {
+        return ResourceManager.MainTheme.DoesNPatchTextureExist(key);
+    }
+
     protected override NPatchTexture LoadResourceInternal(string key) {
         NPatchTexture? res = ResourceManager.MainTheme.LoadNPatchTexture(key) ?? ResourceManager.DefaultTheme.LoadNPatchTexture(key);
         return res ?? Fallback.Resource;

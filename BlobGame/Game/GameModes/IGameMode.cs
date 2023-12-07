@@ -1,9 +1,10 @@
 ﻿using BlobGame.Game.Blobs;
 using BlobGame.Game.Util;
+using System.Numerics;
 
 namespace BlobGame.Game.GameModes;
 
-internal delegate void BlobEventHandler(IGameMode sender, int type);
+internal delegate void BlobEventHandler(IGameMode sender, Vector2 position, int type);
 internal delegate void GameEventHandler(IGameMode sender);
 
 /// <summary>
@@ -80,6 +81,11 @@ internal interface IGameMode {
     event BlobEventHandler OnBlobsCombined;
 
     /// <summary>
+    /// Event that is fired when a blob is destroyed. The argument is the type of the blob that was destroyed.
+    /// </summary>
+    event BlobEventHandler OnBlobDestroyed;
+
+    /// <summary>
     /// Event that is fired when the game is over.
     /// </summary>
     event GameEventHandler OnGameOver;
@@ -111,8 +117,8 @@ internal interface IGameMode {
     /// All available game modes with their keys.
     /// </summary>
     public static IReadOnlyDictionary<string, Type> GameModeTypes { get; } = new Dictionary<string, Type>() {
-        { "Classic", typeof(ClassicGameMode) },
         { "Toasted", typeof(ToastedGameMode) },
+        { "Classic", typeof(ClassicGameMode) },
     };
 
     /// <summary>

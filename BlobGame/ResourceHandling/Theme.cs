@@ -92,6 +92,10 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
 
     }
 
+    internal bool DoesColorExist(string key) {
+        return Colors.ContainsKey(key);
+    }
+
     /// <summary>
     /// Tries to get a color to the given key.
     /// </summary>
@@ -106,6 +110,10 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         }
 
         return Colors[key];
+    }
+
+    internal bool DoesFontExist(string key) {
+        throw new NotImplementedException();
     }
 
     /// <summary>
@@ -151,6 +159,11 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         return font;
     }
 
+    internal bool DoesTextureExist(string key) {
+        string path = $"Textures/{key}.png";
+        return ThemeArchive!.GetEntry(path) != null;
+    }
+
     /// <summary>
     /// Tries to load a texture from the zip archive.
     /// </summary>
@@ -190,6 +203,11 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         return texture;
     }
 
+    internal bool DoesSoundExist(string key) {
+        string path = $"Sounds/{key}.wav";
+        return ThemeArchive!.GetEntry(path) != null;
+    }
+
     /// <summary>
     /// Tries to load a sound from the zip archive.
     /// </summary>
@@ -223,6 +241,11 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         }
 
         return sound;
+    }
+
+    internal bool DoesMusicExist(string key) {
+        string path = $"Music/{key}.mp3";
+        return ThemeArchive!.GetEntry(path) != null;
     }
 
     /// <summary>
@@ -264,6 +287,11 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         return music;
     }
 
+    internal bool DoesTextExist(string key) {
+        string path = $"Texts/{key}.json";
+        return ThemeArchive!.GetEntry(path) != null;
+    }
+
     /// <summary>
     /// Tries to get a text to the given key.
     /// </summary>
@@ -286,6 +314,11 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
         Dictionary<string, string>? dict = JsonSerializer.Deserialize<Dictionary<string, string>>(textStream);
 
         return dict;
+    }
+
+    internal bool DoesNPatchTextureExist(string key) {
+        string path = $"Textures/NPatchData/{key}.json";
+        return DoesTextureExist(key) && ThemeArchive!.GetEntry(path) != null;
     }
 
     /// <summary>
@@ -314,6 +347,11 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
             return null;
 
         return new NPatchTexture(texture, dict["left"], dict["right"], dict["top"], dict["bottom"]);
+    }
+
+    internal bool DoesTextureAtlasExist(string key) {
+        string path = $"Textures/TextureAtlasData/{key}.json";
+        return DoesTextureExist(key) && ThemeArchive!.GetEntry(path) != null;
     }
 
     /// <summary>

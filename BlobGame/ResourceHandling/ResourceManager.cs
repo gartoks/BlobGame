@@ -123,6 +123,8 @@ internal static class ResourceManager {
     /// <param name="key">The key of the resource.</param>
     /// <param name="type">The type of the raylib resource type</param>
     private static void LoadResource(string key, Type type) {
+        Log.WriteLine($"Loading {key} {type.Name}");
+
         if (type == typeof(Color)) {
             ColorLoader.LoadResource(key);
         } else if (type == typeof(Font)) {
@@ -142,6 +144,11 @@ internal static class ResourceManager {
         } else {
             Debug.WriteLine($"Resource type {type} is not supported");
         }
+    }
+
+    public static void WaitForLoading() {
+        while (ResourceLoadingQueue.Count != 0)
+            Thread.Sleep(5);
     }
 
     /// <summary>

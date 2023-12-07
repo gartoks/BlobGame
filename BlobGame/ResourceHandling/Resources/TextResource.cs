@@ -20,6 +20,10 @@ internal sealed class TextResourceLoader : ResourceLoader<IReadOnlyDictionary<st
         : base(resourceLoadingQueue) {
     }
 
+    protected override bool ResourceExistsInternal(string key) {
+        return ResourceManager.MainTheme.DoesTextExist(key);
+    }
+
     protected override IReadOnlyDictionary<string, string> LoadResourceInternal(string key) {
         IReadOnlyDictionary<string, string>? res = ResourceManager.MainTheme.LoadText(key) ?? ResourceManager.DefaultTheme.LoadText(key);
         return res ?? Fallback.Resource;

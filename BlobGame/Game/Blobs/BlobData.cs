@@ -14,8 +14,8 @@ public record BlobData {
         int mergeBlobId = int.Parse(data[2]);
         int mergeWithBlobId = int.Parse(data[3]);
         float shatterSpeed = float.Parse(data[4]);
-        float mass = float.Parse(data[5]);
-        string textureKey = data[6];
+        float spawnWeight = float.Parse(data[5]);
+        float mass = float.Parse(data[6]);
 
         string[] originComponents = data[7].Split(',', StringSplitOptions.TrimEntries);
         if (originComponents.Length != 2)
@@ -33,7 +33,7 @@ public record BlobData {
 
         string colliderData = data[9];
 
-        return new BlobData(id, name, score, mergeBlobId, mergeWithBlobId, colliderData, shatterSpeed, mass, textureKey, origin, textureScale);
+        return new BlobData(id, name, score, mergeBlobId, mergeWithBlobId, spawnWeight, colliderData, shatterSpeed, mass, origin, textureScale);
     }
 
     public int Id { get; }
@@ -43,14 +43,14 @@ public record BlobData {
     public int MergeWithBlobId { get; }
     private string ColliderData { get; }
     public float ShatterSpeed { get; }
+    public float SpawnWeight { get; }
     public float Mass { get; }
-    public string TextureKey { get; }
     public Vector2 Origin { get; }
     public Vector2 TextureScale { get; }
 
     private BlobData(int id, string name, int score, int mergeBlobId, int mergeWithBlobId,
-                     string colliderData, float shatterSpeed, float mass,
-                     string textureKey, Vector2 origin, Vector2 textureScale) {
+                     float spawnWeight, string colliderData, float shatterSpeed, float mass,
+                     Vector2 origin, Vector2 textureScale) {
 
         Id = id;
         Name = name;
@@ -59,8 +59,8 @@ public record BlobData {
         MergeWithBlobId = mergeWithBlobId;
         ColliderData = colliderData;
         ShatterSpeed = shatterSpeed;
+        SpawnWeight = spawnWeight;
         Mass = mass;
-        TextureKey = textureKey;
         Origin = origin;
         TextureScale = textureScale;
     }

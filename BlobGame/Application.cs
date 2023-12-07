@@ -4,6 +4,7 @@ using BlobGame.Drawing;
 using BlobGame.ResourceHandling;
 using Raylib_CsLo;
 using System.Diagnostics;
+using System.Reflection;
 
 namespace BlobGame;
 /// <summary>
@@ -18,7 +19,7 @@ internal static class Application {
     /// <summary>
     /// The name of the application. Used for the window title.
     /// </summary>
-    private const string NAME = "Blob Game";
+    private const string NAME = "Toasted";
     /// <summary>
     /// The frames per second the game is targeting.
     /// </summary>
@@ -97,6 +98,9 @@ internal static class Application {
         Raylib.SetExitKey(KeyboardKey.KEY_NULL);
         Raylib.InitAudioDevice();
 
+        Image icon = LoadIcon();
+        Raylib.SetWindowIcon(icon);
+
         Settings.Load();
         ResourceManager.Load();
         AudioManager.Load();
@@ -148,4 +152,27 @@ internal static class Application {
 
         Game.GameManager.Unload();
     }
+
+    private static Image LoadIcon() {
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        string resourceName = "BlobGame.Resources.icon.png";
+
+        using Stream stream = assembly.GetManifestResourceStream(resourceName)!;
+        byte[] imageData;
+        using (MemoryStream ms = new MemoryStream()) {
+            stream.CopyTo(ms);
+            ms.Position = 0;
+            imageData = ms.ToArray();
+        }
+
+        Image image;
+        unsafe {
+            fixed (byte* imagePtr = imageData) {
+                image = Raylib.LoadImageFromMemory(".png", imagePtr, imageData.Length);
+            }
+        }
+
+        return image;
+    }
+
 }
