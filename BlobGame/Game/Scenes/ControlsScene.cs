@@ -5,7 +5,7 @@ using System.Numerics;
 namespace BlobGame.Game.Scenes;
 internal class ControlsScene : Scene {
     private GuiTextButton BackButton { get; }
-    private GuiNPatchPanel BackgroundPanel { get; }
+    private GuiPanel BackgroundPanel { get; }
 
     private GuiDynamicLabel MouseControlsLabel { get; set; }
     private GuiDynamicLabel MouseControlsDescription { get; set; }
@@ -23,7 +23,7 @@ internal class ControlsScene : Scene {
             "Back",
             new Vector2(0, 1));
 
-        BackgroundPanel = new GuiNPatchPanel("0.05 0.05 0.9 0.8", "panel", new Vector2(0, 0));
+        BackgroundPanel = new GuiPanel("0.05 0.05 0.9 0.8", "panel", new Vector2(0, 0));
 
         float y = 0.125f;
         MouseControlsLabel = new GuiDynamicLabel(Application.BASE_WIDTH * 0.125f, Application.BASE_HEIGHT * y, "Mouse", 100);
@@ -33,12 +33,12 @@ internal class ControlsScene : Scene {
 
         KeyboardControlsLabel = new GuiDynamicLabel(Application.BASE_WIDTH * 0.525f, Application.BASE_HEIGHT * y, "Keyboard", 100);
         KeyboardControlsLabel.Color = ResourceManager.ColorLoader.Get("font_dark");
-        KeyboardControlsDescription = new GuiDynamicLabel(Application.BASE_WIDTH * 0.55f, Application.BASE_HEIGHT * (y + 0.1f), "Left Click: Drop Piece\nMiddle Click: Hold Piece", 70);
+        KeyboardControlsDescription = new GuiDynamicLabel(Application.BASE_WIDTH * 0.55f, Application.BASE_HEIGHT * (y + 0.1f), "W & S: Move Dropper\nSpace: Drop Piece\nTab: Hold Piece", 70);
         KeyboardControlsDescription.Color = ResourceManager.ColorLoader.Get("font_dark");
 
         SocketControlsLabel = new GuiDynamicLabel(Application.BASE_WIDTH * 0.125f, Application.BASE_HEIGHT * (y + 0.3f), "Socket", 100);
         SocketControlsLabel.Color = ResourceManager.ColorLoader.Get("font_dark");
-        SocketControlsDescription = new GuiDynamicLabel(Application.BASE_WIDTH * 0.15f, Application.BASE_HEIGHT * (y + 0.3f + 0.1f), "See external file\nResources/HowToSocketControl.txt", 70);
+        SocketControlsDescription = new GuiDynamicLabel(Application.BASE_WIDTH * 0.15f, Application.BASE_HEIGHT * (y + 0.3f + 0.1f), "See external file\nResources/HowTo.txt", 70);
         SocketControlsDescription.Color = ResourceManager.ColorLoader.Get("font_dark");
     }
 

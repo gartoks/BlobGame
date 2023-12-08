@@ -4,7 +4,7 @@ using System.Numerics;
 
 namespace BlobGame.ResourceHandling.Resources;
 
-internal interface IDrawableResource {
+public interface IDrawableResource {
     //void Draw(Vector2 position, Vector2? pivot = null, Vector2? scale = null, float rotation = 0, Color? tint = null);
     void Draw(Rectangle bounds, Vector2? pivot = null, float rotation = 0, Color? tint = null);
 }

@@ -1,4 +1,5 @@
-﻿using System.IO.Compression;
+﻿using System.Diagnostics;
+using System.IO.Compression;
 
 if (args.Length != 2) {
     Console.WriteLine("Invalid number of arguments");
@@ -24,6 +25,8 @@ try {
         ZipFile.CreateFromDirectory(dirPath, zipPath);
     }
 
+    Console.WriteLine("Done Packing");
+    Debug.WriteLine("Done Packing");
 } catch (Exception e) {
     Console.WriteLine(e);
 }

@@ -60,7 +60,15 @@ internal sealed class MainMenuScene : Scene {
 
     internal override void Load() {
         TitleTexture = ResourceManager.TextureLoader.Get("title_logo");
-        AvatarTexture = ResourceManager.TextureLoader.Get("avatar");
+        AvatarTexture = ResourceManager.TextureLoader.Get("avatar_idle");
+
+        // Preload so the game doesnt lag on startup so much
+        ResourceManager.TextureLoader.Load("avatar_idle");
+        ResourceManager.TextureLoader.Load("avatar_blink_0");
+        ResourceManager.TextureLoader.Load("avatar_blink_1");
+        ResourceManager.TextureLoader.Load("avatar_talk_0");
+        ResourceManager.TextureLoader.Load("avatar_talk_1");
+        ResourceManager.TextureLoader.Load("avatar_talk_2");
 
         LoadAllGuiElements();
 

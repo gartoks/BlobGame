@@ -6,7 +6,7 @@ using System.Numerics;
 namespace BlobGame.Game.Scenes;
 internal class CreditsScene : Scene {
     private GuiTextButton BackButton { get; }
-    private GuiNPatchPanel BackgroundPanel { get; }
+    private GuiPanel BackgroundPanel { get; }
 
     private GuiDynamicLabel ProgrammingCaptionLabel { get; }
     private GuiDynamicLabel ArtCaptionLabel { get; }
@@ -31,7 +31,7 @@ internal class CreditsScene : Scene {
             "Back",
             new Vector2(0, 1));
 
-        BackgroundPanel = new GuiNPatchPanel("0.05 0.05 0.9 0.8", "panel", new Vector2(0, 0));
+        BackgroundPanel = new GuiPanel("0.05 0.05 0.9 0.8", "panel", new Vector2(0, 0));
 
         const float CAPTION_X_OFFSET = 0.15f;
         const float LABEL_X_OFFSET = 0.2f;

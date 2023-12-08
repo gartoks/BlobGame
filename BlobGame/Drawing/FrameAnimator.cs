@@ -13,7 +13,7 @@ internal sealed class FrameAnimator {
     private string? DefaultSequence { get; set; }
     private Random Random { get; }
 
-    private string? ActiveSequence { get; set; }
+    public string? ActiveSequence { get; private set; }
     private int ActiveSequenceIndex { get; set; }
     private float SequencePlayTime { get; set; }
     private int FrameIndex => (int)(SequencePlayTime / FrameDuration);

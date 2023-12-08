@@ -17,10 +17,10 @@ internal sealed class FontResource : GameResource<Font> {
         : base(key, fallback, resourceRetriever) {
     }
 
-    internal void Draw(string text, float fontSize, ColorResource tint, Vector2 position, Vector2? pivot = null, float rotation = 0) {
-        Draw(text, fontSize, tint.Resource, position, pivot, rotation);
+    internal void Draw(string text, float fontSize, ColorResource tint, Vector2 position, Vector2? pivot = null, float rotation = 0, float spacing = 16f) {
+        Draw(text, fontSize, tint.Resource, position, pivot, rotation, spacing);
     }
-    internal void Draw(string text, float fontSize, Color tint, Vector2 position, Vector2? pivot = null, float rotation = 0) {
+    internal void Draw(string text, float fontSize, Color tint, Vector2 position, Vector2? pivot = null, float rotation = 0, float spacing = 16f) {
         if (pivot == null)
             pivot = Vector2.Zero;
 
@@ -33,7 +33,7 @@ internal sealed class FontResource : GameResource<Font> {
             textSize * pivot.Value,
             rotation,
             fontSize,
-            fontSize / 16f,
+            fontSize / spacing,
             tint);
     }
 }

@@ -7,6 +7,8 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
+    <IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows> 
+    <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux> 
     <ApplicationIcon>Resources\icon.ico</ApplicationIcon> 
   </PropertyGroup>
 
@@ -32,9 +34,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Resources\HowToSocketControl.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="Resources\MelbaToast.theme">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -46,12 +45,8 @@
     </None>
   </ItemGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(OS)' == 'Windows_NT'">
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
     <Exec Command="&quot;$(SolutionDir)ThemePacker\bin\Debug\net7.0\ThemePacker.exe&quot; $(ProjectDir)Resources\Themes\ $(ProjectDir)Resources\" />
-  </Target>
-
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(OS)' != 'Windows_NT'">
-    <Exec Command="&quot;$(SolutionDir)ThemePacker/bin/Debug/net7.0/ThemePacker&quot; $(ProjectDir)Resources/Themes/ $(ProjectDir)Resources/" />
   </Target>
 
 </Project>

@@ -24,7 +24,7 @@ internal class GuiTextbox : InteractiveGuiElement {
         set => Label.Color = value;
     }
 
-    private GuiNPatchPanel Panel { get; }
+    private GuiPanel Panel { get; }
     private GuiLabel Label { get; }
 
     public Predicate<char>? CharFilter { get; init; }
@@ -46,7 +46,7 @@ internal class GuiTextbox : InteractiveGuiElement {
         BaseTexture = "button_up";
         SelectedTexture = "button_selected";
 
-        Panel = new GuiNPatchPanel(x, y, w, h, BaseTexture, new Vector2(0, 0));
+        Panel = new GuiPanel(x, y, w, h, BaseTexture, new Vector2(0, 0));
         Label = new GuiLabel(x + TEXT_SPACING, y, w - 2 * TEXT_SPACING, h, string.Empty, new Vector2(0, 0));
         Label.TextAlignment = eTextAlignment.Left;
     }

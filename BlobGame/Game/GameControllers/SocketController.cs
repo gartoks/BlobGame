@@ -104,7 +104,7 @@ internal class SocketController : IGameController {
             }
         });
 
-        string? gameModeKey = IGameMode.GameModeTypes.Where(k => k.Value == simulation.GetType()).Select(k => k.Key).SingleOrDefault();
+        string gameModeKey = IGameMode.GameModeTypes.Where(k => k.Value == simulation.GetType()).Select(k => k.Key).Single();
 
 
         IEnumerable<byte> buffer = new byte[0];
@@ -119,9 +119,11 @@ internal class SocketController : IGameController {
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.HeldBlob));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.Score));
         buffer = buffer.Concat(BitConverter.GetBytes(GameIndex));
-        buffer = buffer.Concat(BitConverter.GetBytes(simulation.CanSpawnBlob));
-        buffer = buffer.Concat(BitConverter.GetBytes(simulation.IsGameOver));
-        buffer = buffer.Concat(Encoding.UTF8.GetBytes(gameModeKey == null ? "" : gameModeKey));
+        buffer = buffer.Concat(new byte[] { simulation.CanSpawnBlob ? (byte)0b00000001 : (byte)0b00000000 });
+        buffer = buffer.Concat(new byte[] { simulation.IsGameOver ? (byte)0b00000001 : (byte)0b00000000 });
+        byte[] gameModeKeyData = Encoding.UTF8.GetBytes(gameModeKey == null ? "" : gameModeKey);
+        buffer = buffer.Concat(BitConverter.GetBytes(gameModeKeyData.Length));
+        buffer = buffer.Concat(gameModeKeyData);
 
         bool failed = false;
         try {
@@ -147,7 +149,7 @@ internal class SocketController : IGameController {
         byte[] buffer = new byte[6];
         bool failed = false;
         try {
-            Stream?.ReadExactly(buffer, 0, 5);
+            Stream?.ReadExactly(buffer, 0, 6);
         } catch (EndOfStreamException) {
             failed = true;
         } catch (SocketException) {
@@ -164,7 +166,7 @@ internal class SocketController : IGameController {
 
         float t = BitConverter.ToSingle(buffer, 0);
         bool shouldDrop = BitConverter.ToBoolean(buffer, sizeof(float));
-        bool shouldHold = BitConverter.ToBoolean(buffer, sizeof(float) + sizeof(bool));
+        bool shouldHold = (buffer[sizeof(float) + sizeof(bool)] & 0b1) == 0b1;
         FrameInputs = (t, shouldDrop, shouldHold);
     }
 }

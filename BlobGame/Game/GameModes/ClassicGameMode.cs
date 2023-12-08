@@ -3,7 +3,6 @@ using BlobGame.Game.GameObjects;
 using BlobGame.Game.Util;
 using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
-using BlobGame.Util;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
 using nkast.Aether.Physics2D.Dynamics.Contacts;
@@ -213,11 +212,6 @@ internal sealed class ClassicGameMode : IGameMode {
     /// </summary>
     private void ResolveBlobCollision() {
         foreach ((Blob b0, Blob b1) in Collisions) {
-            if (b0.Type != b1.Type) {
-                Log.WriteLine($"Collision between blobs of different types: {b0.Id} and {b1.Id}.", eLogType.Warning);
-                continue;
-            }
-
             Score += b0.Data.Score;
 
             Vector2 midPoint = (b0.Position + b1.Position) / 2f;

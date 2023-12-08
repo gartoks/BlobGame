@@ -51,9 +51,8 @@ internal static class SocketApplication {
     }
 
     private static void InitializeWithoutThreads() {
-        Random random = new Random(Seed);
         Games = Enumerable.Range(0, NumParallelGames)
-            .Select(i => (IGameMode.CreateGameMode(GameModeType, random.Next()), new SocketController(i, Port)))
+            .Select(i => (IGameMode.CreateGameMode(GameModeType, Seed + i), new SocketController(i, Port)))
             .ToList();
     }
 

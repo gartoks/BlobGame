@@ -9,7 +9,7 @@ using static BlobGame.Game.Gui.GuiSelector;
 
 namespace BlobGame.Game.Scenes;
 internal class SettingsScene : Scene {
-    private GuiNPatchPanel BackgroundPanel { get; }
+    private GuiPanel BackgroundPanel { get; }
 
     private GuiLabel ScreenModeLabel { get; }
     private GuiSelector ScreenModeSelector { get; }
@@ -37,7 +37,7 @@ internal class SettingsScene : Scene {
 
 
     public SettingsScene() {
-        BackgroundPanel = new GuiNPatchPanel("0.05 0.05 0.9 0.8", "panel", new Vector2(0, 0));
+        BackgroundPanel = new GuiPanel("0.05 0.05 0.9 0.8", "panel", new Vector2(0, 0));
 
         BackButton = new GuiTextButton(
             Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.95f,

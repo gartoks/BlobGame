@@ -20,7 +20,7 @@ internal sealed class TutorialStage {
     public float PointerRot { get; }
     public float AvatarX { get; }
     public Vector2 SpeechBubblePos { get; }
-    public float HintX { get; }
+    public int SpeechFrames { get; }
 
     internal bool IsFadeInFinished => !HasFadeIn || AnimatedAvatarFadeIn!.IsFinished;
     internal bool IsFadeOutFinished => !HasFadeOut || AnimatedAvatarFadeOut!.IsFinished;
@@ -28,7 +28,8 @@ internal sealed class TutorialStage {
     private TextureResource LMBTexture { get; set; }
     private TextureResource PointerTexture { get; set; }
     private NPatchTextureResource SpeechbubbleTexture { get; set; }
-    private SoundResource SpeechResource { get; set; }
+    private TextureResource NameTagTexture { get; set; }
+    private SoundResource SpeechSound { get; set; }
 
     private TextureResource AvatarIdleTexture { get; set; }
     private TextureResource AvatarBlink0Texture { get; set; }
@@ -50,7 +51,10 @@ internal sealed class TutorialStage {
     private bool PlayedSound { get; set; }
     private int TalkFrames { get; set; }
 
-    public TutorialStage(TutorialDisplay tutorial, int stageIndex, string text, Vector2 pointerPos, float pointerRot, float avatarX, Vector2 speechBubblePos, float hintX) {
+    public TutorialStage(
+        TutorialDisplay tutorial, int stageIndex, string text,
+        Vector2 pointerPos, float pointerRot, float avatarX,
+        Vector2 speechBubblePos, int speechFrames) {
         Tutorial = tutorial;
         StageIndex = stageIndex;
         Text = text;
@@ -58,24 +62,27 @@ internal sealed class TutorialStage {
         PointerRot = pointerRot;
         AvatarX = avatarX;
         SpeechBubblePos = speechBubblePos;
-        HintX = hintX;
+        SpeechFrames = speechFrames;
+
         PointerAnimationDirection = new Vector2(MathF.Cos(MathF.PI / 2f + PointerRot * RayMath.DEG2RAD), MathF.Sin(MathF.PI / 2 + PointerRot * RayMath.DEG2RAD));
 
-        TalkFrames = 5;
-        AvatarAnimator = new FrameAnimator(2f / 24f);
+        TalkFrames = 0;
+        AvatarAnimator = new FrameAnimator(1f / 24f);
     }
 
     internal void Load() {
         LMBTexture = ResourceManager.TextureLoader.Get("lmb");
         PointerTexture = ResourceManager.TextureLoader.Get("pointer");
         SpeechbubbleTexture = ResourceManager.NPatchTextureLoader.Get("speechbubble");
-        SpeechResource = ResourceManager.SoundLoader.Get($"{Tutorial.GameModeKey}_tutorial_{StageIndex}");
+        SpeechSound = ResourceManager.SoundLoader.Get($"{Tutorial.GameModeKey}_tutorial_{StageIndex}");
+        NameTagTexture = ResourceManager.TextureLoader.Get("nametag");
 
         AvatarIdleTexture = ResourceManager.TextureLoader.Get("avatar_idle");
         AvatarBlink0Texture = ResourceManager.TextureLoader.Get("avatar_blink_0");
         AvatarBlink1Texture = ResourceManager.TextureLoader.Get("avatar_blink_1");
         AvatarTalk0Texture = ResourceManager.TextureLoader.Get("avatar_talk_0");
         AvatarTalk1Texture = ResourceManager.TextureLoader.Get("avatar_talk_1");
+        AvatarTalk2Texture = ResourceManager.TextureLoader.Get("avatar_talk_2");
         AvatarTalk2Texture = ResourceManager.TextureLoader.Get("avatar_talk_2");
 
         AvatarAnimator.AddFrameKey("idle", AvatarIdleTexture);
@@ -84,9 +91,9 @@ internal sealed class TutorialStage {
         AvatarAnimator.AddFrameKey("talk0", AvatarTalk0Texture);
         AvatarAnimator.AddFrameKey("talk1", AvatarTalk1Texture);
         AvatarAnimator.AddFrameKey("talk2", AvatarTalk2Texture);
-        AvatarAnimator.AddFrameSequence("idle", 3, "idle", "idle", "idle", "idle", "idle");
-        AvatarAnimator.AddFrameSequence("idle", 1, "idle", "blink0", "blink1", "blink0", "idle");
-        AvatarAnimator.AddFrameSequence("talk", 1, "talk2", "talk1", "talk0", "talk1", "talk2");
+        AvatarAnimator.AddFrameSequence("idle", 4, "idle", "idle", "idle", "idle", "idle", "idle", "idle", "idle", "idle", "idle");
+        AvatarAnimator.AddFrameSequence("idle", 1, "idle", "blink1", "blink1", "blink0", "idle");
+        AvatarAnimator.AddFrameSequence("talk", 1, "idle", "talk0", "talk0", "talk1", "talk1", "talk2", "talk2", "idle");
         AvatarAnimator.SetDefaultSequence("idle");
 
         PlayedSound = false;
@@ -95,7 +102,7 @@ internal sealed class TutorialStage {
             PointerTexture,
             0.5f,
             PointerPos,
-            new Vector2(),
+            new Vector2(256, 256),
             Vector2.One / 2f,
             PointerRot * RayMath.DEG2RAD) {
             PositionAnimator = t => PointerAnimationDirection * 10 * -MathF.Sin(MathF.Tau * t)
@@ -107,20 +114,20 @@ internal sealed class TutorialStage {
             SpeechbubbleTexture,
             2,
             SpeechBubblePos,
-            textSize * 1.5f,
-            new Vector2(0.5f, 0.5f)) {
-            ScaleAnimator = t => Vector2.One + new Vector2(0.05f, 0.05f) * GetSpeechbubbleScaleT(t),
-            RotationAnimator = t => MathF.PI / 128 * GetSpeechbubbleRotationT(t)
+            textSize * new Vector2(1f, 1.5f),
+            new Vector2(0.54f, 0.5f)) {
+            ScaleAnimator = t => Vector2.One + new Vector2(0.025f, 0.025f) * GetSpeechbubbleScaleT(t),
+            RotationAnimator = t => MathF.PI / 256f * GetSpeechbubbleRotationT(t)
         };
 
         if (HasFadeIn) {
             AnimatedAvatarFadeIn = new AnimatedTexture(
                 AvatarIdleTexture,
                 0.65f,
-                new Vector2(AvatarX, Application.BASE_HEIGHT + 1432),
+                new Vector2(AvatarX, Application.BASE_HEIGHT + AVATAR_HEIGHT),
                 new Vector2(AVATAR_WIDTH, AVATAR_HEIGHT),
-                new Vector2(0, 1)) {
-                PositionAnimator = t => new Vector2(0, -GetAvatarPositionT(t) * 2 * AVATAR_HEIGHT)
+                new Vector2(0.5f, 1)) {
+                PositionAnimator = t => new Vector2(0, -GetAvatarPositionT(t) * AVATAR_HEIGHT)
             };
         }
 
@@ -130,14 +137,14 @@ internal sealed class TutorialStage {
                 0.65f,
                 new Vector2(AvatarX, Application.BASE_HEIGHT + AVATAR_HEIGHT / 2),
                 new Vector2(AVATAR_WIDTH, AVATAR_HEIGHT),
-                new Vector2(0, 1)) {
-                PositionAnimator = t => new Vector2(0, GetAvatarPositionT(t) * 2 * AVATAR_HEIGHT)
+                new Vector2(0.5f, 1)) {
+                PositionAnimator = t => new Vector2(0, GetAvatarPositionT(t) * AVATAR_HEIGHT)
             };
         }
     }
 
     internal void Unload() {
-        SpeechResource.Unload();
+        SpeechSound.Unload();
     }
 
     internal void DrawFadeIn() {
@@ -166,31 +173,31 @@ internal sealed class TutorialStage {
             AvatarAnimator.StartSequence("talk");
         }
 
-        if (TalkFrames > 0 && AvatarAnimator.IsReady) {
+        if (TalkFrames < SpeechFrames && AvatarAnimator.IsReady) {
             AvatarAnimator.StartSequence("talk");
-            TalkFrames -= 1;
+            TalkFrames += 1;
         }
 
-        AvatarAnimator.Draw(dT, new Rectangle(AvatarX, Application.BASE_HEIGHT - AVATAR_HEIGHT, AVATAR_WIDTH, AVATAR_HEIGHT), 0, new Vector2(0, 0), Raylib.WHITE);
+        AvatarAnimator.Draw(dT, new Rectangle(AvatarX, Application.BASE_HEIGHT, AVATAR_WIDTH, AVATAR_HEIGHT), 0, new Vector2(0.5f, 1f), Raylib.WHITE);
 
         if (AnimatedPointer.IsReady)
             AnimatedPointer.Start();
-
-        AnimatedPointer.Draw();
 
         if (AnimatedPointer.IsFinished)
             AnimatedPointer.Start();
 
         DrawSpeechBubble();
 
+        AnimatedPointer.Draw();
+
         Renderer.GuiFont.Draw(
             Text,
             FONT_SIZE,
             ResourceManager.ColorLoader.Get("font_dark"),
             SpeechBubblePos,
-            new Vector2(0.5f, 0.5f));
-
-        DrawLMBHint(HintX);
+            new Vector2(0.5f, 0.5f),
+            0,
+            float.MaxValue);
     }
 
     private void DrawSpeechBubble() {
@@ -199,26 +206,39 @@ internal sealed class TutorialStage {
 
         AnimatedSpeechbubble.Draw();
 
+        Vector2 textSize = Raylib.MeasureTextEx(Renderer.GuiFont.Resource, Text, FONT_SIZE, FONT_SIZE / 16f);
+
+        if (!string.IsNullOrWhiteSpace(Tutorial.AvatarName)) {
+            NameTagTexture.Draw(
+                new Rectangle(SpeechBubblePos.X - textSize.X / 2f, SpeechBubblePos.Y - textSize.Y / 2f - 20, 470, 100),
+                new Vector2(0f, 1));
+
+            Renderer.MainFont.Draw(
+                Tutorial.AvatarName,
+                FONT_SIZE,
+                ResourceManager.ColorLoader.Get("font_dark"),
+                SpeechBubblePos - textSize / 2f + new Vector2(60, -40),
+                new Vector2(0f, 1)
+                );
+        }
+
+        Vector2 advancePos = SpeechBubblePos + (textSize * new Vector2(0.8f, 1f)) / 2f;
+        Raylib.DrawCircleSector(
+            advancePos, 50, 180, 180 - 360 * Tutorial.AdvanceProgress,
+            (int)(72 * Tutorial.AdvanceProgress) + 1, ResourceManager.ColorLoader.Get("light_accent").Resource);
+        Raylib.DrawCircleV(advancePos, 37.5f, Raylib.WHITE);
+        LMBTexture.Draw(
+            new Rectangle(advancePos.X, advancePos.Y, 50, 75),
+            new Vector2(0.5f, 0.5f), 0, ResourceManager.ColorLoader.Get("font_dark").Resource);
+
+
         if (AnimatedSpeechbubble.IsFinished)
             AnimatedSpeechbubble.Start();
     }
 
-    protected void DrawLMBHint(float x) {
-        LMBTexture.Draw(
-            new Vector2(x, Application.BASE_HEIGHT - 50),
-            new Vector2(0, 1),
-            new Vector2(0.4f, 0.4f));
-
-        Renderer.GuiFont.Draw(
-            "Hold LMB to continue!",
-            80,
-            ResourceManager.ColorLoader.Get("font_dark"),
-            new Vector2(x + 125, Application.BASE_HEIGHT - 150));
-    }
-
     private float GetAvatarPositionT(float t) {
-        float tmp = 1.3f * t - 1;
-        return 1.1f * (-(tmp * tmp) + 1);
+        //float tmp = 1.3f * t - 1;
+        return t;// 1.1f * (-(tmp * tmp) + 1);
     }
 
     private float GetSpeechbubbleScaleT(float t) {

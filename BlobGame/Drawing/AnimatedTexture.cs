@@ -6,14 +6,14 @@ namespace BlobGame.Drawing;
 /// <summary>
 /// Class to handle animated textures.
 /// </summary>
-internal sealed class AnimatedTexture {
-    private IDrawableResource Texture { get; }
+public sealed class AnimatedTexture {
+    public IDrawableResource Texture { get; }
 
-    private Vector2 Position { get; }
-    private Vector2 Size { get; }
-    private float Rotation { get; }
-    private Vector2 Pivot { get; }
-    private Color Color { get; }
+    public Vector2 Position { get; }
+    public Vector2 Size { get; }
+    public float Rotation { get; }
+    public Vector2 Pivot { get; }
+    public Color Color { get; }
 
     private float Duration { get; }
 

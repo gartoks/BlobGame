@@ -31,8 +31,8 @@ internal sealed partial class GameScene : Scene {
 
     private Dictionary<Guid, (TextureResource tex, float alpha, float rotation, Vector2 position)> Splats { get; }
 
-    private GuiNPatchPanel GameOverPanel { get; }
-    private GuiNPatchPanel MenuPanel { get; }
+    private GuiPanel GameOverPanel { get; }
+    private GuiPanel MenuPanel { get; }
     private GuiTextButton RetryButton { get; }
     private GuiLabel MenuLabel { get; }
     private GuiTextButton ContinueButton { get; }
@@ -74,8 +74,8 @@ internal sealed partial class GameScene : Scene {
             Application.BASE_WIDTH * 0.2f, 100,
             "To Menu",
             new Vector2(0.5f, 0.5f));
-        GameOverPanel = new GuiNPatchPanel("0.5 0.4 1100px 700px", "panel", new Vector2(0.25f, 0.25f));
-        MenuPanel = new GuiNPatchPanel("0.5 0.5 1100px 500px", "panel", new Vector2(0.25f, 0.25f));
+        GameOverPanel = new GuiPanel("0.5 0.4 1100px 700px", "panel", new Vector2(0.25f, 0.25f));
+        MenuPanel = new GuiPanel("0.5 0.5 1100px 500px", "panel", new Vector2(0.25f, 0.25f));
         MenuLabel = new GuiLabel("0.5 0.45 1100px 250px", "Paused", new Vector2(0.5f, 0.5f));
         MenuLabel.Color = ResourceManager.ColorLoader.Get("font_dark");
 

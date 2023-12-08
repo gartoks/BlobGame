@@ -10,6 +10,7 @@ internal sealed class TutorialDisplay {
     private const float HOLD_TIME = 0.5f;
 
     internal string GameModeKey { get; }
+    internal string AvatarName { get; set; }
 
     private TextResource TutorialTextResource { get; set; }
 
@@ -21,6 +22,7 @@ internal sealed class TutorialDisplay {
 
     private float HoldTime { get; set; }
     private bool AdvanceStage { get; set; }
+    public float AdvanceProgress => HoldTime / HOLD_TIME;
 
     public TutorialDisplay(string gameModeKey) {
         GameModeKey = gameModeKey;
@@ -34,8 +36,14 @@ internal sealed class TutorialDisplay {
         TutorialTextResource = ResourceManager.TextLoader.Get($"{GameModeKey}_tutorial");
         TutorialTextResource.WaitForLoad();
         int stageCount = int.Parse(TutorialTextResource.Resource["stages"]);
+        AvatarName = TutorialTextResource.Resource["avatar_name"];
 
-        ResourceManager.TextureLoader.Load("avatar");
+        ResourceManager.TextureLoader.Load("avatar_idle");
+        ResourceManager.TextureLoader.Load("avatar_blink_0");
+        ResourceManager.TextureLoader.Load("avatar_blink_1");
+        ResourceManager.TextureLoader.Load("avatar_talk_0");
+        ResourceManager.TextureLoader.Load("avatar_talk_1");
+        ResourceManager.TextureLoader.Load("avatar_talk_2");
         ResourceManager.TextureLoader.Load("lmb");
         ResourceManager.TextureLoader.Load("pointer");
         ResourceManager.TextureLoader.Load("speechbubble");
@@ -74,8 +82,12 @@ internal sealed class TutorialDisplay {
         if (IsFinished)
             return;
 
-        if (CurrentStage != null && CurrentStage.IsFadeInFinished && !AdvanceStage && Input.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT) && !Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT])
+        if (CurrentStage != null &&
+            CurrentStage.IsFadeInFinished &&
+            !AdvanceStage && Input.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT) &&
+            !Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT]) {
             HoldTime += dT;
+        }
 
         if (!AdvanceStage && HoldTime >= HOLD_TIME) {
             Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT] = true;
@@ -112,13 +124,13 @@ internal sealed class TutorialDisplay {
         float pointerRot = float.Parse(TutorialTextResource.Resource[$"{stageIndex}_pointerRot"]);
         float avatarX = float.Parse(TutorialTextResource.Resource[$"{stageIndex}_avatarX"]);
         float[] speechBubblePos = TutorialTextResource.Resource[$"{stageIndex}_speechbubblePos"].Split(",", StringSplitOptions.TrimEntries).Select(float.Parse).ToArray();
-        float hintX = float.Parse(TutorialTextResource.Resource[$"{stageIndex}_hintX"]);
+        int speechFrames = int.Parse(TutorialTextResource.Resource[$"{stageIndex}_speechFrames"]);
 
         return new TutorialStage(
             this, stageIndex,
             text,
             new Vector2(pointerPos[0], pointerPos[1]), pointerRot,
-            avatarX, new Vector2(speechBubblePos[0], speechBubblePos[1]), hintX);
+            avatarX, new Vector2(speechBubblePos[0], speechBubblePos[1]), speechFrames);
     }
 }
 
