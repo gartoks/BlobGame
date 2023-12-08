@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -34,6 +34,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Resources\HowTo.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Resources\MelbaToast.theme">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -46,10 +49,7 @@
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="&quot;$(SolutionDir)ThemePacker\bin\Debug\net7.0\ThemePacker.exe&quot; $(ProjectDir)Resources\Themes\ $(ProjectDir)Resources\" Condition="$([MSBuild]::IsOSPlatform('Windows'))"/>
-  </Target>
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="&quot;$(SolutionDir)ThemePacker/bin/Debug/net7.0/ThemePacker&quot; $(ProjectDir)Resources/Themes/ $(ProjectDir)Resources/" Condition="$([MSBuild]::IsOSPlatform('Linux'))"/>
+    <Exec Command="&quot;$(SolutionDir)ThemePacker/bin/Debug/net7.0/ThemePacker&quot; $(ProjectDir)Resources/Themes/ $(ProjectDir)Resources/"/>
   </Target>
 
 </Project>
