@@ -9,24 +9,40 @@ A totally unique and original concept and definitely not a clone of Suika Game, 
 - Cute breakfast themed gameplay!
 - Relaxing music to vibe to!
 - Custom theme compatibility!
+- Linux support! (Although you have to build the game yourself)
+- Mac support! (Technically, we didn't have mac to test it on)
+
+## License
+
+The game is under the GPL-3.0 license. This means any derivative work needs to also use this license, as well as open source their code.
+If you want to not do that, please contact us and we will work something out.
 
 ## Custom Themes
-The game is designed to to be (almost) fully re-themeable! Swap out textures, sounds, music, make your own tutorials, etc.
+The game is designed to to be (almost) fully re-themeable!
+Swap out textures, sounds, music, make your own tutorials, etc.
 Inside the "Resources" folder are files with the file extensions ".theme". Open them as a zip Archive (using 7zip or similar) and simply swap and/or edit files.
 If files are swapped, they need to have the exact same name as the files in the current theme.
-Example: Want to swap out "title_logo.png"? Simply replace it with your own file called "title_logo.png".
+
+Example:
+Want to swap out "title_logo.png"?
+Simply replace it with your own file called "title_logo.png".
+
 If there are multiple .theme files in the Resources folder, the game will recognize this and you can swap the theme in the "Settings" menu at runtime.
-If some files are missing, they won't load (obviously). In the best case the texture simply isn't rendered, or the sound not played. In the worst case the game crashes.
+
+If some files are missing, they won't load (obviously).
+In the best case the texture simply isn't rendered, or the sound not played. In the worst case the game crashes.
 For texture files you should also keep an eye out for the aspect ratio of image files. If width/height are changed these textures may appear stretched ingame.
 
 ## Socket Control
 The game is fully controllable via sockets and TCP/IP. You can also start and play several games at once using socket control without any of them being drawn. Very efficient!.
-If you want to start a game in socket mode and actually see what is happening, simply select the "Socket Controller" when starting a new game, enter your desired port.
+If you want to start a game in socket mode and actually see what is happening, simply select the "Socket Controller" when starting a new game and enter the port your server runs on.
 If you want the parallel/no-gui version start the .exe with the following arguments
+
 --sockets [NumberOfParallelGames] [UseSeparatedThreads] [Port] [Seed] [GameMode]
+
 - [NumberOfParallelGames] Determines how many games should be started at once.
 - [UseSeparatedThreads] can take either 'true' or 'false'. If set to true, the game attempts to run the game in parallel, ideally using multiple CPU cores.
-- [Port] The port your controller needs to connect to.
+- [Port] The port your controller-server runs on. The game will try to connect it using this port.
 - [Seed] The seed your game uses for spawning objects. Same seed = same order of objects. If multiple games are run the seed increments from game to game. So game 1 has seed X, game 2 seed X+1, etc.
 - [GameMode] The game mode you want your games to be. Currently there are 2 game modes: "Classic" and "Toasted" (capitalization matters).
 
@@ -69,7 +85,7 @@ The next bytes are the name of the game mode as a string encoded with UTF8.
 ## Credits
 
 ### Artwork
-- Ixzyl (Discord): Designed the artwork for the good looking blob sprites.
+- Ixzyl
 
 ### Sound
 - Ixzyl
@@ -83,7 +99,7 @@ The next bytes are the name of the game mode as a string encoded with UTF8.
 This project is licensed under the GNU GPLv3 License - see the [LICENSE.md](LICENSE.md) file for details.
 
 ## Contact / Contributing
-If you have questions, please reach out to gartoks on Discord.
+If you have questions, please reach out to gartoks or Ixzyl on Discord.
 
 ## Changelog
 
@@ -92,7 +108,7 @@ If you have questions, please reach out to gartoks on Discord.
 - Monitor switching is currently disabled.
 
 ## TODO:
-- [ ] The smallest two Blobs allow for three Blobs to be combined into one if the simultaneously collide.
+- [ ] The smallest two Blobs allow for three Blobs to be combined into one if they simultaneously collide.
 - [ ] Add a custom physics engine (maybe)
 - [ ] Feature: shoving the arena
 
