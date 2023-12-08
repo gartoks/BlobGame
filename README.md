@@ -14,7 +14,7 @@ A totally unique and original concept and definitely not a clone of Suika Game, 
 
 ## License
 
-The game is under the GPL-3.0 license. This means any derivative work needs to also use this license, as well as open source their code.
+The game is under the GNU GPLv3 License - see the [LICENSE.md](LICENSE.md) file for details. This means any derivative work needs to also use this license, as well as open source their code.
 If you want to not do that, please contact us and we will work something out.
 
 ## Custom Themes
@@ -94,9 +94,6 @@ The next bytes are the name of the game mode as a string encoded with UTF8.
 ### Code
 - gartoks
 - Robotino
-
-## License
-This project is licensed under the GNU GPLv3 License - see the [LICENSE.md](LICENSE.md) file for details.
 
 ## Contact / Contributing
 If you have questions, please reach out to gartoks or Ixzyl on Discord.
