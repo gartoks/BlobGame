@@ -46,7 +46,10 @@
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="&quot;$(SolutionDir)ThemePacker\bin\Debug\net7.0\ThemePacker.exe&quot; $(ProjectDir)Resources\Themes\ $(ProjectDir)Resources\" />
+    <Exec Command="&quot;$(SolutionDir)ThemePacker\bin\Debug\net7.0\ThemePacker.exe&quot; $(ProjectDir)Resources\Themes\ $(ProjectDir)Resources\" Condition="$([MSBuild]::IsOSPlatform('Windows'))"/>
+  </Target>
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="&quot;$(SolutionDir)ThemePacker/bin/Debug/net7.0/ThemePacker&quot; $(ProjectDir)Resources/Themes/ $(ProjectDir)Resources/" Condition="$([MSBuild]::IsOSPlatform('Linux'))"/>
   </Target>
 
 </Project>

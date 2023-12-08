@@ -174,16 +174,12 @@ internal class SettingsScene : Scene {
         if (theme != Application.Settings.GetCurrentThemeName())
             Application.Settings.SetTheme(theme);
 
-#if WINDOWS
 
         if (needsRestart) {
             // This is needed because if the resolution, screen mode or monitor is change the UI is all fricked up
             Application.Exit();
-            Process.Start(Assembly.GetExecutingAssembly().Location);
+            Process.Start(Environment.ProcessPath, string.Join(" ", Environment.GetCommandLineArgs()));
         }
-
-#endif
-        //GameManager.SetScene(new SettingsScene());
     }
 
     private (GuiSelector, GuiLabel) CreateSettingsEntry(string title, float xOffset, SelectionElement[] selectionElements, int selectedIndex) {
