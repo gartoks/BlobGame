@@ -3,6 +3,7 @@ using BlobGame.Game.GameObjects;
 using BlobGame.Game.Util;
 using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
+using BlobGame.Util;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
 using nkast.Aether.Physics2D.Dynamics.Contacts;
@@ -167,6 +168,8 @@ internal sealed class ClassicGameMode : IGameMode {
             World.Step(dT / 50f);
         }
 
+        ResolveVeryCloseBlobs();
+
         ResolveBlobCollision();
 
         CheckGameOver();
@@ -205,6 +208,38 @@ internal sealed class ClassicGameMode : IGameMode {
     /// </summary>
     public void HoldBlob() {
         // Do nothing
+    }
+
+    private void ResolveVeryCloseBlobs() {
+        const float EPSILON = 0.2f;
+
+        foreach (Blob blob1 in GameObjects.OfType<Blob>().ToList()) {
+            foreach (Blob blob2 in GameObjects.OfType<Blob>().ToList()) {
+
+                if (blob1 == blob2)
+                    continue;
+
+                if (blob1.Type != blob2.Type)
+                    continue;
+
+                if (blob1.Data.ColliderData[0] != 'c' || blob2.Data.ColliderData[0] != 'c')
+                    continue;
+
+                if (Collisions.Contains((blob1, blob2)) || Collisions.Contains((blob2, blob1)))
+                    continue;
+
+                float distSqr = (blob1.Position - blob2.Position).Length();
+                float b1Radius = float.Parse(blob1.Data.ColliderData[1..]);
+                float b2Radius = float.Parse(blob2.Data.ColliderData[1..]);
+                float r = b1Radius + b2Radius + EPSILON;
+
+                if (distSqr > r)
+                    continue;
+
+                Log.WriteLine($"Very close blobs: {blob1.Type} and {blob2.Type}");
+                Collisions.Add((blob1, blob2));
+            }
+        }
     }
 
     /// <summary>
@@ -354,6 +389,7 @@ internal sealed class ClassicGameMode : IGameMode {
     /// <param name="world">The physics engine world</param>
     /// <returns>Returns an enumerable with the wall game objects.</returns>
     private static IEnumerable<GameObject> CreateArena(World world) {
+        const float WALL_HEIGHT_EXTENSION = 400;
         float totalWidth = IGameMode.ARENA_WIDTH + 2 * IGameMode.ARENA_WALL_THICKNESS;
 
         float x = -totalWidth / 2;
@@ -361,8 +397,8 @@ internal sealed class ClassicGameMode : IGameMode {
 
         GameObject[] walls = new GameObject[] {
             new Wall("Ground", world, new Rectangle(x, y + IGameMode.ARENA_HEIGHT, totalWidth, IGameMode.ARENA_WALL_THICKNESS)),
-            new Wall("Left Wall", world, new Rectangle(x, y - 100, IGameMode.ARENA_WALL_THICKNESS, IGameMode.ARENA_HEIGHT + 100)),
-            new Wall("Right Wall", world, new Rectangle(x + IGameMode.ARENA_WIDTH + IGameMode.ARENA_WALL_THICKNESS, y - 100, IGameMode.ARENA_WALL_THICKNESS, IGameMode.ARENA_HEIGHT + 100))
+            new Wall("Left Wall", world, new Rectangle(x, y - WALL_HEIGHT_EXTENSION, IGameMode.ARENA_WALL_THICKNESS, IGameMode.ARENA_HEIGHT + WALL_HEIGHT_EXTENSION)),
+            new Wall("Right Wall", world, new Rectangle(x + IGameMode.ARENA_WIDTH + IGameMode.ARENA_WALL_THICKNESS, y - WALL_HEIGHT_EXTENSION, IGameMode.ARENA_WALL_THICKNESS, IGameMode.ARENA_HEIGHT + WALL_HEIGHT_EXTENSION))
         };
 
         return walls;

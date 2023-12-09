@@ -4,6 +4,8 @@ namespace BlobGame.Util;
 internal static class GuiBoundsParser {
 
     public static Rectangle Parse(string bounds) {
+        bounds = bounds.Replace(",", ".");
+
         string[] split = bounds.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         bool xUsesPixel = false;
