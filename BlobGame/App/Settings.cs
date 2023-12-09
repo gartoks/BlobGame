@@ -170,6 +170,13 @@ internal sealed class Settings {
         ScreenMode = mode;
         Save();
     }
+    /// <summary>
+    /// Signal that the discord auth tokens have changed.
+    /// </summary>
+    public void DiscordTokensChanged() {
+        Save();
+    }
+
 
     /// <summary>
     /// Gets the index of the current monitor.
@@ -235,7 +242,9 @@ internal sealed class Settings {
             _MusicVolume,
             _SoundVolume,
             IsTutorialEnabled,
-            ThemeName);
+            ThemeName,
+            DiscordAuth.GetTokens()
+        );
 
         File.WriteAllText(file, JsonSerializer.Serialize(settingsData));
     }
@@ -251,6 +260,7 @@ internal sealed class Settings {
         int soundVolume = 100;
         Dictionary<string, bool> isTutorialEnabled = new Dictionary<string, bool>();
         string themeName = "MelbaToast";
+        DiscordAuth.Tokens? discordTokens = null;
 
         string file = Files.GetConfigFilePath("settings.json");
         if (File.Exists(file)) {
@@ -266,6 +276,7 @@ internal sealed class Settings {
                 soundVolume = settingsData.SoundVolume;
                 isTutorialEnabled = settingsData.IsTutorialEnabled;
                 themeName = settingsData.ThemeName;
+                discordTokens = settingsData.DiscordTokens;
             }
         }
 
@@ -276,6 +287,8 @@ internal sealed class Settings {
         SoundVolume = soundVolume;
         IsTutorialEnabled = isTutorialEnabled;
         SetTheme(themeName);
+        if (discordTokens != null)
+            DiscordAuth.SetTokens(discordTokens);
         Save();
     }
 
@@ -283,6 +296,7 @@ internal sealed class Settings {
         string ScreenMode, int Monitor, int ResolutionW, int ResolutionH,
         int MusicVolume = 100, int SoundVolume = 100,
         Dictionary<string, bool> IsTutorialEnabled = null,
-        string ThemeName = "default"
-        );
+        string ThemeName = "default",
+        DiscordAuth.Tokens? DiscordTokens = null
+    );
 }
