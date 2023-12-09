@@ -103,6 +103,7 @@ If you have questions, please reach out to gartoks or Ixzyl on Discord.
 ## Known Bugs
 - Switching to fullscreen sometimes crashes the game.
 - Monitor switching is currently disabled.
+- re-theming currently requires restarting the game
 
 ## TODO:
 - [ ] The smallest two Blobs allow for three Blobs to be combined into one if they simultaneously collide.

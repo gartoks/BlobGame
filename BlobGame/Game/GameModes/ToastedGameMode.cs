@@ -254,7 +254,7 @@ internal sealed class ToastedGameMode : IGameMode {
     private void ResolveBlobCollision() {
         foreach ((Blob b0, Blob? b1) in Collisions) {
             if (!GameObjects.Contains(b0) || (b1 != null && !GameObjects.Contains(b1)))
-                return;
+                continue;
 
             //if (b0.Type == 1)
             //    Log.WriteLine($"CVel: {b0.Name}:{b0.Body.LinearVelocity.Length()}");

@@ -247,7 +247,7 @@ internal sealed class ClassicGameMode : IGameMode {
     private void ResolveBlobCollision() {
         foreach ((Blob b0, Blob b1) in Collisions) {
             if (!GameObjects.Contains(b0) || !GameObjects.Contains(b1))
-                return;
+                continue;
 
             Score += b0.Data.Score;
 

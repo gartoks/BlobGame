@@ -62,7 +62,7 @@ try {
     sb.AppendLine();
     sb.AppendLine(e.StackTrace);
 
-    File.WriteAllText("error.log", sb.ToString());
+    Log.WriteLine(sb.ToString(), eLogType.Error);
 
     throw;
 }
