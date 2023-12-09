@@ -4,6 +4,7 @@ using BlobGame;
 using BlobGame.Game.GameModes;
 using BlobGame.Util;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 ConsoleControl.Hide();
@@ -29,10 +30,10 @@ try {
 
             if (args[i] == "--sockets" &&
                 i + 4 < args.Length &&
-                int.TryParse(args[i + 1], out numParallelGames) &&
+                int.TryParse(args[i + 1], CultureInfo.InvariantCulture, out numParallelGames) &&
                 bool.TryParse(args[i + 2], out useSeparateThreads) &&
-                int.TryParse(args[i + 3], out port) &&
-                int.TryParse(args[i + 4], out seed) &&
+                int.TryParse(args[i + 3], CultureInfo.InvariantCulture, out port) &&
+                int.TryParse(args[i + 4], CultureInfo.InvariantCulture, out seed) &&
                 IGameMode.GameModeTypes.ContainsKey(args[i + 5])
                 ) {
                 socketMode = true;

@@ -3,11 +3,11 @@ using BlobGame.Game.GameObjects;
 using BlobGame.Game.Util;
 using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
-using BlobGame.Util;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
 using nkast.Aether.Physics2D.Dynamics.Contacts;
 using Raylib_CsLo;
+using System.Globalization;
 
 namespace BlobGame.Game.GameModes;
 /// <summary>
@@ -211,7 +211,7 @@ internal sealed class ClassicGameMode : IGameMode {
     }
 
     private void ResolveVeryCloseBlobs() {
-        const float EPSILON = 0.2f;
+        const float EPSILON = 1f;
 
         foreach (Blob blob1 in GameObjects.OfType<Blob>().ToList()) {
             foreach (Blob blob2 in GameObjects.OfType<Blob>().ToList()) {
@@ -229,14 +229,13 @@ internal sealed class ClassicGameMode : IGameMode {
                     continue;
 
                 float distSqr = (blob1.Position - blob2.Position).Length();
-                float b1Radius = float.Parse(blob1.Data.ColliderData[1..]);
-                float b2Radius = float.Parse(blob2.Data.ColliderData[1..]);
+                float b1Radius = float.Parse(blob1.Data.ColliderData[1..], CultureInfo.InvariantCulture);
+                float b2Radius = float.Parse(blob2.Data.ColliderData[1..], CultureInfo.InvariantCulture);
                 float r = b1Radius + b2Radius + EPSILON;
 
                 if (distSqr > r)
                     continue;
 
-                Log.WriteLine($"Very close blobs: {blob1.Type} and {blob2.Type}");
                 Collisions.Add((blob1, blob2));
             }
         }

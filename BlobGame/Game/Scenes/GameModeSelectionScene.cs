@@ -3,6 +3,7 @@ using BlobGame.Game.GameModes;
 using BlobGame.Game.Gui;
 using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
+using System.Globalization;
 using System.Numerics;
 using static BlobGame.Game.Gui.GuiSelector;
 
@@ -95,7 +96,7 @@ internal class GameModeSelectionScene : Scene {
 
             IGameController controller;
             if ((Type)GameControllerSelector.SelectedElement.Element == typeof(SocketController))
-                controller = IGameController.CreateGameController((Type)GameControllerSelector.SelectedElement.Element, 0, int.Parse(PortTextBox.Text));
+                controller = IGameController.CreateGameController((Type)GameControllerSelector.SelectedElement.Element, 0, int.Parse(PortTextBox.Text, CultureInfo.InvariantCulture));
             else
                 controller = IGameController.CreateGameController((Type)GameControllerSelector.SelectedElement.Element);
 

@@ -2,6 +2,7 @@ using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Compression;
 using System.Text.Json;
 
@@ -389,10 +390,10 @@ internal sealed class Theme : IDisposable, IEquatable<Theme?> {
                 continue;
             }
 
-            if (!int.TryParse(components[0], out int x) ||
-                !int.TryParse(components[1], out int y) ||
-                !int.TryParse(components[2], out int w) ||
-                !int.TryParse(components[3], out int h)) {
+            if (!int.TryParse(components[0], CultureInfo.InvariantCulture, out int x) ||
+                !int.TryParse(components[1], CultureInfo.InvariantCulture, out int y) ||
+                !int.TryParse(components[2], CultureInfo.InvariantCulture, out int w) ||
+                !int.TryParse(components[3], CultureInfo.InvariantCulture, out int h)) {
                 Log.WriteLine($"TextureAtlasData {key} has an invalid format.", eLogType.Error);
                 continue;
             }

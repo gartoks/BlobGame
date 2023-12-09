@@ -3,6 +3,7 @@ using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
+using System.Globalization;
 using System.Numerics;
 
 namespace BlobGame.Game.Tutorial;
@@ -35,7 +36,7 @@ internal sealed class TutorialDisplay {
     internal void Load() {
         TutorialTextResource = ResourceManager.TextLoader.Get($"{GameModeKey}_tutorial");
         TutorialTextResource.WaitForLoad();
-        int stageCount = int.Parse(TutorialTextResource.Resource["stages"]);
+        int stageCount = int.Parse(TutorialTextResource.Resource["stages"], CultureInfo.InvariantCulture);
         AvatarName = TutorialTextResource.Resource["avatar_name"];
 
         ResourceManager.TextureLoader.Load("avatar_idle");
@@ -120,12 +121,12 @@ internal sealed class TutorialDisplay {
 
     private TutorialStage CreateStage(int stageIndex) {
         string text = TutorialTextResource.Resource[$"{stageIndex}_text"];
-        float[] pointerPos = TutorialTextResource.Resource[$"{stageIndex}_pointerPos"].Split(",", StringSplitOptions.TrimEntries).Select(float.Parse).ToArray();
-        float pointerRot = float.Parse(TutorialTextResource.Resource[$"{stageIndex}_pointerRot"]);
-        float avatarX = float.Parse(TutorialTextResource.Resource[$"{stageIndex}_avatarX"]);
-        float[] speechBubblePos = TutorialTextResource.Resource[$"{stageIndex}_speechbubblePos"].Split(",", StringSplitOptions.TrimEntries).Select(float.Parse).ToArray();
-        int speechFrames = int.Parse(TutorialTextResource.Resource[$"{stageIndex}_speechFrames"]);
-        int overlayIndex = int.Parse(TutorialTextResource.Resource[$"{stageIndex}_overlayIndex"]);
+        float[] pointerPos = TutorialTextResource.Resource[$"{stageIndex}_pointerPos"].Split(",", StringSplitOptions.TrimEntries).Select(x => float.Parse(x, CultureInfo.InvariantCulture)).ToArray();
+        float pointerRot = float.Parse(TutorialTextResource.Resource[$"{stageIndex}_pointerRot"], CultureInfo.InvariantCulture);
+        float avatarX = float.Parse(TutorialTextResource.Resource[$"{stageIndex}_avatarX"], CultureInfo.InvariantCulture);
+        float[] speechBubblePos = TutorialTextResource.Resource[$"{stageIndex}_speechbubblePos"].Split(",", StringSplitOptions.TrimEntries).Select(x => float.Parse(x, CultureInfo.InvariantCulture)).ToArray();
+        int speechFrames = int.Parse(TutorialTextResource.Resource[$"{stageIndex}_speechFrames"], CultureInfo.InvariantCulture);
+        int overlayIndex = int.Parse(TutorialTextResource.Resource[$"{stageIndex}_overlayIndex"], CultureInfo.InvariantCulture);
 
         return new TutorialStage(
             this, stageIndex,

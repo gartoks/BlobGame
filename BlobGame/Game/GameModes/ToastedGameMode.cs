@@ -7,6 +7,7 @@ using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
 using nkast.Aether.Physics2D.Dynamics.Contacts;
 using Raylib_CsLo;
+using System.Globalization;
 
 namespace BlobGame.Game.GameModes;
 internal sealed class ToastedGameMode : IGameMode {
@@ -217,7 +218,7 @@ internal sealed class ToastedGameMode : IGameMode {
     }
 
     private void ResolveVeryCloseBlobs() {
-        const float EPSILON = 0.2f;
+        const float EPSILON = 1f;
 
         foreach (Blob blob1 in GameObjects.OfType<Blob>().ToList()) {
             foreach (Blob blob2 in GameObjects.OfType<Blob>().ToList()) {
@@ -235,8 +236,8 @@ internal sealed class ToastedGameMode : IGameMode {
                     continue;
 
                 float distSqr = (blob1.Position - blob2.Position).Length();
-                float b1Radius = float.Parse(blob1.Data.ColliderData[1..]);
-                float b2Radius = float.Parse(blob2.Data.ColliderData[1..]);
+                float b1Radius = float.Parse(blob1.Data.ColliderData[1..], CultureInfo.InvariantCulture);
+                float b2Radius = float.Parse(blob2.Data.ColliderData[1..], CultureInfo.InvariantCulture);
                 float r = b1Radius + b2Radius + EPSILON;
 
                 if (distSqr > r)

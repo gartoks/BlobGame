@@ -10,7 +10,6 @@ namespace BlobGame.Game.Scenes;
 /// </summary>
 internal sealed class MainMenuScene : Scene {
     private TextureResource TitleTexture { get; set; }
-    private TextureResource AvatarTexture { get; set; }
 
     private TextScroller Scroller { get; }
 
@@ -26,27 +25,32 @@ internal sealed class MainMenuScene : Scene {
 
         float yOffset = 0.4f;
         PlayButton = new GuiTextButton(
-            $"0.5 {yOffset} 0.25 0.1",
+            0.5f * Application.BASE_WIDTH, yOffset * Application.BASE_HEIGHT,
+            0.25f * Application.BASE_WIDTH, 0.1f * Application.BASE_HEIGHT,
             "Play",
             new Vector2(0.5f, 0.5f));
         yOffset += 0.125f;
         SettingsButton = new GuiTextButton(
-            $"0.5 {yOffset} 0.25 0.1",
+            0.5f * Application.BASE_WIDTH, yOffset * Application.BASE_HEIGHT,
+            0.25f * Application.BASE_WIDTH, 0.1f * Application.BASE_HEIGHT,
             "Settings",
             new Vector2(0.5f, 0.5f));
         yOffset += 0.125f;
         ControlsButton = new GuiTextButton(
-            $"0.5 {yOffset} 0.25 0.1",
+            0.5f * Application.BASE_WIDTH, yOffset * Application.BASE_HEIGHT,
+            0.25f * Application.BASE_WIDTH, 0.1f * Application.BASE_HEIGHT,
             "Controls",
             new Vector2(0.5f, 0.5f));
         yOffset += 0.125f;
         CreditsButton = new GuiTextButton(
-            $"0.5 {yOffset} 0.25 0.1",
+            0.5f * Application.BASE_WIDTH, yOffset * Application.BASE_HEIGHT,
+            0.25f * Application.BASE_WIDTH, 0.1f * Application.BASE_HEIGHT,
             "Credits",
             new Vector2(0.5f, 0.5f));
         yOffset += 0.125f;
         QuitButton = new GuiTextButton(
-            $"0.5 {yOffset} 0.25 0.1",
+            0.5f * Application.BASE_WIDTH, yOffset * Application.BASE_HEIGHT,
+            0.25f * Application.BASE_WIDTH, 0.1f * Application.BASE_HEIGHT,
             "Quit",
             new Vector2(0.5f, 0.5f));
         yOffset += 0.125f;
@@ -60,7 +64,6 @@ internal sealed class MainMenuScene : Scene {
 
     internal override void Load() {
         TitleTexture = ResourceManager.TextureLoader.Get("title_logo");
-        AvatarTexture = ResourceManager.TextureLoader.Get("avatar_idle");
 
         // Preload so the game doesnt lag on startup so much
         ResourceManager.TextureLoader.Load("avatar_idle");

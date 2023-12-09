@@ -1,10 +1,11 @@
 ﻿using Raylib_CsLo;
+using System.Globalization;
 
 namespace BlobGame.Util;
 internal static class GuiBoundsParser {
 
     public static Rectangle Parse(string bounds) {
-        bounds = bounds.Replace(",", ".");
+        bounds = bounds.Trim().Replace(",", ".");
 
         string[] split = bounds.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -33,19 +34,19 @@ internal static class GuiBoundsParser {
         }
 
         if (split.Length != 4)
-            throw new Exception("Invalid bounds string: " + bounds);
+            throw new Exception($"Invalid bounds string (length): '{bounds}'");
 
-        if (!float.TryParse(split[0], out float x))
-            throw new Exception("Invalid bounds string: " + bounds);
+        if (!float.TryParse(split[0], CultureInfo.InvariantCulture, out float x))
+            throw new Exception($"Invalid bounds string (x): '{bounds}'");
 
-        if (!float.TryParse(split[1], out float y))
-            throw new Exception("Invalid bounds string: " + bounds);
+        if (!float.TryParse(split[1], CultureInfo.InvariantCulture, out float y))
+            throw new Exception($"Invalid bounds string (y): '{bounds}'");
 
-        if (!float.TryParse(split[2], out float w))
-            throw new Exception("Invalid bounds string: " + bounds);
+        if (!float.TryParse(split[2], CultureInfo.InvariantCulture, out float w))
+            throw new Exception($"Invalid bounds string (w): '{bounds}'");
 
-        if (!float.TryParse(split[3], out float h))
-            throw new Exception("Invalid bounds string: " + bounds);
+        if (!float.TryParse(split[3], CultureInfo.InvariantCulture, out float h))
+            throw new Exception($"Invalid bounds string (h): '{bounds}'");
 
         x = xUsesPixel ? x : x * Application.BASE_WIDTH;
         y = yUsesPixel ? y : y * Application.BASE_HEIGHT;

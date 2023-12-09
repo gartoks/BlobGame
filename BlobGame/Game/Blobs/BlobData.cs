@@ -1,6 +1,7 @@
 ﻿using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Common.Decomposition;
 using nkast.Aether.Physics2D.Dynamics;
+using System.Globalization;
 
 namespace BlobGame.Game.Blobs;
 
@@ -11,26 +12,26 @@ public record BlobData {
         string[] data = dataStr.Split(';', StringSplitOptions.TrimEntries);
 
         string name = data[0];
-        int score = int.Parse(data[1]);
-        int mergeBlobId = int.Parse(data[2]);
-        int mergeWithBlobId = int.Parse(data[3]);
-        float shatterSpeed = float.Parse(data[4]);
-        float spawnWeight = float.Parse(data[5]);
-        float mass = float.Parse(data[6]);
+        int score = int.Parse(data[1], CultureInfo.InvariantCulture);
+        int mergeBlobId = int.Parse(data[2], CultureInfo.InvariantCulture);
+        int mergeWithBlobId = int.Parse(data[3], CultureInfo.InvariantCulture);
+        float shatterSpeed = float.Parse(data[4], CultureInfo.InvariantCulture);
+        float spawnWeight = float.Parse(data[5], CultureInfo.InvariantCulture);
+        float mass = float.Parse(data[6], CultureInfo.InvariantCulture);
 
         string[] originComponents = data[7].Split(',', StringSplitOptions.TrimEntries);
         if (originComponents.Length != 2)
             throw new Exception("Invalid texture offset data. There must be exactly two components.");
         Vector2 origin = new Vector2(
-            float.Parse(originComponents[0]),
-            float.Parse(originComponents[1]));
+            float.Parse(originComponents[0], CultureInfo.InvariantCulture),
+            float.Parse(originComponents[1], CultureInfo.InvariantCulture));
 
         string[] textureScaleComponents = data[8].Split(',', StringSplitOptions.TrimEntries);
         if (textureScaleComponents.Length != 2)
             throw new Exception("Invalid texture scale data. There must be exactly two components.");
         Vector2 textureScale = new Vector2(
-            float.Parse(textureScaleComponents[0]),
-            float.Parse(textureScaleComponents[1]));
+            float.Parse(textureScaleComponents[0], CultureInfo.InvariantCulture),
+            float.Parse(textureScaleComponents[1], CultureInfo.InvariantCulture));
 
         string colliderData = data[9];
 
@@ -73,7 +74,7 @@ public record BlobData {
         }
 
         string[] colliderValues = ColliderData[1..].Split(',', StringSplitOptions.TrimEntries);
-        radius = float.Parse(colliderValues[0]) / GameObject.POSITION_MULTIPLIER;
+        radius = float.Parse(colliderValues[0], CultureInfo.InvariantCulture) / GameObject.POSITION_MULTIPLIER;
         return true;
     }
 
@@ -94,7 +95,7 @@ public record BlobData {
 
         switch (colliderType) {
             case 'c':
-                float radius = float.Parse(colliderValues[0]) / GameObject.POSITION_MULTIPLIER;
+                float radius = float.Parse(colliderValues[0], CultureInfo.InvariantCulture) / GameObject.POSITION_MULTIPLIER;
                 return new List<Fixture>() { body.CreateCircle(radius, 1) };
             case 'p':
                 Vertices vertices = new Vertices(ParseVertices(Origin, colliderValues));
@@ -111,8 +112,8 @@ public record BlobData {
 
         List<Vector2> vertices = new List<Vector2>(colliderValues.Length / 2);
         for (int i = 0; i < colliderValues.Length; i += 2) {
-            float x = float.Parse(colliderValues[i]) / GameObject.POSITION_MULTIPLIER;
-            float y = float.Parse(colliderValues[i + 1]) / GameObject.POSITION_MULTIPLIER;
+            float x = float.Parse(colliderValues[i], CultureInfo.InvariantCulture) / GameObject.POSITION_MULTIPLIER;
+            float y = float.Parse(colliderValues[i + 1], CultureInfo.InvariantCulture) / GameObject.POSITION_MULTIPLIER;
             vertices.Add(new Vector2(x, y));
         }
 
