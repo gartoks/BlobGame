@@ -73,10 +73,10 @@ internal sealed class ClassicGameMode : IGameMode {
     /// </summary>
     public bool IsGameOver { get; private set; }
 
-    /// <summary>
-    /// Stores the blobs that have collided this frame. This is used to prevent duplicate collisions.
-    /// </summary>
-    private HashSet<Blob> CollidedBlobs { get; }
+    ///// <summary>
+    ///// Stores the blobs that have collided this frame. This is used to prevent duplicate collisions.
+    ///// </summary>
+    //private HashSet<Blob> CollidedBlobs { get; }
     /// <summary>
     /// Stores all collision pairs that have occured this frame.
     /// </summary>
@@ -127,7 +127,7 @@ internal sealed class ClassicGameMode : IGameMode {
         Random = new Random(seed);
         World = new World(new Vector2(0, IGameMode.GRAVITY));
 
-        CollidedBlobs = new HashSet<Blob>();
+        //CollidedBlobs = new HashSet<Blob>();
         Collisions = new List<(Blob, Blob)>();
 
         LastSpawned = null;
@@ -212,6 +212,9 @@ internal sealed class ClassicGameMode : IGameMode {
     /// </summary>
     private void ResolveBlobCollision() {
         foreach ((Blob b0, Blob b1) in Collisions) {
+            if (!GameObjects.Contains(b0) || !GameObjects.Contains(b1))
+                return;
+
             Score += b0.Data.Score;
 
             Vector2 midPoint = (b0.Position + b1.Position) / 2f;
@@ -224,7 +227,7 @@ internal sealed class ClassicGameMode : IGameMode {
             OnBlobsCombined?.Invoke(this, new System.Numerics.Vector2(b0.Position.X, b0.Position.Y), b0.Data.MergeBlobId);
         }
         Collisions.Clear();
-        CollidedBlobs.Clear();
+        //CollidedBlobs.Clear();
     }
 
     /// <summary>
@@ -290,11 +293,12 @@ internal sealed class ClassicGameMode : IGameMode {
         if (senderBlob.Type != otherBlob.Type)
             return true;
 
-        if (CollidedBlobs.Contains(senderBlob) || CollidedBlobs.Contains(otherBlob))
+        //if (CollidedBlobs.Contains(senderBlob) || CollidedBlobs.Contains(otherBlob))
+        if (Collisions.Contains((senderBlob, otherBlob)) || Collisions.Contains((otherBlob, senderBlob)))
             return true;
 
-        CollidedBlobs.Add(senderBlob);
-        CollidedBlobs.Add(otherBlob);
+        //CollidedBlobs.Add(senderBlob);
+        //CollidedBlobs.Add(otherBlob);
         Collisions.Add((senderBlob, otherBlob));
 
         return true;

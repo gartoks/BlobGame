@@ -18,33 +18,35 @@ the game will recognize this and you can swap the theme in the "Settings" menu a
 If some files are missing, they won't load (obviously).
 In the best case the texture simply isn't rendered, or the sound not played. In the worst case the game crashes.
 For texture files you should also keep an eye out for the aspect ratio of image files.
-If width/height are changed these textures may appear stretched ingame.
+If width/height are changed, these textures may appear stretched ingame.
 
 
 #########################
 ##### Socket Cntrol #####
 #########################
 
-The game is fully controllable via sockets and TCP/IP. You can also start and play several games at once using socket control without any of them being drawn. Very efficient!.
-If you want to start a game in socket mode and actually see what is happening, simply select the "Socket Controller" when starting a new game, enter your desired port.
+The game is fully controllable via sockets and TCP/IP. You can also start and play several games at once using socket control, without any of them being drawn. Very efficient!
+If you want to start a game in socket mode and actually see what is happening, simply select the "Socket Controller" when starting a new game and enter the port your controller server uses.
 If you want the parallel/no-gui version start the .exe with the following arguments
+
 --sockets [NumberOfParallelGames] [UseSeparatedThreads] [Port] [Seed] [GameMode]
+
 - [NumberOfParallelGames] Determines how many games should be started at once.
-- [UseSeparatedThreads] can take either 'true' or 'false'. If set to true, the game attempts to run the game in parallel, ideally using multiple CPU cores.
-- [Port] The port your controller needs to connect to.
-- [Seed] The seed your game uses for spawning objects. Same seed = same order of objects. If multiple games are run the seed increments from game to game. So game 1 has seed X, game 2 seed X+1, etc.
-- [GameMode] The game mode you want your games to be. Currently there are 2 game modes: "Classic" and "Toasted" (capitalization matters).
+- [UseSeparatedThreads] can take either 'true' or 'false'. If set to true, the game attempts to run the games in parallel. Ideally using multiple CPU cores.
+- [Port] The port your controller-server runs on.
+- [Seed] The seed your game uses for spawning objects. Same seed = same order of objects. If multiple games are run, the seed increments from game to game. So game 1 has seed X, game 2 seed X+1, etc.
+- [GameMode] The game mode you want your games to be. Currently there are 2 game modes: 'Classic' and 'Toasted' (capitalization matters).
 
 
 
 ### Sending Instructions ###
 
-A instruction to the game is 6 bytes in length.
+An instruction to the game is 6 bytes in length.
 The first 4 bytes represent a "t value" in [0, 1]. It controls the positioning of your cursor/object dopper above the arena. 0 is all the way left, 1 all the way right. It is a 32bit floating point number that complies with IEC 60559:1989 (IEEE 754).
 
-Byte 5 is a flag that tells the game to drop the current object if possible. Only the first bit is taken into account. So 00000000 tells the game not to drop the object this frane. 00000001 tells the game to drop the object this frame.
+Byte 5 is a flag that tells the game to drop the current object if possible. Only the first bit is taken into account. So 00000000 tells the game not to drop the object this frame. 00000001 tells the game to drop the object this frame.
 
-Byte 6 is a flag that tells the game to hold the current object if possible. Only the first bit is taken into account. So 00000000 tells the game not to hold the object this frane. 00000001 tells the game to hold the object this frame.
+Byte 6 is a flag that tells the game to hold the current object if possible. Only the first bit is taken into account. So 00000000 tells the game not to hold the object this frame. 00000001 tells the game to hold the object this frame.
 
 
 
@@ -60,15 +62,15 @@ Object data consists of (in that order):
 - 32bit floating point number (4 btyes) representing the y coordinate of the object. It complies with IEC 60559:1989 (IEEE 754).
 - 32bit signed integer (4 bytes) representing the type of the object.
 
-After the object data the next 4 bytes are a signed 32bit integer of type of the object dropped next.
+After the object data the next 4 bytes are a signed 32bit integer of type of the object dropped next (aka the current object).
 
-The next 4 bytes are a signed 32bit integer of type of the object that is being drop next, after the current object.
+The next 4 bytes are a signed 32bit integer of type of the object that is being dropped after the current one.
 
-The next 4 bytes are a signed 32bit integer of type of the object that is currently being held. If that functionality is not supported by the game mode, it is always 0.
+The next 4 bytes are a signed 32bit integer of type of the object that is currently being held. If that functionality is not supported by the game mode it is always 0.
 
 The next 4 bytes are a signed 32bit integer representing your current score.
 
-The next 4 bytes are a signed 32bit integer representing the index of your current game. This can be used to differentiate the game when playing multiple games at once.
+The next 4 bytes are a signed 32bit integer representing the index of your current game. This can be used to differentiate the games when playing multiple games at once.
 
 The next 1 byte is a flag indicating wether the object can be dropped this frame. Only the first bit is taken into account. So 00000000 means that the object can not be dropped. 00000001 means that the object can be dropped.
 

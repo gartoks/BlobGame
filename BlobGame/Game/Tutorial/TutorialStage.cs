@@ -21,6 +21,7 @@ internal sealed class TutorialStage {
     public float AvatarX { get; }
     public Vector2 SpeechBubblePos { get; }
     public int SpeechFrames { get; }
+    public int OverlayIndex { get; }
 
     internal bool IsFadeInFinished => !HasFadeIn || AnimatedAvatarFadeIn!.IsFinished;
     internal bool IsFadeOutFinished => !HasFadeOut || AnimatedAvatarFadeOut!.IsFinished;
@@ -37,6 +38,7 @@ internal sealed class TutorialStage {
     private TextureResource AvatarTalk0Texture { get; set; }
     private TextureResource AvatarTalk1Texture { get; set; }
     private TextureResource AvatarTalk2Texture { get; set; }
+    private TextureResource? AvatarOverlayTexture { get; set; }
 
     private AnimatedTexture? AnimatedAvatarFadeIn { get; set; }
     private AnimatedTexture? AnimatedAvatarFadeOut { get; set; }
@@ -54,7 +56,7 @@ internal sealed class TutorialStage {
     public TutorialStage(
         TutorialDisplay tutorial, int stageIndex, string text,
         Vector2 pointerPos, float pointerRot, float avatarX,
-        Vector2 speechBubblePos, int speechFrames) {
+        Vector2 speechBubblePos, int speechFrames, int overlayIndex) {
         Tutorial = tutorial;
         StageIndex = stageIndex;
         Text = text;
@@ -63,6 +65,7 @@ internal sealed class TutorialStage {
         AvatarX = avatarX;
         SpeechBubblePos = speechBubblePos;
         SpeechFrames = speechFrames;
+        OverlayIndex = overlayIndex;
 
         PointerAnimationDirection = new Vector2(MathF.Cos(MathF.PI / 2f + PointerRot * RayMath.DEG2RAD), MathF.Sin(MathF.PI / 2 + PointerRot * RayMath.DEG2RAD));
 
@@ -84,6 +87,7 @@ internal sealed class TutorialStage {
         AvatarTalk1Texture = ResourceManager.TextureLoader.Get("avatar_talk_1");
         AvatarTalk2Texture = ResourceManager.TextureLoader.Get("avatar_talk_2");
         AvatarTalk2Texture = ResourceManager.TextureLoader.Get("avatar_talk_2");
+        AvatarOverlayTexture = OverlayIndex >= 0 ? ResourceManager.TextureLoader.Get($"avatar_overlay_{OverlayIndex}") : null;
 
         AvatarAnimator.AddFrameKey("idle", AvatarIdleTexture);
         AvatarAnimator.AddFrameKey("blink0", AvatarBlink0Texture);
@@ -91,7 +95,7 @@ internal sealed class TutorialStage {
         AvatarAnimator.AddFrameKey("talk0", AvatarTalk0Texture);
         AvatarAnimator.AddFrameKey("talk1", AvatarTalk1Texture);
         AvatarAnimator.AddFrameKey("talk2", AvatarTalk2Texture);
-        AvatarAnimator.AddFrameSequence("idle", 4, "idle", "idle", "idle", "idle", "idle", "idle", "idle", "idle", "idle", "idle");
+        AvatarAnimator.AddFrameSequence("idle", 10, "idle", "idle", "idle", "idle", "idle", "idle", "idle", "idle", "idle", "idle");
         AvatarAnimator.AddFrameSequence("idle", 1, "idle", "blink1", "blink1", "blink0", "idle");
         AvatarAnimator.AddFrameSequence("talk", 1, "idle", "talk0", "talk0", "talk1", "talk1", "talk2", "talk2", "idle");
         AvatarAnimator.SetDefaultSequence("idle");
@@ -114,7 +118,7 @@ internal sealed class TutorialStage {
             SpeechbubbleTexture,
             2,
             SpeechBubblePos,
-            textSize * new Vector2(1f, 1.5f),
+            textSize * new Vector2(1.05f, 1.575f),
             new Vector2(0.54f, 0.5f)) {
             ScaleAnimator = t => Vector2.One + new Vector2(0.025f, 0.025f) * GetSpeechbubbleScaleT(t),
             RotationAnimator = t => MathF.PI / 256f * GetSpeechbubbleRotationT(t)
@@ -145,6 +149,7 @@ internal sealed class TutorialStage {
 
     internal void Unload() {
         SpeechSound.Unload();
+        AudioManager.StopSound($"{Tutorial.GameModeKey}_tutorial_{StageIndex}");
     }
 
     internal void DrawFadeIn() {
@@ -179,6 +184,8 @@ internal sealed class TutorialStage {
         }
 
         AvatarAnimator.Draw(dT, new Rectangle(AvatarX, Application.BASE_HEIGHT, AVATAR_WIDTH, AVATAR_HEIGHT), 0, new Vector2(0.5f, 1f), Raylib.WHITE);
+
+        AvatarOverlayTexture?.Draw(new Rectangle(AvatarX, Application.BASE_HEIGHT, AVATAR_WIDTH, AVATAR_HEIGHT), new Vector2(0.5f, 1f), 0, Raylib.WHITE);
 
         if (AnimatedPointer.IsReady)
             AnimatedPointer.Start();

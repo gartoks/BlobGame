@@ -1,10 +1,12 @@
-﻿namespace BlobGame.Game.Util;
+﻿using System.Collections;
+
+namespace BlobGame.Game.Util;
 
 /// <summary>
 /// Interface used as a base for the GameObjectCollection class. Only allows read-only operations.
 /// All operations are thread-safe.
 /// </summary>
-public interface IReadOnlyGameObjectsCollection {
+public interface IReadOnlyGameObjectsCollection : IEnumerable<GameObject> {
     /// <summary>
     /// The number of game objects in this collection.
     /// </summary>
@@ -142,4 +144,8 @@ internal class GameObjectCollection : IReadOnlyGameObjectsCollection {
             return List.Contains(item);
         }
     }
+
+    public IEnumerator<GameObject> GetEnumerator() => List.GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

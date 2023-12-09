@@ -71,10 +71,10 @@ internal sealed class ToastedGameMode : IGameMode {
     /// </summary>
     public bool IsGameOver { get; private set; }
 
-    /// <summary>
-    /// Stores the blobs that have collided this frame. This is used to prevent duplicate collisions.
-    /// </summary>
-    private HashSet<Blob> CollidedBlobs { get; }
+    ///// <summary>
+    ///// Stores the blobs that have collided this frame. This is used to prevent duplicate collisions.
+    ///// </summary>
+    //private HashSet<Blob> CollidedBlobs { get; }
     /// <summary>
     /// Stores all collision pairs that have occured this frame.
     /// </summary>
@@ -125,7 +125,7 @@ internal sealed class ToastedGameMode : IGameMode {
         Random = new Random(seed);
         World = new World(new Vector2(0, IGameMode.GRAVITY));
 
-        CollidedBlobs = new HashSet<Blob>();
+        //CollidedBlobs = new HashSet<Blob>();
         Collisions = new List<(Blob, Blob?)>();
 
         LastSpawned = null;
@@ -219,6 +219,9 @@ internal sealed class ToastedGameMode : IGameMode {
     /// </summary>
     private void ResolveBlobCollision() {
         foreach ((Blob b0, Blob? b1) in Collisions) {
+            if (!GameObjects.Contains(b0) || (b1 != null && !GameObjects.Contains(b1)))
+                return;
+
             //if (b0.Type == 1)
             //    Log.WriteLine($"CVel: {b0.Name}:{b0.Body.LinearVelocity.Length()}");
 
@@ -256,7 +259,7 @@ internal sealed class ToastedGameMode : IGameMode {
 
         }
         Collisions.Clear();
-        CollidedBlobs.Clear();
+        //CollidedBlobs.Clear();
     }
 
     /// <summary>
@@ -321,11 +324,12 @@ internal sealed class ToastedGameMode : IGameMode {
             return true;
 
         if (senderBlob != null && otherBlob != null) {
-            if (CollidedBlobs.Contains(senderBlob) || CollidedBlobs.Contains(otherBlob))
+            //if (CollidedBlobs.Contains(senderBlob) || CollidedBlobs.Contains(otherBlob))
+            if (Collisions.Contains((senderBlob, otherBlob)) || Collisions.Contains((otherBlob, senderBlob)))
                 return true;
 
-            CollidedBlobs.Add(senderBlob);
-            CollidedBlobs.Add(otherBlob);
+            //CollidedBlobs.Add(senderBlob);
+            //CollidedBlobs.Add(otherBlob);
             Collisions.Add((senderBlob, otherBlob));
         } else {
             Blob blob = senderBlob ?? otherBlob!;
@@ -334,7 +338,7 @@ internal sealed class ToastedGameMode : IGameMode {
             if (wall == null || wall != GroundWall)
                 return true;
 
-            CollidedBlobs.Add(blob);
+            //CollidedBlobs.Add(blob);
             Collisions.Add((blob, null));
         }
 

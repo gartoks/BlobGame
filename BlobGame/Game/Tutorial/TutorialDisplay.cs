@@ -125,12 +125,14 @@ internal sealed class TutorialDisplay {
         float avatarX = float.Parse(TutorialTextResource.Resource[$"{stageIndex}_avatarX"]);
         float[] speechBubblePos = TutorialTextResource.Resource[$"{stageIndex}_speechbubblePos"].Split(",", StringSplitOptions.TrimEntries).Select(float.Parse).ToArray();
         int speechFrames = int.Parse(TutorialTextResource.Resource[$"{stageIndex}_speechFrames"]);
+        int overlayIndex = int.Parse(TutorialTextResource.Resource[$"{stageIndex}_overlayIndex"]);
 
         return new TutorialStage(
             this, stageIndex,
             text,
             new Vector2(pointerPos[0], pointerPos[1]), pointerRot,
-            avatarX, new Vector2(speechBubblePos[0], speechBubblePos[1]), speechFrames);
+            avatarX, new Vector2(speechBubblePos[0], speechBubblePos[1]),
+            speechFrames, overlayIndex);
     }
 }
 

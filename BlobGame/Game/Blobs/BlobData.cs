@@ -42,7 +42,7 @@ public record BlobData {
     public int Score { get; }
     public int MergeBlobId { get; }
     public int MergeWithBlobId { get; }
-    private string ColliderData { get; }
+    public string ColliderData { get; }
     public float ShatterSpeed { get; }
     public float SpawnWeight { get; }
     public float Mass { get; }
@@ -95,7 +95,7 @@ public record BlobData {
         switch (colliderType) {
             case 'c':
                 float radius = float.Parse(colliderValues[0]) / GameObject.POSITION_MULTIPLIER;
-                return new List<Fixture>(){ body.CreateCircle(radius, 1) };
+                return new List<Fixture>() { body.CreateCircle(radius, 1) };
             case 'p':
                 Vertices vertices = new Vertices(ParseVertices(Origin, colliderValues));
                 List<Vertices> convexVertices = Triangulate.ConvexPartition(vertices, TriangulationAlgorithm.Bayazit);

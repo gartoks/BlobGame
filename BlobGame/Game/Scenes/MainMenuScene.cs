@@ -69,6 +69,9 @@ internal sealed class MainMenuScene : Scene {
         ResourceManager.TextureLoader.Load("avatar_talk_0");
         ResourceManager.TextureLoader.Load("avatar_talk_1");
         ResourceManager.TextureLoader.Load("avatar_talk_2");
+        ResourceManager.TextureLoader.Load("avatar_overlay_0");
+        ResourceManager.TextureLoader.Load("avatar_overlay_1");
+        ResourceManager.TextureLoader.Load("avatar_overlay_2");
 
         LoadAllGuiElements();
 
