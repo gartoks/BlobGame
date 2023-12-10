@@ -256,16 +256,21 @@ internal sealed class ToastedGameMode : IGameMode {
             if (!GameObjects.Contains(b0) || (b1 != null && !GameObjects.Contains(b1)))
                 continue;
 
-            //if (b0.Type == 1)
-            //    Log.WriteLine($"CVel: {b0.Name}:{b0.Body.LinearVelocity.Length()}");
-
-            //if (b1 != null && b1.Type == 1)
-            //    Log.WriteLine($"CVel: {b1.Name}:{b1.Body.LinearVelocity.Length()}");
-
-
             if (b1 != null) {
                 if (b0.Data.MergeWithBlobId == b1.Type || b1.Data.MergeWithBlobId == b0.Type) {
                     Score += b0.Data.Score;
+
+                    if (LastSpawned == b0) {
+                        CanSpawnBlob = true;
+                        LastSpawned = null;
+                        OnBlobPlaced?.Invoke(this, new System.Numerics.Vector2(b0.Position.X, b0.Position.Y), b0.Type);
+                    }
+
+                    if (LastSpawned == b1) {
+                        CanSpawnBlob = true;
+                        LastSpawned = null;
+                        OnBlobPlaced?.Invoke(this, new System.Numerics.Vector2(b1.Position.X, b1.Position.Y), b1.Type);
+                    }
 
                     Vector2 midPoint = (b0.Position + b1.Position) / 2f;
                     RemoveBlob(b0);
@@ -280,13 +285,31 @@ internal sealed class ToastedGameMode : IGameMode {
                         OnBlobDestroyed?.Invoke(this, new System.Numerics.Vector2(midPoint.X, midPoint.Y), b0.Type);
 
                 } else if (b0.Data.ShatterSpeed > 0 && b0.Data.ShatterSpeed < b0.Body.LinearVelocity.Length()) {
+                    if (LastSpawned == b0) {
+                        CanSpawnBlob = true;
+                        LastSpawned = null;
+                        OnBlobPlaced?.Invoke(this, new System.Numerics.Vector2(b0.Position.X, b0.Position.Y), b0.Type);
+                    }
+
                     RemoveBlob(b0);
                     OnBlobDestroyed?.Invoke(this, new System.Numerics.Vector2(b0.Position.X, b0.Position.Y), b0.Type);
                 } else if (b1.Data.ShatterSpeed > 0 && b1.Data.ShatterSpeed < b1.Body.LinearVelocity.Length()) {
+                    if (LastSpawned == b1) {
+                        CanSpawnBlob = true;
+                        LastSpawned = null;
+                        OnBlobPlaced?.Invoke(this, new System.Numerics.Vector2(b1.Position.X, b1.Position.Y), b1.Type);
+                    }
+
                     RemoveBlob(b1);
                     OnBlobDestroyed?.Invoke(this, new System.Numerics.Vector2(b1.Position.X, b1.Position.Y), b1.Type);
                 }
             } else if (b0.Data.ShatterSpeed != 0 && Math.Abs(b0.Data.ShatterSpeed / 4f) < b0.Data.ShatterSpeed) {
+                if (LastSpawned == b0) {
+                    CanSpawnBlob = true;
+                    LastSpawned = null;
+                    OnBlobPlaced?.Invoke(this, new System.Numerics.Vector2(b0.Position.X, b0.Position.Y), b0.Type);
+                }
+
                 RemoveBlob(b0);
                 OnBlobDestroyed?.Invoke(this, new System.Numerics.Vector2(b0.Position.X, b0.Position.Y), b0.Type);
             }
