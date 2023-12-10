@@ -5,6 +5,7 @@
 
 BlobGame/Resources/References/*
 BlobGame/Resources/Themes/*
+**/Config/settings.json
 
 # User-specific files
 *.rsuser

@@ -1,12 +1,17 @@
 ﻿using BlobGame.App;
 using BlobGame.Game.GameModes;
+using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace BlobGame.Game.Util;
 /// <summary>
 /// Class to keep track of the game's scores. Also handles saving and loading of the scores to the disk.
 /// </summary>
 public sealed class Scoreboard {
+    private const string SCOREBOARD_API_ENDPOINT = "https://robotino.ch/toasted/api";
+    private const string USER_AGENT = "Toasted! (https://github.com/gartoks/BlobGame)";
     /// <summary>
     /// The highest score ever achieved.
     /// </summary>
@@ -110,6 +115,40 @@ public sealed class Scoreboard {
         }
 
         File.WriteAllText(file, JsonSerializer.Serialize(scoreboardDatas.ToArray()));
+    }
+
+    internal int? SumbitScore(IGameMode gamemode, int score){
+        if (DiscordAuth.IsSignedIn){
+            var client = new HttpClient();
+            var request = new HttpRequestMessage();
+            request.RequestUri = new Uri(SCOREBOARD_API_ENDPOINT + "/scores");
+            request.Method = HttpMethod.Post;
+
+            request.Headers.Add("Accept", "*/*");
+            request.Headers.Add("User-Agent", USER_AGENT);
+            request.Headers.Add("Authorization", $"Bearer {DiscordAuth.GetTokens().AccessToken}");
+
+            string gamemodeName = IGameMode.GameModeNames[gamemode.GetType()];
+
+            var bodyString = $@"{{
+                ""score"": {score},
+                ""time"": ""{DateTime.Now.ToUniversalTime().ToString("o")}"",
+                ""gamemode"": ""{gamemodeName.ToLower()}""
+            }}";
+            var content = new StringContent(bodyString, Encoding.UTF8, "application/json");
+            request.Content = content;
+
+            var response = client.SendAsync(request);
+            response.Wait();
+            var result = response.Result.Content.ReadFromJsonAsync<JsonNode>();
+            result.Wait();
+            
+            Console.WriteLine(result.Result);
+            return 0;
+        }
+        else{
+            return null;
+        }
     }
 
     private record ScoreboardData(Guid gameModeId, int GlobalHighscore, DateTime Date, int[] DailyHighscores);

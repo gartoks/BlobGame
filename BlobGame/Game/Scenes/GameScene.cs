@@ -35,8 +35,12 @@ internal sealed partial class GameScene : Scene {
     private GuiPanel MenuPanel { get; }
     private GuiTextButton RetryButton { get; }
     private GuiLabel MenuLabel { get; }
+    private GuiLabel NotSignedInWarning { get; }
+    private GuiTextButton SignInButton { get; }
     private GuiTextButton ContinueButton { get; }
-    private GuiTextButton ToMainMenuButton { get; }
+    private GuiTextButton ToMainMenuButtonGameOver { get; }
+    private GuiTextButton ToMainMenuButtonPause { get; }
+
     private float LastDropIndicatorX { get; set; }
 
     private GuiTextButton MenuButton { get; }
@@ -60,7 +64,7 @@ internal sealed partial class GameScene : Scene {
         Game.OnGameOver += Game_OnGameOver;
 
         RetryButton = new GuiTextButton(
-            Application.BASE_WIDTH * 0.37f, Application.BASE_HEIGHT * 0.625f,
+            Application.BASE_WIDTH * 0.37f, Application.BASE_HEIGHT * 0.65f,
             Application.BASE_WIDTH * 0.2f, 100,
             "Retry",
             new Vector2(0.5f, 0.5f));
@@ -69,15 +73,26 @@ internal sealed partial class GameScene : Scene {
             Application.BASE_WIDTH * 0.2f, 100,
             "Continue",
             new Vector2(0.5f, 0.5f));
-        ToMainMenuButton = new GuiTextButton(
+        ToMainMenuButtonPause = new GuiTextButton(
             Application.BASE_WIDTH * 0.62f, Application.BASE_HEIGHT * 0.625f,
             Application.BASE_WIDTH * 0.2f, 100,
             "To Menu",
             new Vector2(0.5f, 0.5f));
-        GameOverPanel = new GuiPanel("0.5 0.4 1100px 700px", "panel", new Vector2(0.25f, 0.25f));
+        ToMainMenuButtonGameOver = new GuiTextButton(
+            Application.BASE_WIDTH * 0.62f, Application.BASE_HEIGHT * 0.65f,
+            Application.BASE_WIDTH * 0.2f, 100,
+            "To Menu",
+            new Vector2(0.5f, 0.5f));
+        GameOverPanel = new GuiPanel("0.5 0.4 1100px 800px", "panel", new Vector2(0.25f, 0.25f));
         MenuPanel = new GuiPanel("0.5 0.5 1100px 500px", "panel", new Vector2(0.25f, 0.25f));
         MenuLabel = new GuiLabel("0.5 0.45 1100px 250px", "Paused", new Vector2(0.5f, 0.5f));
         MenuLabel.Color = ResourceManager.ColorLoader.Get("font_dark");
+        NotSignedInWarning = new GuiLabel("0.53 0.55 1100px 80px", "to submit your score.", new Vector2(0.5f, 0.5f));
+        NotSignedInWarning.Color = ResourceManager.ColorLoader.Get("font_dark");
+        SignInButton = new GuiTextButton(
+            "0.39 0.55 150px 80px",
+            "Sign in",
+            new Vector2(0.5f, 0.5f));
 
         MenuButton = new GuiTextButton("1 1 100px 50px", "Menu", Vector2.One);
 
@@ -228,10 +243,13 @@ internal sealed partial class GameScene : Scene {
     /// Called when the scene is about to be unloaded or replaced by another scene. Override this method to provide custom cleanup or deinitialization logic and to unload resources.
     /// </summary>
     internal override void Unload() {
-        Input.UnregisterHotkey("open_menu");
 
-        GameManager.Scoreboard.AddScore(Game, Game.Score);
+        if (Game.IsGameOver){
+            GameManager.Scoreboard.AddScore(Game, Game.Score);
+            GameManager.Scoreboard.SumbitScore(Game, Game.Score);
+        }
         Controller.Close();
+        Input.UnregisterHotkey("open_menu");
         // TODO unload NOT NEEDED resources
     }
 

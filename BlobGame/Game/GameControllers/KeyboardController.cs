@@ -51,5 +51,6 @@ internal sealed class KeyboardController : IGameController {
         Input.UnregisterHotkey("cursor_left");
         Input.UnregisterHotkey("cursor_right");
         Input.UnregisterHotkey("drop_piece");
+        Input.UnregisterHotkey("hold_piece");
     }
 }

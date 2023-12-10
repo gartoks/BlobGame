@@ -1,4 +1,5 @@
-﻿using BlobGame.Drawing;
+﻿using BlobGame.App;
+using BlobGame.Drawing;
 using BlobGame.Game.Blobs;
 using BlobGame.Game.GameModes;
 using BlobGame.Game.Gui;
@@ -20,13 +21,13 @@ internal sealed partial class GameScene : Scene {
 
     private void DrawMenu() {
         MenuPanel.Draw();
-        ToMainMenuButton.Draw();
+        ToMainMenuButtonPause.Draw();
         ContinueButton.Draw();
         MenuLabel.Draw();
 
         if (ContinueButton.IsClicked)
             IsMenuOpen = false;
-        if (ToMainMenuButton.IsClicked)
+        if (ToMainMenuButtonPause.IsClicked)
             GameManager.SetScene(new MainMenuScene());
     }
 
@@ -229,7 +230,7 @@ internal sealed partial class GameScene : Scene {
             new Vector2(0.5f, 0.5f));
 
         RetryButton.Draw();
-        ToMainMenuButton.Draw();
+        ToMainMenuButtonGameOver.Draw();
 
         bool isNewHighscore = Game.Score > GameManager.Scoreboard.GetGlobalHighscore(Game);
         GuiLabel scoreLabel = new GuiLabel("0.5 0.375 1100px 240px",
@@ -246,9 +247,20 @@ internal sealed partial class GameScene : Scene {
             highScoreLabel.Draw();
         }
 
+        if (!DiscordAuth.IsSignedIn){
+            SignInButton.Draw();
+            NotSignedInWarning.Draw();
+
+            if (SignInButton.IsClicked){
+                DiscordAuth.SignIn();
+                DiscordAuth.UpdateUserInfo();
+                Application.Settings.DiscordTokensChanged();
+            }
+        }
+
         if (RetryButton.IsClicked)
             GameManager.SetScene(new GameScene(Controller, IGameMode.CreateGameMode(Game.GetType(), new Random().Next())));
-        if (ToMainMenuButton.IsClicked)
+        if (ToMainMenuButtonGameOver.IsClicked)
             GameManager.SetScene(new MainMenuScene());
     }
 }

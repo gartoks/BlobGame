@@ -1,4 +1,5 @@
-﻿using BlobGame.Drawing;
+﻿using BlobGame.App;
+using BlobGame.Drawing;
 using BlobGame.Game.Gui;
 using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
@@ -19,6 +20,8 @@ internal sealed class MainMenuScene : Scene {
     private GuiTextButton ControlsButton { get; }
     private GuiTextButton CreditsButton { get; }
     private GuiTextButton QuitButton { get; }
+    private GuiTextButton LoginButton { get; }
+    private GuiDynamicLabel UsernameDisplay { get; }
 
     public MainMenuScene() {
         Scroller = new TextScroller(5, 15, 30, 15);
@@ -60,6 +63,15 @@ internal sealed class MainMenuScene : Scene {
             0.5f,
             ResourceManager.TextureLoader.Fallback,
             new Vector2(0.5f, 0));
+
+        DiscordAuth.UpdateUserInfo();
+        UsernameDisplay = new GuiDynamicLabel(0, Application.BASE_HEIGHT-50, DiscordAuth.Username, 50);
+        UsernameDisplay.Color = ResourceManager.ColorLoader.Get("font_dark");
+
+        LoginButton = new GuiTextButton(0, Application.BASE_HEIGHT-100, 300, 50, "Sign in with Discord");
+        if (DiscordAuth.IsSignedIn){
+            LoginButton.Label.Text = "Sign out";
+        }
     }
 
     internal override void Load() {
@@ -94,6 +106,7 @@ internal sealed class MainMenuScene : Scene {
         ControlsButton.Draw();
         CreditsButton.Draw();
         QuitButton.Draw();
+        LoginButton.Draw();
 
         if (PlayButton.IsClicked)
             GameManager.SetScene(new GameModeSelectionScene());
@@ -105,10 +118,25 @@ internal sealed class MainMenuScene : Scene {
             GameManager.SetScene(new CreditsScene());
         if (QuitButton.IsClicked)
             Application.Exit();
+        if (LoginButton.IsClicked){
+            if (DiscordAuth.IsSignedIn)
+                DiscordAuth.SignOut();
+            else
+                DiscordAuth.SignIn();
+
+            
+            DiscordAuth.UpdateUserInfo();
+            Application.Settings.DiscordTokensChanged();
+            UsernameDisplay.Text = DiscordAuth.Username;
+            
+            LoginButton.Label.Text = DiscordAuth.IsSignedIn ? "Sign out" : "Sign in with Discord";
+        }
 
         float t = MathF.Sin(Renderer.Time * 4);
         TitleImage.Scale = 0.485f + 0.03f * t;
         TitleImage.Draw();
+
+        UsernameDisplay.Draw();
 
         /*// TODO: Is tmp, will fix when back
         TestDraw(-130, Application.BASE_HEIGHT * 1f + 130, 150, -150, 45, 10);

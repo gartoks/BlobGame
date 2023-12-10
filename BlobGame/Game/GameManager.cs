@@ -95,7 +95,7 @@ public static class GameManager {
                 Scene.Load();
                 WasSceneLoaded = true;
             } else
-                    Scene.Update(dT);
+                Scene.Update(dT);
         }
     }
 

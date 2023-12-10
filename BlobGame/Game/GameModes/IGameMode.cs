@@ -18,7 +18,7 @@ internal interface IGameMode {
     internal const float ARENA_WIDTH = 670;
     internal const float ARENA_HEIGHT = 846;
     internal const float ARENA_HEIGHT_LOWER = 750;
-    internal const float ARENA_WALL_THICKNESS = 20;
+    internal const float ARENA_WALL_THICKNESS = 300; // visually: 20
     internal const float ARENA_SPAWN_Y_OFFSET = -22.5f;
 
     /// <summary>
@@ -119,6 +119,13 @@ internal interface IGameMode {
     public static IReadOnlyDictionary<string, Type> GameModeTypes { get; } = new Dictionary<string, Type>() {
         { "Toasted", typeof(ToastedGameMode) },
         { "Classic", typeof(ClassicGameMode) },
+    };
+    /// <summary>
+    /// All available game modes with their names.
+    /// </summary>
+    public static IReadOnlyDictionary<Type, string> GameModeNames { get; } = new Dictionary<Type, string>() {
+        { typeof(ToastedGameMode), "Toasted" },
+        { typeof(ClassicGameMode), "Classic" },
     };
 
     /// <summary>
