@@ -99,9 +99,7 @@ static internal class DiscordAuth{
         request.Method = HttpMethod.Post;
         request.Headers.Add("Accept", "*/*");
         request.Headers.Add("User-Agent", USER_AGENT);
-        request.Content = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>(){
-            new("token", _Tokens.RefreshToken)
-        });
+        request.Headers.Add("Authorization", $"Bearer {_Tokens.RefreshToken}");
 
         var response = client.Send(request);
         var new_token = response.Content.ReadFromJsonAsync<JsonNode>();
@@ -115,6 +113,10 @@ static internal class DiscordAuth{
     /// <param name="tokens">The tokens to test</param>
     /// <returns></returns>
     private static bool IsValidToken(Tokens tokens){
+        if (tokens == null){
+            return false;
+        }
+        
         var client = new HttpClient();
         var request = new HttpRequestMessage();
         request.RequestUri = new Uri(DISCORD_API_ENDPOINT + "/users/@me");
@@ -131,6 +133,10 @@ static internal class DiscordAuth{
     /// Signs in a user. This will open a browser and communicate with the scoreboard server.
     /// </summary>
     internal static void SignIn(){
+        if (IsValidToken(_Tokens)){
+            return;
+        }
+
         var client = new HttpClient();
         var request = new HttpRequestMessage();
         request.RequestUri = new Uri(SCOREBOARD_API_ENDPOINT + "/game/request_token");
@@ -181,19 +187,26 @@ static internal class DiscordAuth{
     /// Signs out the user. Also revokes the old tokens.
     /// </summary>
     internal static void SignOut(){
+        if (_Tokens == null){
+            return;
+        }
+
         var client = new HttpClient();
         var request = new HttpRequestMessage();
         request.RequestUri = new Uri(SCOREBOARD_API_ENDPOINT + "/game/revoke");
         request.Method = HttpMethod.Post;
         request.Headers.Add("Accept", "*/*");
         request.Headers.Add("User-Agent", USER_AGENT);
-        request.Content = new FormUrlEncodedContent(new List<KeyValuePair<string, string>>(){
-            new("token", _Tokens.AccessToken)
-        });
+        request.Headers.Add("Authorization", $"Bearer {_Tokens.AccessToken}");
 
         var response = client.Send(request);
         if (response.StatusCode == System.Net.HttpStatusCode.OK){
             _Tokens = null;
+        }
+        else{
+            var ct = response.Content.ReadAsStringAsync();
+            ct.Wait();
+            Console.WriteLine(ct.Result);
         }
     }
 

@@ -1,4 +1,4 @@
-﻿using BlobGame.App;
+using BlobGame.App;
 using BlobGame.Audio;
 using BlobGame.Drawing;
 using BlobGame.ResourceHandling;
@@ -25,7 +25,7 @@ internal static class Application {
     /// </summary>
     private const int FPS = 60;
     /// <summary>
-    /// The udpates per second the game is targeting.
+    /// The updates per second the game is targeting.
     /// </summary>
     private const int UPS = 60;
 
