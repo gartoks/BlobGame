@@ -15,7 +15,7 @@ internal static class Log {
         if (!File.Exists("log.txt"))
             File.Create("log.txt").Close();
 
-        File.AppendAllLines("log.txt", new string[] { $"[{logType}]: {text}" });
+        File.AppendAllLines("log.txt", new string[] { $"[{logType}]{text}" });
     }
 
     public static event LogEventHandler? OnLog;

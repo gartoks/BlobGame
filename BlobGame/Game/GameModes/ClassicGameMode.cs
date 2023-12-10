@@ -249,6 +249,18 @@ internal sealed class ClassicGameMode : IGameMode {
             if (!GameObjects.Contains(b0) || !GameObjects.Contains(b1))
                 continue;
 
+            if (LastSpawned == b0) {
+                CanSpawnBlob = true;
+                LastSpawned = null;
+                OnBlobPlaced?.Invoke(this, new System.Numerics.Vector2(b0.Position.X, b0.Position.Y), b0.Type);
+            }
+
+            if (LastSpawned == b1) {
+                CanSpawnBlob = true;
+                LastSpawned = null;
+                OnBlobPlaced?.Invoke(this, new System.Numerics.Vector2(b1.Position.X, b1.Position.Y), b1.Type);
+            }
+
             Score += b0.Data.Score;
 
             Vector2 midPoint = (b0.Position + b1.Position) / 2f;
