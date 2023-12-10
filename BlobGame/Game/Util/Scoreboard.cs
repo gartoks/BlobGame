@@ -10,7 +10,7 @@ namespace BlobGame.Game.Util;
 /// Class to keep track of the game's scores. Also handles saving and loading of the scores to the disk.
 /// </summary>
 public sealed class Scoreboard {
-    private const string SCOREBOARD_API_ENDPOINT = "http://localhost:5173/api";
+    private const string SCOREBOARD_API_ENDPOINT = "https://robotino.ch/toasted/api";
     private const string USER_AGENT = "Toasted! (https://github.com/gartoks/BlobGame)";
     /// <summary>
     /// The highest score ever achieved.

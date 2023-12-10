@@ -14,7 +14,7 @@ namespace BlobGame.App;
 static internal class DiscordAuth{
 
     private const string DISCORD_API_ENDPOINT = "https://discord.com/api/v10";
-    private const string SCOREBOARD_API_ENDPOINT = "http://localhost:5173/api";
+    private const string SCOREBOARD_API_ENDPOINT = "https://robotino.ch/toasted/api";
     private const string USER_AGENT = "Toasted! (https://github.com/gartoks/BlobGame)";
 
     /// <summary>
