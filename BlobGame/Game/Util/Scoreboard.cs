@@ -1,4 +1,4 @@
-using BlobGame.App;
+﻿using BlobGame.App;
 using BlobGame.Game.GameModes;
 using BlobGame.Util;
 using System.Net.Http.Json;
@@ -119,6 +119,9 @@ public sealed class Scoreboard {
     }
 
     internal async Task<int> SumbitScore(IGameMode gamemode, int score){
+        if (score < 500){
+            return 0;
+        }
         if (DiscordAuth.IsSignedIn){
             var client = new HttpClient();
             var request = new HttpRequestMessage();
