@@ -258,9 +258,50 @@ internal sealed partial class GameScene : Scene {
             }
         }
 
-        if (RetryButton.IsClicked)
-            GameManager.SetScene(new GameScene(Controller, IGameMode.CreateGameMode(Game.GetType(), new Random().Next())));
-        if (ToMainMenuButtonGameOver.IsClicked)
+        if (RetryButton.IsClicked){
+            GameManager.Scoreboard.AddScore(Game, Game.Score);
+            SubmissionTask = GameManager.Scoreboard.SumbitScore(Game, Game.Score);
+            WasRetryPressed = true;
+        }
+        if (ToMainMenuButtonGameOver.IsClicked){
+            GameManager.Scoreboard.AddScore(Game, Game.Score);
+            SubmissionTask = GameManager.Scoreboard.SumbitScore(Game, Game.Score);
+            WasRetryPressed = false;
+        }
+    }
+
+    private void DrawSubmissionScreen() {
+        GameOverPanel.Draw();
+        GameOverTexture.Draw(new Rectangle(
+            Application.BASE_WIDTH / 2f,
+            Application.BASE_HEIGHT * 0.225f,
+            150 / (float)GameOverTexture.Resource.height * GameOverTexture.Resource.width,
+            150),
+            new Vector2(0.5f, 0.5f));
+
+        SubmittingLabel.Draw();
+        if (SubmissionTask != null && SubmissionTask.IsCompletedSuccessfully){
+            if (WasRetryPressed)
+                GameManager.SetScene(new GameScene(Controller, IGameMode.CreateGameMode(Game.GetType(), new Random().Next())));
+            else
+                GameManager.SetScene(new MainMenuScene());
+        }
+
+        if (SubmissionTask != null && SubmissionTask.IsFaulted){
+            SubmittingErrorLabel.Text = "Error: " + SubmissionTask.Exception!.GetBaseException().Message;
+            SubmittingErrorLabel.Draw();
+            RetryButtonSubmit.Draw();
+            if (RetryButtonSubmit.IsClicked){
+                SubmissionTask = GameManager.Scoreboard.SumbitScore(Game, Game.Score);
+            }
+        }
+
+        CancelSubmitButton.Draw();
+        if (CancelSubmitButton.IsClicked){
+            if (SubmissionTask != null)
+                SubmissionTask.Dispose();
+
             GameManager.SetScene(new MainMenuScene());
+        }
     }
 }

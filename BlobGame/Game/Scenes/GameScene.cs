@@ -40,6 +40,10 @@ internal sealed partial class GameScene : Scene {
     private GuiTextButton ContinueButton { get; }
     private GuiTextButton ToMainMenuButtonGameOver { get; }
     private GuiTextButton ToMainMenuButtonPause { get; }
+    private GuiTextButton RetryButtonSubmit { get; }
+    private GuiLabel SubmittingLabel { get; }
+    private GuiLabel SubmittingErrorLabel { get; }
+    private GuiTextButton CancelSubmitButton { get; }
 
     private float LastDropIndicatorX { get; set; }
 
@@ -52,6 +56,8 @@ internal sealed partial class GameScene : Scene {
     private bool IsTutorialEnabled => Tutorial != null && !Tutorial.IsFinished;
     private bool IsMenuOpen { get; set; }
     private bool IsPaused => IsMenuOpen || IsTutorialEnabled || Game.IsGameOver;
+    private Task SubmissionTask;
+    private bool WasRetryPressed = false;
 
     /// <summary>
     /// Creates a new game scene.
@@ -93,6 +99,20 @@ internal sealed partial class GameScene : Scene {
             "0.39 0.55 150px 80px",
             "Sign in",
             new Vector2(0.5f, 0.5f));
+
+        RetryButtonSubmit = new GuiTextButton(
+            Application.BASE_WIDTH * 0.62f, Application.BASE_HEIGHT * 0.65f,
+            Application.BASE_WIDTH * 0.2f, 100,
+            "Retry",
+            new Vector2(0.5f, 0.5f));
+        SubmittingLabel = new GuiLabel("0.5 0.5 1100px 150px", "Submitting....", new Vector2(0.5f, 0.5f));
+        SubmittingLabel.Color = ResourceManager.ColorLoader.Get("font_dark");
+        CancelSubmitButton = new GuiTextButton(
+            Application.BASE_WIDTH * 0.38f, Application.BASE_HEIGHT * 0.65f,
+            Application.BASE_WIDTH * 0.2f, 100,
+            "Quit to Menu",
+            new Vector2(0.5f, 0.5f));
+        SubmittingErrorLabel = new GuiLabel("0.5 0.55 1100px 80px", "Error: ", new Vector2(0.5f, 0.5f));
 
         MenuButton = new GuiTextButton("1 1 100px 50px", "Menu", Vector2.One);
 
@@ -229,7 +249,10 @@ internal sealed partial class GameScene : Scene {
 
         if (Game.IsGameOver) {
             IsMenuOpen = false;
-            DrawGameOverScreen();
+            if (SubmissionTask == null)
+                DrawGameOverScreen();
+            else
+                DrawSubmissionScreen();
         }
 
         if (!IsTutorialEnabled && !Game.IsGameOver && !IsMenuOpen)
@@ -243,11 +266,6 @@ internal sealed partial class GameScene : Scene {
     /// Called when the scene is about to be unloaded or replaced by another scene. Override this method to provide custom cleanup or deinitialization logic and to unload resources.
     /// </summary>
     internal override void Unload() {
-
-        if (Game.IsGameOver){
-            GameManager.Scoreboard.AddScore(Game, Game.Score);
-            GameManager.Scoreboard.SumbitScore(Game, Game.Score);
-        }
         Controller.Close();
         Input.UnregisterHotkey("open_menu");
         // TODO unload NOT NEEDED resources

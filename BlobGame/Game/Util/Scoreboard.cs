@@ -1,5 +1,6 @@
-﻿using BlobGame.App;
+using BlobGame.App;
 using BlobGame.Game.GameModes;
+using BlobGame.Util;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -117,7 +118,7 @@ public sealed class Scoreboard {
         File.WriteAllText(file, JsonSerializer.Serialize(scoreboardDatas.ToArray()));
     }
 
-    internal int? SumbitScore(IGameMode gamemode, int score){
+    internal async Task<int> SumbitScore(IGameMode gamemode, int score){
         if (DiscordAuth.IsSignedIn){
             var client = new HttpClient();
             var request = new HttpRequestMessage();
@@ -132,22 +133,28 @@ public sealed class Scoreboard {
 
             var bodyString = $@"{{
                 ""score"": {score},
-                ""time"": ""{DateTime.Now.ToUniversalTime().ToString("o")}"",
                 ""gamemode"": ""{gamemodeName.ToLower()}""
             }}";
             var content = new StringContent(bodyString, Encoding.UTF8, "application/json");
             request.Content = content;
 
-            var response = client.SendAsync(request);
-            response.Wait();
-            var result = response.Result.Content.ReadFromJsonAsync<JsonNode>();
-            result.Wait();
+            var response = await client.SendAsync(request);
+            if ((int)response.StatusCode < 500 && (int)response.StatusCode >= 400){
+                Log.WriteLine(await response.Content.ReadAsStringAsync());
+                throw new Exception((await response.Content.ReadFromJsonAsync<JsonNode>())["message"].GetValue<string>());
+            }
+            if (response.StatusCode != System.Net.HttpStatusCode.Created){
+                Log.WriteLine(await response.Content.ReadAsStringAsync());
+                throw new Exception(await response.Content.ReadAsStringAsync());
+            }
+
+            // var result = await response.Content.ReadFromJsonAsync<JsonNode>();
             
-            Console.WriteLine(result.Result);
+            // Console.WriteLine(result);
             return 0;
         }
         else{
-            return null;
+            return 0;
         }
     }
 
