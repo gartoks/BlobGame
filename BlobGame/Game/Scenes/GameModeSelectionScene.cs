@@ -78,8 +78,11 @@ internal class GameModeSelectionScene : Scene {
         GameModeSelector.Draw();
         GameControllerSelector.Draw();
 
-        GameModeDescriptionLabel.Text = GameModeDescriptionsText.Resource[GameModeSelector.SelectedElement.Text];
-        GameModeDescriptionLabel.Draw();
+        try{
+            GameModeDescriptionLabel.Text = GameModeDescriptionsText.Resource[GameModeSelector.SelectedElement.Text];
+            GameModeDescriptionLabel.Draw();
+        }
+        catch(KeyNotFoundException){}
 
         PortLabel.Draw();
         PortTextBox.Enabled = (Type)GameControllerSelector.SelectedElement.Element == typeof(SocketController);
