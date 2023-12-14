@@ -64,14 +64,18 @@ internal sealed class MainMenuScene : Scene {
             ResourceManager.TextureLoader.Fallback,
             new Vector2(0.5f, 0));
 
-        DiscordAuth.UpdateUserInfo();
-        UsernameDisplay = new GuiDynamicLabel(0, Application.BASE_HEIGHT-50, DiscordAuth.Username, 50);
+        UsernameDisplay = new GuiDynamicLabel(0, Application.BASE_HEIGHT-50, "Checking user...", 50);
         UsernameDisplay.Color = ResourceManager.ColorLoader.Get("font_dark");
 
         LoginButton = new GuiTextButton(0, Application.BASE_HEIGHT-100, 300, 50, "Sign in with Discord");
-        if (DiscordAuth.IsSignedIn){
-            LoginButton.Label.Text = "Sign out";
-        }
+        
+
+        DiscordAuth.UpdateUserInfo().ContinueWith((Task _) => {
+            UsernameDisplay.Text = DiscordAuth.Username;
+            if (DiscordAuth.IsSignedIn){
+                LoginButton.Label.Text = "Sign out";
+            }
+        });
     }
 
     internal override void Load() {
@@ -119,17 +123,21 @@ internal sealed class MainMenuScene : Scene {
         if (QuitButton.IsClicked)
             Application.Exit();
         if (LoginButton.IsClicked){
-            if (DiscordAuth.IsSignedIn)
-                DiscordAuth.SignOut();
-            else
-                DiscordAuth.SignIn();
+            UsernameDisplay.Text = "Loading...";
 
-            
-            DiscordAuth.UpdateUserInfo();
-            Application.Settings.DiscordTokensChanged();
-            UsernameDisplay.Text = DiscordAuth.Username;
-            
-            LoginButton.Label.Text = DiscordAuth.IsSignedIn ? "Sign out" : "Sign in with Discord";
+            Task task;
+            if (DiscordAuth.IsSignedIn)
+                task = DiscordAuth.SignOut();
+            else
+                task = DiscordAuth.SignIn();
+
+            task.ContinueWith(async (Task _) => {
+                await DiscordAuth.UpdateUserInfo();
+                Application.Settings.DiscordTokensChanged();
+                UsernameDisplay.Text = DiscordAuth.Username;
+                
+                LoginButton.Label.Text = DiscordAuth.IsSignedIn ? "Sign out" : "Sign in with Discord";
+            });
         }
 
         float t = MathF.Sin(Renderer.Time * 4);

@@ -234,6 +234,9 @@ internal sealed class Settings {
     private void Save() {
         string file = Files.GetConfigFilePath("settings.json");
 
+        Task<DiscordAuth.Tokens?> tokenTask = DiscordAuth.GetTokens();
+        tokenTask.Wait();
+
         SettingsData settingsData = new SettingsData(
             ScreenMode.ToString(),
             Raylib.GetCurrentMonitor(),
@@ -243,7 +246,7 @@ internal sealed class Settings {
             _SoundVolume,
             IsTutorialEnabled,
             ThemeName,
-            DiscordAuth.GetTokens()
+            tokenTask.Result
         );
 
         File.WriteAllText(file, JsonSerializer.Serialize(settingsData));
@@ -288,7 +291,7 @@ internal sealed class Settings {
         IsTutorialEnabled = isTutorialEnabled;
         SetTheme(themeName);
         if (discordTokens != null)
-            DiscordAuth.SetTokens(discordTokens);
+            DiscordAuth.SetTokens(discordTokens).Wait();
         Save();
     }
 
