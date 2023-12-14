@@ -252,9 +252,10 @@ internal sealed partial class GameScene : Scene {
             NotSignedInWarning.Draw();
 
             if (SignInButton.IsClicked){
-                DiscordAuth.SignIn();
-                DiscordAuth.UpdateUserInfo();
-                Application.Settings.DiscordTokensChanged();
+                DiscordAuth.SignIn().ContinueWith(async (Task _) => {
+                    await DiscordAuth.UpdateUserInfo();
+                    Application.Settings.DiscordTokensChanged();
+                });
             }
         }
 

@@ -130,7 +130,7 @@ public sealed class Scoreboard {
 
             request.Headers.Add("Accept", "*/*");
             request.Headers.Add("User-Agent", USER_AGENT);
-            request.Headers.Add("Authorization", $"Bearer {DiscordAuth.GetTokens().AccessToken}");
+            request.Headers.Add("Authorization", $"Bearer {(await DiscordAuth.GetTokens()).AccessToken}");
 
             string gamemodeName = IGameMode.GameModeNames[gamemode.GetType()];
 
