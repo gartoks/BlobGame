@@ -30,7 +30,6 @@ internal sealed class TutorialStage {
     private TextureResource PointerTexture { get; set; }
     private NPatchTextureResource SpeechbubbleTexture { get; set; }
     private TextureResource NameTagTexture { get; set; }
-    private SoundResource SpeechSound { get; set; }
 
     private TextureResource AvatarIdleTexture { get; set; }
     private TextureResource AvatarBlink0Texture { get; set; }
@@ -77,7 +76,7 @@ internal sealed class TutorialStage {
         LMBTexture = ResourceManager.TextureLoader.Get("lmb");
         PointerTexture = ResourceManager.TextureLoader.Get("pointer");
         SpeechbubbleTexture = ResourceManager.NPatchTextureLoader.Get("speechbubble");
-        SpeechSound = ResourceManager.SoundLoader.Get($"{Tutorial.GameModeKey}_tutorial_{StageIndex}");
+        ResourceManager.SoundLoader.Load($"{Tutorial.GameModeKey}_tutorial_{StageIndex}");
         NameTagTexture = ResourceManager.TextureLoader.Get("nametag");
 
         AvatarIdleTexture = ResourceManager.TextureLoader.Get("avatar_idle");
@@ -148,8 +147,10 @@ internal sealed class TutorialStage {
     }
 
     internal void Unload() {
-        SpeechSound.Unload();
-        AudioManager.StopSound($"{Tutorial.GameModeKey}_tutorial_{StageIndex}");
+        if (ResourceManager.SoundLoader.IsLoaded($"{Tutorial.GameModeKey}_tutorial_{StageIndex}")) {
+            ResourceManager.SoundLoader.Get($"{Tutorial.GameModeKey}_tutorial_{StageIndex}").Unload();
+            AudioManager.StopSound($"{Tutorial.GameModeKey}_tutorial_{StageIndex}");
+        }
     }
 
     internal void DrawFadeIn() {
@@ -237,7 +238,12 @@ internal sealed class TutorialStage {
         LMBTexture.Draw(
             new Rectangle(advancePos.X, advancePos.Y, 50, 75),
             new Vector2(0.5f, 0.5f), 0, ResourceManager.ColorLoader.Get("font_dark").Resource);
-
+        Renderer.GuiFont.Draw(
+            "Hold",
+            FONT_SIZE / 2f,
+            ResourceManager.ColorLoader.Get("font_dark"),
+            advancePos - new Vector2(0, 35),
+            new Vector2(0.5f, 1));
 
         if (AnimatedSpeechbubble.IsFinished)
             AnimatedSpeechbubble.Start();

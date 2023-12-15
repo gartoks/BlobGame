@@ -1,5 +1,6 @@
 ﻿using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
+using BlobGame.Util;
 using Raylib_CsLo;
 using System.Collections.Concurrent;
 
@@ -80,6 +81,12 @@ internal static class AudioManager {
     internal static void PlaySound(string name) {
         if (PlayingSounds.ContainsKey(name))
             StopSound(name);
+
+        if (!ResourceManager.SoundLoader.ResourceExists(name)) {
+            Log.WriteLine($"Sound {name} does not exist.", eLogType.Error);
+            return;
+        }
+
 
         SoundResource sound = ResourceManager.SoundLoader.Get(name);
 

@@ -64,15 +64,15 @@ internal sealed class MainMenuScene : Scene {
             ResourceManager.TextureLoader.Fallback,
             new Vector2(0.5f, 0));
 
-        UsernameDisplay = new GuiDynamicLabel(0, Application.BASE_HEIGHT-50, "Checking user...", 50);
+        UsernameDisplay = new GuiDynamicLabel(0, Application.BASE_HEIGHT - 50, "Checking user...", 50);
         UsernameDisplay.Color = ResourceManager.ColorLoader.Get("font_dark");
 
-        LoginButton = new GuiTextButton(0, Application.BASE_HEIGHT-100, 300, 50, "Sign in with Discord");
-        
+        LoginButton = new GuiTextButton(0, Application.BASE_HEIGHT - 100, 300, 50, "Sign in with Discord");
+
 
         DiscordAuth.UpdateUserInfo().ContinueWith((Task _) => {
             UsernameDisplay.Text = DiscordAuth.Username;
-            if (DiscordAuth.IsSignedIn){
+            if (DiscordAuth.IsSignedIn) {
                 LoginButton.Label.Text = "Sign out";
             }
         });
@@ -122,7 +122,7 @@ internal sealed class MainMenuScene : Scene {
             GameManager.SetScene(new CreditsScene());
         if (QuitButton.IsClicked)
             Application.Exit();
-        if (LoginButton.IsClicked){
+        if (LoginButton.IsClicked) {
             UsernameDisplay.Text = "Loading...";
 
             Task task;
@@ -135,7 +135,7 @@ internal sealed class MainMenuScene : Scene {
                 await DiscordAuth.UpdateUserInfo();
                 Application.Settings.DiscordTokensChanged();
                 UsernameDisplay.Text = DiscordAuth.Username;
-                
+
                 LoginButton.Label.Text = DiscordAuth.IsSignedIn ? "Sign out" : "Sign in with Discord";
             });
         }

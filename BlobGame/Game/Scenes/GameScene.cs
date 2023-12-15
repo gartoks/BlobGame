@@ -8,6 +8,7 @@ using BlobGame.Game.Tutorial;
 using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
 using Raylib_CsLo;
+using System.Globalization;
 using System.Numerics;
 
 namespace BlobGame.Game.Scenes;
@@ -15,6 +16,7 @@ internal sealed partial class GameScene : Scene {
     private const float ARENA_OFFSET_X = Application.BASE_WIDTH * 0.5f;
     private const float ARENA_OFFSET_Y = 150;
     private const float DROP_INDICATOR_WIDTH = 10;
+    private float SPASH_SCREEN_TIMER = 1.5f;
 
     internal IGameController Controller { get; }
     internal IGameMode Game { get; private set; }
@@ -31,6 +33,7 @@ internal sealed partial class GameScene : Scene {
 
     private Dictionary<Guid, (TextureResource tex, float alpha, float rotation, Vector2 position)> Splats { get; }
 
+    private GuiTextButton MenuButton { get; }
     private GuiPanel GameOverPanel { get; }
     private GuiPanel MenuPanel { get; }
     private GuiTextButton RetryButton { get; }
@@ -47,7 +50,8 @@ internal sealed partial class GameScene : Scene {
 
     private float LastDropIndicatorX { get; set; }
 
-    private GuiTextButton MenuButton { get; }
+    private List<TextureResource> SpashScreenTextures { get; }
+    private float SpashScreenTimer { get; set; }
 
     private TutorialDisplay? Tutorial { get; set; }
 
@@ -55,7 +59,7 @@ internal sealed partial class GameScene : Scene {
 
     private bool IsTutorialEnabled => Tutorial != null && !Tutorial.IsFinished;
     private bool IsMenuOpen { get; set; }
-    private bool IsPaused => IsMenuOpen || IsTutorialEnabled || Game.IsGameOver;
+    private bool IsPaused => IsMenuOpen || IsTutorialEnabled || Game.IsGameOver || SpashScreenTextures.Count > 0;
     private Task SubmissionTask;
     private bool WasRetryPressed = false;
 
@@ -114,17 +118,17 @@ internal sealed partial class GameScene : Scene {
             new Vector2(0.5f, 0.5f));
         SubmittingErrorLabel = new GuiLabel("0.5 0.55 1100px 80px", "Error: ", new Vector2(0.5f, 0.5f));
 
-        MenuButton = new GuiTextButton("1 1 100px 50px", "Menu", Vector2.One);
+        MenuButton = new GuiTextButton("1 1 150px 75px", "Menu", Vector2.One);
 
         Random = new Random();
         Splats = new();
 
         string gameModeKey = IGameMode.GameModeTypes.Where(k => k.Value == Game.GetType()).Select(k => k.Key).Single();
-        if (Application.Settings.GetTutorialEnabled(gameModeKey)) {
+        if (gameModeKey != null && Application.Settings.GetTutorialEnabled(gameModeKey))
+            Tutorial = new TutorialDisplay(this, gameModeKey);
 
-            if (gameModeKey != null)
-                Tutorial = new TutorialDisplay(gameModeKey);
-        }
+        SpashScreenTextures = new();
+        SpashScreenTimer = SPASH_SCREEN_TIMER;
     }
 
     /// <summary>
@@ -166,10 +170,32 @@ internal sealed partial class GameScene : Scene {
         ScoresBackgroundTexture = ResourceManager.TextureLoader.Get("scores_bg");
         GameOverTexture = ResourceManager.TextureLoader.Get("game_over");
 
+        if (ResourceManager.TextLoader.ResourceExists($"spashscreens"))
+            ResourceManager.TextLoader.Load($"spashscreens");
+
         Tutorial?.Load();
         IsMenuOpen = false;
 
         ResourceManager.WaitForLoading();
+
+        if (ResourceManager.TextLoader.ResourceExists($"spashscreens")) {
+
+            string[] resourceKeys = ResourceManager.TextLoader.Get($"spashscreens").Resource
+                .OrderBy(kvp => int.Parse(kvp.Key, CultureInfo.InvariantCulture))
+                .Select(kvp => kvp.Value)
+                .ToArray();
+
+            foreach (string key in resourceKeys) {
+                if (ResourceManager.SoundLoader.ResourceExists($"{key}_sound"))
+                    ResourceManager.SoundLoader.Load($"{key}_sound");
+
+                SpashScreenTextures.Add(ResourceManager.TextureLoader.Get(key));
+            }
+        }
+        ResourceManager.WaitForLoading();
+
+        if (!IsTutorialEnabled && SpashScreenTextures.Count > 0)
+            AudioManager.PlaySound($"{SpashScreenTextures[0].Key}_sound");
     }
 
     /// <summary>
@@ -186,11 +212,25 @@ internal sealed partial class GameScene : Scene {
             if (Tutorial.IsFinished) {
                 string gameModeKey = IGameMode.GameModeTypes.Where(k => k.Value == Game.GetType()).Select(k => k.Key).Single();
                 Application.Settings.SetTutorialEnabled(gameModeKey, false);
+
+                if (SpashScreenTextures.Count > 0)
+                    AudioManager.PlaySound($"{SpashScreenTextures[0].Key}_sound");
             }
         }
 
         if (!IsTutorialEnabled && Input.IsHotkeyActive("open_menu"))
             IsMenuOpen = !IsMenuOpen;
+
+        if (!IsTutorialEnabled && SpashScreenTextures.Count > 0) {
+            SpashScreenTimer -= dT;
+
+            if (SpashScreenTimer <= 0) {
+                SpashScreenTimer = SPASH_SCREEN_TIMER;
+                SpashScreenTextures.RemoveAt(0);
+                if (SpashScreenTextures.Count > 0)
+                    AudioManager.PlaySound($"{SpashScreenTextures[0].Key}_sound");
+            }
+        }
 
         if (!IsPaused) {
             Game.Update(dT);
@@ -232,8 +272,7 @@ internal sealed partial class GameScene : Scene {
 
         DrawNextBlob();
 
-        if (Game is not ClassicGameMode)
-            DrawHeldBlob();
+        DrawHeldBlob();
 
         if (Game.CanSpawnBlob) {
             DrawDropIndicator(x);
@@ -244,6 +283,9 @@ internal sealed partial class GameScene : Scene {
         DrawArenaBox();
 
         RlGl.rlPopMatrix();
+
+        if (!IsTutorialEnabled && SpashScreenTextures.Count > 0)
+            DrawSplashScreen(SpashScreenTextures[0]);
 
         Tutorial?.Draw(dT);
 

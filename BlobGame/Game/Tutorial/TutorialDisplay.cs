@@ -1,4 +1,5 @@
 ﻿using BlobGame.App;
+using BlobGame.Game.Scenes;
 using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
@@ -10,6 +11,7 @@ namespace BlobGame.Game.Tutorial;
 internal sealed class TutorialDisplay {
     private const float HOLD_TIME = 0.5f;
 
+    internal GameScene Scene { get; }
     internal string GameModeKey { get; }
     internal string AvatarName { get; set; }
 
@@ -25,7 +27,8 @@ internal sealed class TutorialDisplay {
     private bool AdvanceStage { get; set; }
     public float AdvanceProgress => HoldTime / HOLD_TIME;
 
-    public TutorialDisplay(string gameModeKey) {
+    public TutorialDisplay(GameScene scene, string gameModeKey) {
+        Scene = scene;
         GameModeKey = gameModeKey;
 
         CurrentStageIndex = -1;
@@ -85,9 +88,13 @@ internal sealed class TutorialDisplay {
 
         if (CurrentStage != null &&
             CurrentStage.IsFadeInFinished &&
-            !AdvanceStage && Input.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT) &&
+            !AdvanceStage &&
             !Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT]) {
-            HoldTime += dT;
+
+            if (Input.IsMouseButtonDown(MouseButton.MOUSE_BUTTON_LEFT))
+                HoldTime += dT;
+            else
+                HoldTime = 0;
         }
 
         if (!AdvanceStage && HoldTime >= HOLD_TIME) {
@@ -120,7 +127,7 @@ internal sealed class TutorialDisplay {
     }
 
     private TutorialStage CreateStage(int stageIndex) {
-        string text = TutorialTextResource.Resource[$"{stageIndex}_text"];
+        string text = ParseStageText(TutorialTextResource.Resource[$"{stageIndex}_text"]);
         float[] pointerPos = TutorialTextResource.Resource[$"{stageIndex}_pointerPos"].Split(",", StringSplitOptions.TrimEntries).Select(x => float.Parse(x, CultureInfo.InvariantCulture)).ToArray();
         float pointerRot = float.Parse(TutorialTextResource.Resource[$"{stageIndex}_pointerRot"], CultureInfo.InvariantCulture);
         float avatarX = float.Parse(TutorialTextResource.Resource[$"{stageIndex}_avatarX"], CultureInfo.InvariantCulture);
@@ -134,6 +141,38 @@ internal sealed class TutorialDisplay {
             new Vector2(pointerPos[0], pointerPos[1]), pointerRot,
             avatarX, new Vector2(speechBubblePos[0], speechBubblePos[1]),
             speechFrames, overlayIndex);
+    }
+
+    private string ParseStageText(string text) {
+
+        int index = -2;
+        while (index + 2 < text.Length && (index = text.IndexOf("$$", index + 2)) != -1) {
+            int endIndex = text.IndexOf("$$", index + 2);
+
+            if (endIndex == -1)
+                continue;
+
+            string key = text.Substring(index + 2, endIndex - index - 2);
+            string[] components = key.Split("/", StringSplitOptions.TrimEntries);
+
+            if (components.Length != 2)
+                continue;
+
+            if (components[0] != "hk")
+                continue;
+
+            string hotkey = components[1];
+            string hotkeyText = Input.GetHotkeyDisplayString(hotkey);
+
+            if (string.IsNullOrWhiteSpace(hotkeyText))
+                continue;
+
+            text = text.Replace($"$${key}$$", hotkeyText);
+
+            index = endIndex + 2;
+        }
+
+        return text;
     }
 }
 

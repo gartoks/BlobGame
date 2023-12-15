@@ -59,7 +59,7 @@ internal sealed class ClassicGameMode : IGameMode {
     /// <summary>
     /// The type of the currently held blob.
     /// </summary>
-    public int HeldBlob => -1;
+    public int HeldBlob { get; private set; }
     /// <summary>
     /// Wether or not the player can currently spawn a blob. This is false when the last spawned blob is still falling.
     /// </summary>
@@ -134,6 +134,7 @@ internal sealed class ClassicGameMode : IGameMode {
         LastSpawned = null;
 
         Score = 0;
+        HeldBlob = -1;
         IsGameOver = false;
     }
 
@@ -207,7 +208,15 @@ internal sealed class ClassicGameMode : IGameMode {
     /// Attempts to hold the current blob. If a blob is already held, the current blob is swapped with the held blob.
     /// </summary>
     public void HoldBlob() {
-        // Do nothing
+        if (HeldBlob == -1) {
+            HeldBlob = CurrentBlob;
+            CurrentBlob = NextBlob;
+            NextBlob = GenerateRandomBlobType();
+        } else {
+            int tmp = HeldBlob;
+            HeldBlob = CurrentBlob;
+            CurrentBlob = tmp;
+        }
     }
 
     private void ResolveVeryCloseBlobs() {

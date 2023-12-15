@@ -11,6 +11,8 @@ internal class MouseController : IGameController {
     }
 
     public void Load() {
+        Input.RegisterHotkey("drop_piece", MouseButton.MOUSE_BUTTON_LEFT);
+        Input.RegisterHotkey("hold_piece", MouseButton.MOUSE_BUTTON_MIDDLE);
     }
 
     /// <summary>
@@ -35,7 +37,7 @@ internal class MouseController : IGameController {
         if (!simulation.CanSpawnBlob)
             return false;
 
-        if (!Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT))
+        if (!Input.IsHotkeyActive("drop_piece"))
             return false;
 
         Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT] = true;
@@ -44,7 +46,7 @@ internal class MouseController : IGameController {
     }
 
     public bool HoldBlob() {
-        if (!Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_MIDDLE))
+        if (!Input.IsHotkeyActive("hold_piece"))
             return false;
 
         Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_MIDDLE] = true;
@@ -54,5 +56,8 @@ internal class MouseController : IGameController {
 
     public void Update(float dT, IGameMode simulation) { }
 
-    public void Close() { }
+    public void Close() {
+        Input.UnregisterHotkey("drop_piece");
+        Input.UnregisterHotkey("hold_piece");
+    }
 }

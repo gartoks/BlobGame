@@ -247,11 +247,11 @@ internal sealed partial class GameScene : Scene {
             highScoreLabel.Draw();
         }
 
-        if (!DiscordAuth.IsSignedIn){
+        if (!DiscordAuth.IsSignedIn) {
             SignInButton.Draw();
             NotSignedInWarning.Draw();
 
-            if (SignInButton.IsClicked){
+            if (SignInButton.IsClicked) {
                 DiscordAuth.SignIn().ContinueWith(async (Task _) => {
                     await DiscordAuth.UpdateUserInfo();
                     Application.Settings.DiscordTokensChanged();
@@ -259,12 +259,12 @@ internal sealed partial class GameScene : Scene {
             }
         }
 
-        if (RetryButton.IsClicked){
+        if (RetryButton.IsClicked) {
             GameManager.Scoreboard.AddScore(Game, Game.Score);
             SubmissionTask = GameManager.Scoreboard.SumbitScore(Game, Game.Score);
             WasRetryPressed = true;
         }
-        if (ToMainMenuButtonGameOver.IsClicked){
+        if (ToMainMenuButtonGameOver.IsClicked) {
             GameManager.Scoreboard.AddScore(Game, Game.Score);
             SubmissionTask = GameManager.Scoreboard.SumbitScore(Game, Game.Score);
             WasRetryPressed = false;
@@ -281,28 +281,37 @@ internal sealed partial class GameScene : Scene {
             new Vector2(0.5f, 0.5f));
 
         SubmittingLabel.Draw();
-        if (SubmissionTask != null && SubmissionTask.IsCompletedSuccessfully){
+        if (SubmissionTask != null && SubmissionTask.IsCompletedSuccessfully) {
             if (WasRetryPressed)
                 GameManager.SetScene(new GameScene(Controller, IGameMode.CreateGameMode(Game.GetType(), new Random().Next())));
             else
                 GameManager.SetScene(new MainMenuScene());
         }
 
-        if (SubmissionTask != null && SubmissionTask.IsFaulted){
+        if (SubmissionTask != null && SubmissionTask.IsFaulted) {
             SubmittingErrorLabel.Text = "Error: " + SubmissionTask.Exception!.GetBaseException().Message;
             SubmittingErrorLabel.Draw();
             RetryButtonSubmit.Draw();
-            if (RetryButtonSubmit.IsClicked){
+            if (RetryButtonSubmit.IsClicked) {
                 SubmissionTask = GameManager.Scoreboard.SumbitScore(Game, Game.Score);
             }
         }
 
         CancelSubmitButton.Draw();
-        if (CancelSubmitButton.IsClicked){
-            if (SubmissionTask != null)
-                SubmissionTask.Dispose();
+        if (CancelSubmitButton.IsClicked) {
+            SubmissionTask?.Dispose();
 
             GameManager.SetScene(new MainMenuScene());
+        }
+    }
+
+    private void DrawSplashScreen(TextureResource texture) {
+        try {
+            texture.Draw(
+                new Rectangle(Application.BASE_WIDTH / 2f, Application.BASE_HEIGHT / 2f,
+                    Application.BASE_WIDTH * 0.75f, Application.BASE_WIDTH * 0.75f * texture.Resource.height / texture.Resource.width),
+                new Vector2(0.5f, 0.5f));
+        } catch (Exception) {
         }
     }
 }
