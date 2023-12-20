@@ -3,7 +3,21 @@ public enum eLogType { Message, Warning, Error }
 
 public delegate void LogEventHandler(string text, eLogType logType);
 
-internal class Log {
+internal static class Log {
+    static Log() {
+        if (File.Exists("log.txt"))
+            File.Delete("log.txt");
+
+        OnLog += WriteToFile;
+    }
+
+    private static void WriteToFile(string text, eLogType logType) {
+        if (!File.Exists("log.txt"))
+            File.Create("log.txt").Close();
+
+        File.AppendAllLines("log.txt", new string[] { $"[{logType}]{text}" });
+    }
+
     public static event LogEventHandler? OnLog;
 
     public static void WriteLine(string text, eLogType messageType = eLogType.Message) {

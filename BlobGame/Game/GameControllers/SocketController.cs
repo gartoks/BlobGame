@@ -3,6 +3,7 @@ using BlobGame.Game.GameObjects;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 namespace BlobGame.Game.GameControllers;
 
@@ -24,7 +25,7 @@ internal class SocketController : IGameController {
 
     internal bool IsConnected => Client != null && Client.Connected;
 
-    private (float t, bool shouldDrop)? FrameInputs { get; set; }
+    private (float t, bool shouldDrop, bool shouldHold)? FrameInputs { get; set; }
 
     /// <summary>
     /// The global listener waiting for clients to connect.
@@ -86,13 +87,16 @@ internal class SocketController : IGameController {
     /// <param name="t">The t value at which the blob is spawned, which represents the position of the dropper above the arena..</param>
     /// <returns>True if blob spawning was attempted, otherwise false.</returns>
     public bool SpawnBlob(IGameMode simulation, out float t) {
-        t = -1;
+        t = GetCurrentT();
+
         if (!simulation.CanSpawnBlob)
             return false;
 
-        t = GetCurrentT();
-
         return FrameInputs != null && FrameInputs.Value.shouldDrop;
+    }
+
+    public bool HoldBlob() {
+        return FrameInputs != null && FrameInputs.Value.shouldHold;
     }
 
     public void Update(float dT, IGameMode simulation) {
@@ -114,20 +118,26 @@ internal class SocketController : IGameController {
             }
         });
 
+        string gameModeKey = IGameMode.GameModeTypes.Where(k => k.Value == simulation.GetType()).Select(k => k.Key).Single();
+
+
         IEnumerable<byte> buffer = new byte[0];
         buffer = buffer.Concat(BitConverter.GetBytes(blobs.Count));
         foreach (Blob blob in blobs) {
             buffer = buffer.Concat(BitConverter.GetBytes(blob.Position.X));
             buffer = buffer.Concat(BitConverter.GetBytes(blob.Position.Y));
-            buffer = buffer.Concat(BitConverter.GetBytes((int)blob.Type));
+            buffer = buffer.Concat(BitConverter.GetBytes(blob.Type));
         }
-        buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.CurrentBlob));
-        buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.NextBlob));
+        buffer = buffer.Concat(BitConverter.GetBytes(simulation.CurrentBlob));
+        buffer = buffer.Concat(BitConverter.GetBytes(simulation.NextBlob));
+        buffer = buffer.Concat(BitConverter.GetBytes(simulation.HeldBlob));
         buffer = buffer.Concat(BitConverter.GetBytes(simulation.Score));
         buffer = buffer.Concat(BitConverter.GetBytes(GameIndex));
-        buffer = buffer.Concat(BitConverter.GetBytes(simulation.CanSpawnBlob));
-        buffer = buffer.Concat(BitConverter.GetBytes(simulation.IsGameOver));
-        //buffer = buffer.Concat(BitConverter.GetBytes((int)simulation.GameMode));
+        buffer = buffer.Concat(new byte[] { simulation.CanSpawnBlob ? (byte)0b00000001 : (byte)0b00000000 });
+        buffer = buffer.Concat(new byte[] { simulation.IsGameOver ? (byte)0b00000001 : (byte)0b00000000 });
+        byte[] gameModeKeyData = Encoding.UTF8.GetBytes(gameModeKey == null ? "" : gameModeKey);
+        buffer = buffer.Concat(BitConverter.GetBytes(gameModeKeyData.Length));
+        buffer = buffer.Concat(gameModeKeyData);
 
         bool failed = false;
         try {
@@ -150,10 +160,10 @@ internal class SocketController : IGameController {
     /// Waits for the next frame of inputs and stores them in frameInputs.
     /// </summary>
     public void ReceiveInputs() {
-        byte[] buffer = new byte[5];
+        byte[] buffer = new byte[6];
         bool failed = false;
         try {
-            Stream?.ReadExactly(buffer, 0, 5);
+            Stream?.ReadExactly(buffer, 0, 6);
         } catch (EndOfStreamException) {
             failed = true;
         } catch (SocketException) {
@@ -169,7 +179,8 @@ internal class SocketController : IGameController {
         }
 
         float t = BitConverter.ToSingle(buffer, 0);
-        bool shouldDrop = BitConverter.ToBoolean(buffer, 4);
-        FrameInputs = (t, shouldDrop);
+        bool shouldDrop = BitConverter.ToBoolean(buffer, sizeof(float));
+        bool shouldHold = (buffer[sizeof(float) + sizeof(bool)] & 0b1) == 0b1;
+        FrameInputs = (t, shouldDrop, shouldHold);
     }
 }

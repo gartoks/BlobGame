@@ -55,22 +55,12 @@ internal abstract class ResourceLoader<TResource, TGameResource> where TGameReso
     }
 
     /// <summary>
-    /// Actually performs the loading of the resource.
+    /// Checks if a resource with the given key exists in the current theme.
     /// </summary>
     /// <param name="key"></param>
-    internal void LoadResource(string key) {
-        if (!Resources.TryGetValue(key, out (TResource? baseResource, TGameResource resource) val)) {
-            Log.WriteLine($"Unable to load {typeof(TResource).Name} resource '{key}'.", eLogType.Error);
-            return;
-        }
-
-        TResource? resource = LoadResourceInternal(key);
-        if (resource == null) {
-            Log.WriteLine($"The {typeof(TResource).Name} resource file for {key} does not exist.", eLogType.Error);
-            return;
-        }
-
-        Resources[key] = (resource!, val.resource);
+    /// <returns></returns>
+    public bool ResourceExists(string key) {
+        return Resources.ContainsKey(key) || ResourceExistsInternal(key);
     }
 
     /// <summary>
@@ -150,6 +140,26 @@ internal abstract class ResourceLoader<TResource, TGameResource> where TGameReso
     }
 
     /// <summary>
+    /// Actually performs the loading of the resource.
+    /// </summary>
+    /// <param name="key"></param>
+    internal void LoadResource(string key) {
+        if (!Resources.TryGetValue(key, out (TResource? baseResource, TGameResource resource) val)) {
+            Log.WriteLine($"Unable to load {typeof(TResource).Name} resource '{key}'.", eLogType.Error);
+            return;
+        }
+
+        TResource? resource = LoadResourceInternal(key);
+        if (resource == null) {
+            Log.WriteLine($"The {typeof(TResource).Name} resource file for {key} does not exist.", eLogType.Error);
+            return;
+        }
+
+        Resources[key] = (resource!, val.resource);
+    }
+
+
+    /// <summary>
     /// Creates a new game resource object.
     /// </summary>
     /// <param name="key"></param>
@@ -158,6 +168,13 @@ internal abstract class ResourceLoader<TResource, TGameResource> where TGameReso
         ResourceRetrieverDelegate del = key => TryGetResource(key);
         return (TGameResource?)Activator.CreateInstance(typeof(TGameResource), BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { key, _Fallback, del }, CultureInfo.InvariantCulture)!;
     }
+
+    /// <summary>
+    /// Checks if a resource with the given key exists in the current theme.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    protected abstract bool ResourceExistsInternal(string key);
 
     /// <summary>
     /// Performs the actual loading of the resource.

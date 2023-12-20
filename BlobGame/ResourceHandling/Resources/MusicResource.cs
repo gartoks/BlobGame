@@ -23,6 +23,10 @@ internal sealed class MusicResourceLoader : ResourceLoader<Music, MusicResource>
         : base(resourceLoadingQueue) {
     }
 
+    protected override bool ResourceExistsInternal(string key) {
+        return ResourceManager.MainTheme.DoesMusicExist(key);
+    }
+
     protected override Music LoadResourceInternal(string key) {
         Music? res = ResourceManager.MainTheme.LoadMusic(key) ?? ResourceManager.DefaultTheme.LoadMusic(key);
         return res ?? Fallback.Resource;

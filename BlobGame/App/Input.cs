@@ -80,12 +80,22 @@ public static class Input {
 
             bool allModifiersDown = hotkey.Modifiers.All(Raylib.IsKeyDown);
             if (allModifiersDown) {
-                if (Raylib.IsKeyPressed(hotkey.PrimaryKey))
-                    state = eInteractionState.Pressed;
-                else if (Raylib.IsKeyDown(hotkey.PrimaryKey))
-                    state = eInteractionState.Down;
-                else if (Raylib.IsKeyReleased(hotkey.PrimaryKey))
-                    state = eInteractionState.Released;
+                if (hotkey.PrimaryKey is KeyboardKey key) {
+                    if (Raylib.IsKeyPressed(key))
+                        state = eInteractionState.Pressed;
+                    else if (Raylib.IsKeyDown(key))
+                        state = eInteractionState.Down;
+                    else if (Raylib.IsKeyReleased(key))
+                        state = eInteractionState.Released;
+                } else if (hotkey.PrimaryKey is MouseButton button) {
+                    if (Raylib.IsMouseButtonPressed(button))
+                        state = eInteractionState.Pressed;
+                    else if (Raylib.IsMouseButtonDown(button))
+                        state = eInteractionState.Down;
+                    else if (Raylib.IsMouseButtonReleased(button))
+                        state = eInteractionState.Released;
+                }
+
             }
             hotkey.State = state;
         }
@@ -105,6 +115,16 @@ public static class Input {
     /// <param name="modifiers">List of key modifiers that are required to be held down in addition to the primary key. Such as Ctrl, Shift, Alt.</param>
     public static void RegisterHotkey(string key, KeyboardKey primaryKey, params KeyboardKey[] modifiers) {
         Hotkeys.Add(key, new Hotkey(key, primaryKey, modifiers));
+    }
+
+    /// <summary>
+    /// Registeres a new hotkey with the given name, mouse button, and modifiers.
+    /// </summary>
+    /// <param name="key">The unique hotkey identifier</param>
+    /// <param name="button">The primary mouse button of the hotkey. This controls the state.</param>
+    /// <param name="modifiers">List of key modifiers that are required to be held down in addition to the primary key. Such as Ctrl, Shift, Alt.</param>
+    public static void RegisterHotkey(string key, MouseButton button, params KeyboardKey[] modifiers) {
+        Hotkeys.Add(key, new Hotkey(key, button, modifiers));
     }
 
     /// <summary>
@@ -159,6 +179,13 @@ public static class Input {
     public static bool IsMouseButtonDown(MouseButton button) {
         return MouseButtonStates[button] is eInteractionState.Pressed or eInteractionState.Down;
     }
+
+    public static string GetHotkeyDisplayString(string hotkey) {
+        if (!Hotkeys.TryGetValue(hotkey, out Hotkey? hotkeyObj))
+            return string.Empty;
+
+        return hotkeyObj.ToDisplayString();
+    }
 }
 
 /// <summary>
@@ -166,16 +193,41 @@ public static class Input {
 /// </summary>
 internal class Hotkey {
     public string Key { get; }
-    public KeyboardKey PrimaryKey { get; }
+    public object PrimaryKey { get; }
     public IReadOnlyList<KeyboardKey> Modifiers { get; }
     public eInteractionState State { get; set; }
 
-    public Hotkey(string name, KeyboardKey primaryKey, params KeyboardKey[] modifiers) {
+    public Hotkey(string name, object primaryKey, params KeyboardKey[] modifiers) {
         Key = name;
         PrimaryKey = primaryKey;
         Modifiers = modifiers;
         State = eInteractionState.Up;
     }
 
+    public string ToDisplayString() {
+        string pKeyStr = PrimaryKey switch {
+            KeyboardKey key => KeyboardKeyToString(key),
+            MouseButton button => MouseButtonToString(button),
+            _ => throw new NotImplementedException()
+        };
+
+        string modifiersStr = Modifiers.Count > 0 ? (" + " + string.Join(" + ", Modifiers.Select(KeyboardKeyToString))) : "";
+
+        return $"{pKeyStr}{modifiersStr}";
+    }
+
     public override string ToString() => $"{Key} {PrimaryKey} {State}";
+
+    private static string KeyboardKeyToString(KeyboardKey key) {
+        return key.ToString().Replace("KEY_", "");
+    }
+
+    private static string MouseButtonToString(MouseButton button) {
+        return button switch {
+            MouseButton.MOUSE_BUTTON_LEFT => "LMB",
+            MouseButton.MOUSE_BUTTON_RIGHT => "RMB",
+            MouseButton.MOUSE_BUTTON_MIDDLE => "MMB",
+            _ => button.ToString().Replace("MOUSE_BUTTON_", "")
+        };
+    }
 }

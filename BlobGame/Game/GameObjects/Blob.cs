@@ -12,34 +12,19 @@ namespace BlobGame.Game.GameObjects;
 /// </summary>
 internal sealed class Blob : GameObject {
     /// <summary>
-    /// Creates a new blob with the given parameters and resolves resources.
-    /// </summary>
-    /// <param name="world"></param>
-    /// <param name="position"></param>
-    /// <param name="blobType"></param>
-    /// <returns></returns>
-    public static Blob Create(World world, Vector2 position, eBlobType blobType) {
-        (string name, eBlobType type, int score, float radius, float mass, string textureKey) = BlobData.Data.Single(d => d.type == blobType);
-        return new Blob(name, type, score, world, position, radius, mass, ResourceManager.TextureLoader.Get(textureKey), new Vector2(0.5f, 0.5f));
-    }
-
-    /// <summary>
     /// The type of the blob.
     /// </summary>
-    public eBlobType Type { get; }
-    /// <summary>
-    /// The score gained when two blobs of this type collide and combine.
-    /// </summary>
-    public int Score { get; }
-    /// <summary>
-    /// The radius of the blob's circle collider.
-    /// </summary>
-    public float Radius { get; }
+    public int Type { get; }
 
     /// <summary>
-    /// The physics engine fixture attached to the blob's body.
+    /// The data of the blob.
     /// </summary>
-    protected override Fixture Fixture { get; }
+    public BlobData Data { get; }
+
+    /// <summary>
+    /// The physics engine fixtures attached to the blob's body.
+    /// </summary>
+    protected override List<Fixture> Fixtures { get; }
 
     /// <summary>
     /// The texture of the blob.
@@ -53,21 +38,24 @@ internal sealed class Blob : GameObject {
     /// <summary>
     /// Create a new blob with the given parameters.
     /// </summary>
-    private Blob(string name, eBlobType type, int score, World world, Vector2 position, float radius, float mass, TextureResource texture, Vector2 textureOrigin)
-        : base(name, world, position, 0, BodyType.Dynamic) {
+    public Blob(BlobData data, World world, Vector2 position, float rotation)
+        : base(data.Name, world, position, 0, BodyType.Dynamic) {
 
-        Type = type;
-        Score = score;
-        Radius = radius;
+        Type = data.Id;
+        Data = data;
 
-        Fixture = Body.CreateCircle(radius / 10f, 1);
-        Fixture.Restitution = 0.15f;
-        Fixture.Friction = 0.1f;
-        Body.Mass = mass;
+        Fixtures = data.CreateFixtures(Body);
+        foreach (Fixture fixture in Fixtures){
+            fixture.Restitution = 0.15f;
+            fixture.Friction = 0.1f;
+        }
+
+        Body.Mass = data.Mass;
         Body.AngularDamping = 0.9f;
+        Body.Rotation = rotation;
 
-        Texture = texture;
-        TextureOrigin = textureOrigin;
+        Texture = ResourceManager.TextureLoader.Get(data.Name);
+        TextureOrigin = data.Origin;
     }
 
     /// <summary>
@@ -77,11 +65,19 @@ internal sealed class Blob : GameObject {
         Texture.Draw(
             System.Numerics.Vector2.Zero,
             new System.Numerics.Vector2(TextureOrigin.X, TextureOrigin.Y),
-            new System.Numerics.Vector2(0.25f, 0.25f),
-            RayMath.RAD2DEG * Rotation);
+            new System.Numerics.Vector2(Data.TextureScale.X, Data.TextureScale.Y),
+            0);
 
         if (Application.DRAW_DEBUG) {
-            Raylib.DrawCircleLines(0, 0, Radius, Raylib.BLUE);
+            if (Data.AsCircle(out float radius))
+                Raylib.DrawCircleLines(0, 0, radius * POSITION_MULTIPLIER, Raylib.BLUE);
+            else if (Data.AsPolygon(out Vertices vertices)) {
+                for (int i = 0; i < vertices.Count; i++) {
+                    Vector2 start = vertices[i];
+                    Vector2 end = vertices[(i + 1) % vertices.Count];
+                    Raylib.DrawLineV(new System.Numerics.Vector2(start.X, start.Y) * POSITION_MULTIPLIER, new System.Numerics.Vector2(end.X, end.Y) * POSITION_MULTIPLIER, Raylib.BLUE);
+                }
+            }
             Raylib.DrawCircleV(new System.Numerics.Vector2(0, 0), 5f, Raylib.LIME);
         }
     }

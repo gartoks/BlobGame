@@ -22,6 +22,10 @@ public static class GameManager {
     /// Flag indicating if the scene was loaded after setting a new scene.
     /// </summary>
     private static bool WasSceneLoaded { get; set; }
+    /// <summary>
+    /// Lock to prevent trying to change scene while rendering.
+    /// </summary>
+    private static object SceneLock = new();
 
     public static Scoreboard Scoreboard { get; }
 
@@ -59,13 +63,7 @@ public static class GameManager {
         Tumbler.Load();
 
         Music = new MusicResource[] {
-            ResourceManager.MusicLoader.Get("crossinglike"),
-            ResourceManager.MusicLoader.Get("Melba_1"),
-            ResourceManager.MusicLoader.Get("Melba_2"),
-            ResourceManager.MusicLoader.Get("Melba_3"),
-            ResourceManager.MusicLoader.Get("Melba_s_Toasty_Game"),
-            ResourceManager.MusicLoader.Get("On_the_Surface"),
-            ResourceManager.MusicLoader.Get("synthyupdated"),
+            ResourceManager.MusicLoader.Get("music_1"),
         };
 
         GuiManager.Load();
@@ -91,12 +89,14 @@ public static class GameManager {
 
         GuiManager.Update(dT);
 
-        // The scene is loaded in the update method to ensure scene drawing doesn't access unloaded resources.
-        if (!WasSceneLoaded) {
-            Scene.Load();
-            WasSceneLoaded = true;
-        } else
-            Scene.Update(dT);
+        lock (SceneLock) {
+            // The scene is loaded in the update method to ensure scene drawing doesn't access unloaded resources.
+            if (!WasSceneLoaded) {
+                Scene.Load();
+                WasSceneLoaded = true;
+            } else
+                Scene.Update(dT);
+        }
     }
 
     /// <summary>
@@ -109,7 +109,8 @@ public static class GameManager {
         if (!WasSceneLoaded)
             return;
 
-        Scene.Draw();
+        lock (SceneLock)
+            Scene.Draw(dT);
     }
 
     /// <summary>
@@ -121,10 +122,12 @@ public static class GameManager {
     }
 
     internal static void SetScene(Scene scene) {
-        Scene.Unload();
-        GuiManager.ResetElements();
-        WasSceneLoaded = false;
-        Scene = scene;
+        lock (SceneLock){
+            Scene.Unload();
+            GuiManager.ResetElements();
+            WasSceneLoaded = false;
+            Scene = scene;
+        }
     }
 
     private static void DrawBackground() {

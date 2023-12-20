@@ -1,10 +1,10 @@
-﻿using BlobGame.App;
+using BlobGame.App;
 using BlobGame.Audio;
 using BlobGame.Drawing;
 using BlobGame.ResourceHandling;
 using Raylib_CsLo;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.Reflection;
 
 namespace BlobGame;
 /// <summary>
@@ -19,13 +19,13 @@ internal static class Application {
     /// <summary>
     /// The name of the application. Used for the window title.
     /// </summary>
-    private const string NAME = "Blob Game";
+    private const string NAME = "Toasted";
     /// <summary>
     /// The frames per second the game is targeting.
     /// </summary>
     private const int FPS = 60;
     /// <summary>
-    /// The udpates per second the game is targeting.
+    /// The updates per second the game is targeting.
     /// </summary>
     private const int UPS = 60;
 
@@ -69,9 +69,6 @@ internal static class Application {
         IsRunning = false;
         GameThread = new Thread(RunGameThread);
 
-        nint handle = GetConsoleWindow();
-        ShowWindow(handle, SW_HIDE);
-
         Settings = new Settings();
     }
 
@@ -96,10 +93,14 @@ internal static class Application {
 
         IsRunning = true;
 
+        Raylib.SetConfigFlags(ConfigFlags.FLAG_MSAA_4X_HINT);
         Raylib.InitWindow(BASE_WIDTH, BASE_HEIGHT, NAME);
         Raylib.SetTargetFPS(FPS);
         Raylib.SetExitKey(KeyboardKey.KEY_NULL);
         Raylib.InitAudioDevice();
+
+        Image icon = LoadIcon();
+        Raylib.SetWindowIcon(icon);
 
         Settings.Load();
         ResourceManager.Load();
@@ -153,23 +154,26 @@ internal static class Application {
         Game.GameManager.Unload();
     }
 
-#if WINDOWS
-    [DllImport("kernel32.dll")]
-    static extern IntPtr GetConsoleWindow();
+    private static Image LoadIcon() {
+        Assembly assembly = Assembly.GetExecutingAssembly();
+        string resourceName = "BlobGame.Resources.icon.png";
 
-    [DllImport("user32.dll")]
-    static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-#else
-    // Linux (and macOS probably) don't open a console window by default
-    static IntPtr GetConsoleWindow() {
-        return 0;
+        using Stream stream = assembly.GetManifestResourceStream(resourceName)!;
+        byte[] imageData;
+        using (MemoryStream ms = new MemoryStream()) {
+            stream.CopyTo(ms);
+            ms.Position = 0;
+            imageData = ms.ToArray();
+        }
+
+        Image image;
+        unsafe {
+            fixed (byte* imagePtr = imageData) {
+                image = Raylib.LoadImageFromMemory(".png", imagePtr, imageData.Length);
+            }
+        }
+
+        return image;
     }
-    static bool ShowWindow(IntPtr hWnd, int nCmdShow) {
-        return false;
-    }
-#endif
 
-
-    const int SW_HIDE = 0;
-    const int SW_SHOW = 5;
 }

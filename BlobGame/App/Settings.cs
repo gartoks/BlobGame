@@ -1,7 +1,6 @@
 ﻿using BlobGame.Audio;
 using BlobGame.ResourceHandling;
 using Raylib_CsLo;
-using System.Dynamic;
 using System.Text.Json;
 
 namespace BlobGame.App;
@@ -62,14 +61,7 @@ internal sealed class Settings {
     /// <summary>
     /// Sets the state of the tutorial. If true, the tutorial will be shown when starting a new game.
     /// </summary>
-    private bool _IsTutorialEnabled { get; set; }
-    public bool IsTutorialEnabled {
-        get => _IsTutorialEnabled;
-        set {
-            _IsTutorialEnabled = value;
-            Save();
-        }
-    }
+    private Dictionary<string, bool> IsTutorialEnabled { get; set; }
 
     /// The current theme.
     /// </summary>
@@ -80,6 +72,7 @@ internal sealed class Settings {
     /// </summary>
     public Settings() {
         ThemeName = "MelbaToast";
+        IsTutorialEnabled = new Dictionary<string, bool>();
     }
 
     /// <summary>
@@ -94,6 +87,19 @@ internal sealed class Settings {
         Save();
     }
 
+    public void SetTutorialEnabled(string gameMode, bool enabled) {
+        IsTutorialEnabled[gameMode] = enabled;
+        Save();
+    }
+
+    public bool GetTutorialEnabled(string gameMode) {
+        return !IsTutorialEnabled.TryGetValue(gameMode, out bool e) || e;
+    }
+
+    public void ResetTutorial() {
+        IsTutorialEnabled.Clear();
+        Save();
+    }
 
     /// <summary>
     /// Sets the resolution to the given width and height. Only works if the screen mode is not borderless.
@@ -164,6 +170,13 @@ internal sealed class Settings {
         ScreenMode = mode;
         Save();
     }
+    /// <summary>
+    /// Signal that the discord auth tokens have changed.
+    /// </summary>
+    public void DiscordTokensChanged() {
+        Save();
+    }
+
 
     /// <summary>
     /// Gets the index of the current monitor.
@@ -221,16 +234,20 @@ internal sealed class Settings {
     private void Save() {
         string file = Files.GetConfigFilePath("settings.json");
 
-        dynamic settingsData = new ExpandoObject();
+        Task<DiscordAuth.Tokens?> tokenTask = DiscordAuth.GetTokens();
+        tokenTask.Wait();
 
-        settingsData.ScreenMode = ScreenMode.ToString();
-        settingsData.Monitor = Raylib.GetCurrentMonitor();
-        settingsData.ResolutionW = Raylib.GetScreenWidth();
-        settingsData.ResolutionH = Raylib.GetScreenHeight();
-        settingsData.MusicVolume = _MusicVolume;
-        settingsData.SoundVolume = _SoundVolume;
-        settingsData.IsTutorialEnabled = _IsTutorialEnabled;
-        settingsData.ThemeName = ThemeName;
+        SettingsData settingsData = new SettingsData(
+            ScreenMode.ToString(),
+            Raylib.GetCurrentMonitor(),
+            Raylib.GetScreenWidth(),
+            Raylib.GetScreenHeight(),
+            _MusicVolume,
+            _SoundVolume,
+            IsTutorialEnabled,
+            ThemeName,
+            tokenTask.Result
+        );
 
         File.WriteAllText(file, JsonSerializer.Serialize(settingsData));
     }
@@ -244,8 +261,9 @@ internal sealed class Settings {
         eScreenMode screenMode = eScreenMode.Windowed;
         int musicVolume = 100;
         int soundVolume = 100;
-        bool isTutorialEnabled = true;
+        Dictionary<string, bool> isTutorialEnabled = new Dictionary<string, bool>();
         string themeName = "MelbaToast";
+        DiscordAuth.Tokens? discordTokens = null;
 
         string file = Files.GetConfigFilePath("settings.json");
         if (File.Exists(file)) {
@@ -261,6 +279,7 @@ internal sealed class Settings {
                 soundVolume = settingsData.SoundVolume;
                 isTutorialEnabled = settingsData.IsTutorialEnabled;
                 themeName = settingsData.ThemeName;
+                discordTokens = settingsData.DiscordTokens;
             }
         }
 
@@ -271,13 +290,16 @@ internal sealed class Settings {
         SoundVolume = soundVolume;
         IsTutorialEnabled = isTutorialEnabled;
         SetTheme(themeName);
+        if (discordTokens != null)
+            DiscordAuth.SetTokens(discordTokens).Wait();
         Save();
     }
 
     private record SettingsData(
         string ScreenMode, int Monitor, int ResolutionW, int ResolutionH,
         int MusicVolume = 100, int SoundVolume = 100,
-        bool IsTutorialEnabled = true,
-        string ThemeName = "default"
-        );
+        Dictionary<string, bool> IsTutorialEnabled = null,
+        string ThemeName = "default",
+        DiscordAuth.Tokens? DiscordTokens = null
+    );
 }

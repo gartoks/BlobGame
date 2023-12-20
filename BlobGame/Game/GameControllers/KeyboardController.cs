@@ -20,6 +20,7 @@ internal sealed class KeyboardController : IGameController {
         Input.RegisterHotkey("cursor_left", KeyboardKey.KEY_A);
         Input.RegisterHotkey("cursor_right", KeyboardKey.KEY_D);
         Input.RegisterHotkey("drop_piece", KeyboardKey.KEY_SPACE);
+        Input.RegisterHotkey("hold_piece", KeyboardKey.KEY_TAB);
     }
 
     public float GetCurrentT() {
@@ -29,7 +30,14 @@ internal sealed class KeyboardController : IGameController {
     public bool SpawnBlob(IGameMode simulation, out float t) {
         t = GetCurrentT();
 
+        if (!simulation.CanSpawnBlob)
+            return false;
+
         return Input.IsHotkeyActive("drop_piece");
+    }
+
+    public bool HoldBlob() {
+        return Input.IsHotkeyActive("hold_piece");
     }
 
     public void Update(float dT, IGameMode simulation) {
@@ -43,5 +51,6 @@ internal sealed class KeyboardController : IGameController {
         Input.UnregisterHotkey("cursor_left");
         Input.UnregisterHotkey("cursor_right");
         Input.UnregisterHotkey("drop_piece");
+        Input.UnregisterHotkey("hold_piece");
     }
 }

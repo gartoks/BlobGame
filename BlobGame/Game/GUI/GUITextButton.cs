@@ -5,13 +5,13 @@ using System.Numerics;
 
 namespace BlobGame.Game.Gui;
 internal sealed class GuiTextButton : InteractiveGuiElement {
-    public string BaseTexture { get; set; }
-    public string SelectedTexture { get; set; }
-
-    public GuiNPatchPanel Panel { get; }
+    public GuiPanel Panel { get; }
     public GuiLabel Label { get; }
 
     public bool IsClicked { get; private set; }
+
+    private string BaseTexture { get; set; }
+    private string SelectedTexture { get; set; }
 
     public GuiTextButton(string boundsString, string text, Vector2? pivot = null)
         : this(GuiBoundsParser.Parse(boundsString), text, pivot) {
@@ -26,7 +26,7 @@ internal sealed class GuiTextButton : InteractiveGuiElement {
 
         BaseTexture = "button_up";
         SelectedTexture = "button_selected";
-        Panel = new GuiNPatchPanel(Bounds, BaseTexture, new Vector2(0, 0));
+        Panel = new GuiPanel(Bounds, BaseTexture, new Vector2(0, 0));
         Label = new GuiLabel(Bounds, text, new Vector2(0, 0));
     }
 

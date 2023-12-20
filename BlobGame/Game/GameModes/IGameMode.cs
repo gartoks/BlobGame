@@ -1,9 +1,10 @@
 ﻿using BlobGame.Game.Blobs;
 using BlobGame.Game.Util;
+using System.Numerics;
 
 namespace BlobGame.Game.GameModes;
 
-internal delegate void BlobEventHandler(IGameMode sender, eBlobType type);
+internal delegate void BlobEventHandler(IGameMode sender, Vector2 position, int type);
 internal delegate void GameEventHandler(IGameMode sender);
 
 /// <summary>
@@ -11,17 +12,41 @@ internal delegate void GameEventHandler(IGameMode sender);
 /// </summary>
 internal interface IGameMode {
     /// <summary>
+    /// Constants derived from the original game. Manually figured out and hard coded.
+    /// </summary>
+    internal const float GRAVITY = 111.3f;
+    internal const float ARENA_WIDTH = 670;
+    internal const float ARENA_HEIGHT = 846;
+    internal const float ARENA_HEIGHT_LOWER = 750;
+    internal const float ARENA_WALL_THICKNESS = 300; // visually: 20
+    internal const float ARENA_SPAWN_Y_OFFSET = -22.5f;
+
+    /// <summary>
+    /// The id of the game mode. This must never change for a given game mode.
+    /// </summary>
+    Guid Id { get; }
+
+    /// <summary>
+    /// Tha available blob types.
+    /// </summary>
+    IReadOnlyDictionary<int, BlobData> Blobs { get; }
+
+    /// <summary>
     /// The game's game objects. This includes blobs and walls.
     /// </summary>
     IReadOnlyGameObjectsCollection GameObjects { get; }
     /// <summary>
     /// The type of the currently spawned blob.
     /// </summary>
-    eBlobType CurrentBlob { get; }
+    int CurrentBlob { get; }
     /// <summary>
     /// The type of the next blob to be spawned.
     /// </summary>
-    eBlobType NextBlob { get; }
+    int NextBlob { get; }
+    /// <summary>
+    /// The type of the currently held blob.
+    /// </summary>
+    int HeldBlob { get; }
     /// <summary>
     /// Wether or not the player can currently spawn a blob. This is false when the last spawned blob is still falling.
     /// </summary>
@@ -34,6 +59,11 @@ internal interface IGameMode {
     /// Flag indicating wether or not the game is over. The game is over when a blob "overfills" the arena.
     /// </summary>
     bool IsGameOver { get; }
+
+    /// <summary>
+    /// The rotation of the next blob to be spawned.
+    /// </summary>
+    float SpawnRotation { get; }
 
     /// <summary>
     /// Event that is fired when a blob is spawned.
@@ -49,6 +79,11 @@ internal interface IGameMode {
     /// Event that is fired when two blobs combine. The argument is the type of the blob that was created.
     /// </summary>
     event BlobEventHandler OnBlobsCombined;
+
+    /// <summary>
+    /// Event that is fired when a blob is destroyed. The argument is the type of the blob that was destroyed.
+    /// </summary>
+    event BlobEventHandler OnBlobDestroyed;
 
     /// <summary>
     /// Event that is fired when the game is over.
@@ -68,6 +103,11 @@ internal interface IGameMode {
     bool TrySpawnBlob(float t);
 
     /// <summary>
+    /// Attempts to hold the current blob. If a blob is already held, the current blob is swapped with the held blob.
+    /// </summary>
+    void HoldBlob();
+
+    /// <summary>
     /// Used to update the game simulation. Is called every frame. Simulates the physics, handles game object adding and removing and check for game over conditions.
     /// </summary>
     /// <param name="dT"></param>
@@ -77,7 +117,15 @@ internal interface IGameMode {
     /// All available game modes with their keys.
     /// </summary>
     public static IReadOnlyDictionary<string, Type> GameModeTypes { get; } = new Dictionary<string, Type>() {
+        { "Toasted", typeof(ToastedGameMode) },
         { "Classic", typeof(ClassicGameMode) },
+    };
+    /// <summary>
+    /// All available game modes with their names.
+    /// </summary>
+    public static IReadOnlyDictionary<Type, string> GameModeNames { get; } = new Dictionary<Type, string>() {
+        { typeof(ToastedGameMode), "Toasted" },
+        { typeof(ClassicGameMode), "Classic" },
     };
 
     /// <summary>

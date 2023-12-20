@@ -25,6 +25,12 @@ internal interface IGameController {
     bool SpawnBlob(IGameMode simulation, out float t);
 
     /// <summary>
+    /// Attempts to hold the current blob.
+    /// </summary>
+    /// <returns>True if blob holding was attempted, otherwise false.</returns>
+    bool HoldBlob();
+
+    /// <summary>
     /// Runs every frame.
     /// </summary>
     void Update(float dT, IGameMode simulation);

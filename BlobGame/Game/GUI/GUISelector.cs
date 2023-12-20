@@ -11,7 +11,7 @@ internal class GuiSelector : InteractiveGuiElement {
 
     private IReadOnlyList<SelectionElement> Elements { get; }
 
-    public GuiNPatchPanel Panel { get; }
+    public GuiPanel Panel { get; }
     public GuiTextButton DecreaseButton { get; }
     public GuiTextButton IncreaseButton { get; }
 
@@ -40,7 +40,7 @@ internal class GuiSelector : InteractiveGuiElement {
         FontSpacing = FontSize / 64f;
         //Bounds = new Rectangle(x + buttonSize + 10, y, w - 2 * buttonSize - 20, h);
 
-        Panel = new GuiNPatchPanel(Bounds.x + buttonSize + BUTTON_SPACING, Bounds.y, Bounds.width - 2 * buttonSize - 2 * BUTTON_SPACING, Bounds.height, "button_up", new Vector2(0, 0));
+        Panel = new GuiPanel(Bounds.x + buttonSize + BUTTON_SPACING, Bounds.y, Bounds.width - 2 * buttonSize - 2 * BUTTON_SPACING, Bounds.height, "button_up", new Vector2(0, 0));
         DecreaseButton = new GuiTextButton(Bounds.x, Bounds.y, buttonSize, buttonSize, "<", new Vector2(0, 0));
         IncreaseButton = new GuiTextButton(Bounds.x + Bounds.width, Bounds.y, buttonSize, buttonSize, ">", new Vector2(1, 0));
 

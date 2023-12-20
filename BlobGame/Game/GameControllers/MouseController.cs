@@ -11,6 +11,8 @@ internal class MouseController : IGameController {
     }
 
     public void Load() {
+        Input.RegisterHotkey("drop_piece", MouseButton.MOUSE_BUTTON_LEFT);
+        Input.RegisterHotkey("hold_piece", MouseButton.MOUSE_BUTTON_MIDDLE);
     }
 
     /// <summary>
@@ -19,7 +21,7 @@ internal class MouseController : IGameController {
     /// <returns>The current value of t.</returns>
     public float GetCurrentT() {
         Vector2 mPos = GameScene.ScreenToArenaPosition(Raylib.GetMousePosition());
-        float t = mPos.X / ClassicGameMode.ARENA_WIDTH;
+        float t = mPos.X / IGameMode.ARENA_WIDTH;
         return t;
     }
 
@@ -30,20 +32,32 @@ internal class MouseController : IGameController {
     /// <param name="t">The t value at which the blob is spawned, which represents the position of the dropper above the arena..</param>
     /// <returns>True if blob spawning was attempted, otherwise false.</returns>
     public bool SpawnBlob(IGameMode simulation, out float t) {
-        t = -1;
+        t = GetCurrentT();
 
         if (!simulation.CanSpawnBlob)
             return false;
 
-        if (!Input.IsMouseButtonActive(MouseButton.MOUSE_BUTTON_LEFT))
+        if (!Input.IsHotkeyActive("drop_piece"))
             return false;
 
         Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_LEFT] = true;
 
-        t = GetCurrentT();
         return true;
     }
+
+    public bool HoldBlob() {
+        if (!Input.IsHotkeyActive("hold_piece"))
+            return false;
+
+        Input.WasMouseHandled[MouseButton.MOUSE_BUTTON_MIDDLE] = true;
+
+        return true;
+    }
+
     public void Update(float dT, IGameMode simulation) { }
 
-    public void Close() { }
+    public void Close() {
+        Input.UnregisterHotkey("drop_piece");
+        Input.UnregisterHotkey("hold_piece");
+    }
 }

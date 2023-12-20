@@ -1,5 +1,6 @@
 ﻿using BlobGame.App;
 using BlobGame.Game.Gui;
+using BlobGame.ResourceHandling;
 using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
@@ -8,7 +9,7 @@ using static BlobGame.Game.Gui.GuiSelector;
 
 namespace BlobGame.Game.Scenes;
 internal class SettingsScene : Scene {
-    private GuiNPatchPanel BackgroundPanel { get; }
+    private GuiPanel BackgroundPanel { get; }
 
     private GuiLabel ScreenModeLabel { get; }
     private GuiSelector ScreenModeSelector { get; }
@@ -36,7 +37,7 @@ internal class SettingsScene : Scene {
 
 
     public SettingsScene() {
-        BackgroundPanel = new GuiNPatchPanel("0.05 0.05 0.9 0.8", "panel", new Vector2(0, 0));
+        BackgroundPanel = new GuiPanel("0.05 0.05 0.9 0.8", "panel", new Vector2(0, 0));
 
         BackButton = new GuiTextButton(
             Application.BASE_WIDTH * 0.05f, Application.BASE_HEIGHT * 0.95f,
@@ -112,7 +113,7 @@ internal class SettingsScene : Scene {
         LoadAllGuiElements();
     }
 
-    internal override void Draw() {
+    internal override void Draw(float dT) {
         BackgroundPanel.Draw();
         BackButton.Draw();
         ApplyButton.Draw();
@@ -142,7 +143,7 @@ internal class SettingsScene : Scene {
         if (ResetScoreButton.IsClicked)
             GameManager.Scoreboard.Reset();
         if (ResetTutorialButton.IsClicked)
-            Application.Settings.IsTutorialEnabled = true;
+            Application.Settings.ResetTutorial();
     }
 
     private void ApplySettings() {
@@ -173,22 +174,18 @@ internal class SettingsScene : Scene {
         if (theme != Application.Settings.GetCurrentThemeName())
             Application.Settings.SetTheme(theme);
 
-#if WINDOWS
 
         if (needsRestart) {
             // This is needed because if the resolution, screen mode or monitor is change the UI is all fricked up
             Application.Exit();
-            Process.Start(Assembly.GetExecutingAssembly().Location);
+            Process.Start(Environment.ProcessPath, string.Join(" ", Environment.GetCommandLineArgs()));
         }
-
-#endif
-        //GameManager.SetScene(new SettingsScene());
     }
 
     private (GuiSelector, GuiLabel) CreateSettingsEntry(string title, float xOffset, SelectionElement[] selectionElements, int selectedIndex) {
-        GuiLabel label = new GuiLabel($"0.1 {xOffset} 0.25 {1f / 10f}", title, new Vector2(0, 0.5f));
-        label.TextAlignment = eTextAlignment.Center;
-        label.DrawOutline = true;
+        GuiLabel label = new GuiLabel($"0.135 {xOffset} 0.25 {1f / 10f}", title, new Vector2(0, 0.5f));
+        label.TextAlignment = eTextAlignment.Left;
+        label.Color = ResourceManager.ColorLoader.Get("font_dark");
 
         GuiSelector selector = new GuiSelector($"0.35 {xOffset} 0.5 {1f / 16f}",
             selectionElements, selectedIndex < 0 ? 0 : selectedIndex,

@@ -3,10 +3,16 @@ using System.Collections.Concurrent;
 using System.Numerics;
 
 namespace BlobGame.ResourceHandling.Resources;
+
+public interface IDrawableResource {
+    //void Draw(Vector2 position, Vector2? pivot = null, Vector2? scale = null, float rotation = 0, Color? tint = null);
+    void Draw(Rectangle bounds, Vector2? pivot = null, float rotation = 0, Color? tint = null);
+}
+
 /// <summary>
 /// Game resource for textures.
 /// </summary>
-internal sealed class TextureResource : GameResource<Texture> {
+internal sealed class TextureResource : GameResource<Texture>, IDrawableResource {
     /// <summary>
     /// Constructor for a new texture resource.
     /// </summary>
@@ -36,9 +42,11 @@ internal sealed class TextureResource : GameResource<Texture> {
                     tint != null ? tint.Value : Raylib.WHITE);
     }
 
-    internal void Draw(Rectangle bounds, Vector2? pivot = null, float rotation = 0, Color? tint = null) {
+    public void Draw(Rectangle bounds, Vector2? pivot = null, float rotation = 0, Color? tint = null) {
         if (pivot == null)
             pivot = Vector2.Zero;
+
+        rotation *= RayMath.RAD2DEG;
 
         Raylib.DrawTexturePro(
                     Resource,
@@ -53,6 +61,10 @@ internal sealed class TextureResource : GameResource<Texture> {
 internal sealed class TextureResourceLoader : ResourceLoader<Texture, TextureResource> {
     public TextureResourceLoader(BlockingCollection<(string key, Type type)> resourceLoadingQueue)
         : base(resourceLoadingQueue) {
+    }
+
+    protected override bool ResourceExistsInternal(string key) {
+        return ResourceManager.MainTheme.DoesTextureExist(key);
     }
 
     protected override Texture LoadResourceInternal(string key) {

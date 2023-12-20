@@ -22,6 +22,10 @@ internal sealed class ColorResourceLoader : ResourceLoader<Color, ColorResource>
         : base(resourceLoadingQueue) {
     }
 
+    protected override bool ResourceExistsInternal(string key) {
+        return ResourceManager.MainTheme.DoesColorExist(key);
+    }
+
     protected override Color LoadResourceInternal(string key) {
         Color? res = ResourceManager.MainTheme.GetColor(key) ?? ResourceManager.DefaultTheme.GetColor(key);
         return res ?? Fallback.Resource;

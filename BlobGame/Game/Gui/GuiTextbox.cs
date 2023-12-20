@@ -1,5 +1,4 @@
 ﻿using BlobGame.App;
-using BlobGame.ResourceHandling;
 using BlobGame.ResourceHandling.Resources;
 using BlobGame.Util;
 using Raylib_CsLo;
@@ -20,10 +19,18 @@ internal class GuiTextbox : InteractiveGuiElement {
         }
     }
 
+    public ColorResource TextColor {
+        get => Label.Color;
+        set => Label.Color = value;
+    }
+
     private GuiPanel Panel { get; }
     private GuiLabel Label { get; }
 
     public Predicate<char>? CharFilter { get; init; }
+
+    private string BaseTexture { get; set; }
+    private string SelectedTexture { get; set; }
 
     public GuiTextbox(string boundsString, Vector2? pivot = null)
         : this(GuiBoundsParser.Parse(boundsString), pivot) {
@@ -35,7 +42,11 @@ internal class GuiTextbox : InteractiveGuiElement {
 
     public GuiTextbox(float x, float y, float w, float h, Vector2? pivot = null)
         : base(x, y, w, h, pivot) {
-        Panel = new GuiPanel(x, y, w, h, new Vector2(0, 0));
+
+        BaseTexture = "button_up";
+        SelectedTexture = "button_selected";
+
+        Panel = new GuiPanel(x, y, w, h, BaseTexture, new Vector2(0, 0));
         Label = new GuiLabel(x + TEXT_SPACING, y, w - 2 * TEXT_SPACING, h, string.Empty, new Vector2(0, 0));
         Label.TextAlignment = eTextAlignment.Left;
     }
@@ -56,10 +67,10 @@ internal class GuiTextbox : InteractiveGuiElement {
             }
         }
 
-        ColorResource accentColor = ColorResource.WHITE;
+        string texture = BaseTexture;
         if (HasFocus())
-            accentColor = ResourceManager.ColorLoader.Get("highlight");
-        Panel.AccentColor = accentColor;
+            texture = SelectedTexture;
+        Panel.TextureKey = texture;
 
         Panel.Draw();
         Label.Draw();

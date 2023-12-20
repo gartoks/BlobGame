@@ -1,5 +1,4 @@
-﻿using BlobGame.ResourceHandling;
-using BlobGame.ResourceHandling.Resources;
+﻿using BlobGame.ResourceHandling.Resources;
 using Raylib_CsLo;
 using System.Numerics;
 
@@ -7,14 +6,14 @@ namespace BlobGame.Drawing;
 /// <summary>
 /// Class to handle animated textures.
 /// </summary>
-internal sealed class AnimatedTexture {
-    private TextureResource Texture { get; }
+public sealed class AnimatedTexture {
+    public IDrawableResource Texture { get; }
 
-    private Vector2 Pivot { get; }
-    private Vector2 Position { get; }
-    private Vector2 Scale { get; }
-    private float Rotation { get; }
-    private Color Color { get; }
+    public Vector2 Position { get; }
+    public Vector2 Size { get; }
+    public float Rotation { get; }
+    public Vector2 Pivot { get; }
+    public Color Color { get; }
 
     private float Duration { get; }
 
@@ -38,24 +37,17 @@ internal sealed class AnimatedTexture {
     /// </summary>
     public bool IsReady => Renderer.Time - StartTime < 0;
 
-    public AnimatedTexture(string textureKey, float duration, Vector2 position, Vector2 pivot, Vector2? scale = null, float rotation = 0, Color? color = null)
-        : this(ResourceManager.TextureLoader.Get(textureKey), duration, position, pivot, scale, rotation, color) {
-    }
-
-    public AnimatedTexture(TextureResource texture, float duration, Vector2 position, Vector2? pivot = null, Vector2? scale = null, float rotation = 0, Color? color = null) {
+    public AnimatedTexture(IDrawableResource texture, float duration, Vector2 position, Vector2 size, Vector2? pivot = null, float rotation = 0, Color? color = null) {
         if (pivot == null)
             pivot = Vector2.Zero;
-
-        if (scale == null)
-            scale = Vector2.One;
 
         if (color == null)
             color = Raylib.WHITE;
 
         Texture = texture;
         Position = position;
+        Size = size;
         Pivot = pivot.Value;
-        Scale = scale.Value;
         Rotation = rotation;
         Duration = duration;
         Color = color.Value;
@@ -87,10 +79,10 @@ internal sealed class AnimatedTexture {
             t = (Renderer.Time - StartTime) / Duration;
 
         Vector2 pos = Position + (PositionAnimator?.Invoke(t) ?? Vector2.Zero);
-        Vector2 scale = Scale * (ScaleAnimator?.Invoke(t) ?? Vector2.One);
-        float rot = (/*Rotation + */(RotationAnimator?.Invoke(t) ?? Rotation)) * RayMath.RAD2DEG;
+        Vector2 size = Size * (ScaleAnimator?.Invoke(t) ?? Vector2.One);
+        float rot = /*Rotation + */RotationAnimator?.Invoke(t) ?? Rotation;
         Color color = ColorAnimator?.Invoke(t) ?? Color;
 
-        Texture.Draw(pos, Pivot, scale, rot, color);
+        Texture.Draw(new Rectangle(pos.X, pos.Y, size.X, size.Y), Pivot, rot, color);
     }
 }

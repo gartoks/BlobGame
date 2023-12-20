@@ -28,6 +28,8 @@ internal sealed class GuiLabel : GuiElement {
         }
     }
 
+    public ColorResource Color { get; set; }
+
     public bool DrawOutline { get; set; }
     public ColorResource OutlineColor { get; set; }
 
@@ -53,6 +55,7 @@ internal sealed class GuiLabel : GuiElement {
         FontSize = h * 0.6f;
         FontSpacing = FontSize / 64f;
         TextAlignment = eTextAlignment.Center;
+        Color = ColorResource.WHITE;
 
         DrawOutline = false;
         OutlineColor = ResourceManager.ColorLoader.Get("outline");
@@ -75,7 +78,7 @@ internal sealed class GuiLabel : GuiElement {
             Raylib.DrawTextEx(Renderer.GuiFont.Resource, Text, TextPosition - outlineOffset, FontSize * 1.05f, FontSpacing, OutlineColor.Resource);
         }
 
-        Raylib.DrawTextEx(Renderer.GuiFont.Resource, Text, TextPosition, FontSize, FontSpacing, Raylib.WHITE);
+        Raylib.DrawTextEx(Renderer.GuiFont.Resource, Text, TextPosition, FontSize, FontSpacing, Color.Resource);
     }
 
     internal Vector2 GetTextSize() {
