@@ -33,6 +33,7 @@ class BlobEnvironment(gym.Env):
         move_penalty_threshold,
         move_step_size,
         is_eval=False,
+        game_server="localhost"
     ):
         super().__init__()
         self.worker_id = worker_id
@@ -96,7 +97,7 @@ class BlobEnvironment(gym.Env):
         )
 
         # We have 3 actions, corresponding to "drop", "right", "left"
-        self.action_space = spaces.Discrete(3)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
 
         self._action_to_direction = {
             0: 0,
@@ -109,7 +110,8 @@ class BlobEnvironment(gym.Env):
         )
 
         self.t = 0.5
-        self.controller = SocketController(("localhost", 1337), worker_id)
+        self.game_server = game_server
+        self.controller = SocketController((game_server, 1337), worker_id)
 
         self.num_moves_since_last_drop = 0
         self.num_drops_since_last_move = 0
@@ -174,7 +176,7 @@ class BlobEnvironment(gym.Env):
     def reset(self, seed=0):
         self.controller.close_connection()
 
-        self.controller = SocketController(("localhost", 1337), self.worker_id)
+        self.controller = SocketController((self.game_server, 1337), self.worker_id)
         self.last_frame = self.controller.receive_frame_info()
         self.num_moves_since_last_drop = 0
         self.num_drops_since_last_move = 0
@@ -189,9 +191,9 @@ class BlobEnvironment(gym.Env):
 
     def step(self, action):
         ## Bookkeeping
-        self.t = (self.t + self._action_to_direction[action]) % 1.0
+        self.t = min(1, max(0, action[0]))
+        should_drop = action[1] > 0
 
-        should_drop = action == 0
         if should_drop:
             self.num_moves_since_last_drop = 0
             self.num_drops_since_last_move += 1
@@ -207,6 +209,11 @@ class BlobEnvironment(gym.Env):
         try:
             self.controller.send_frame_info(self.t, should_drop)
             new_frame = self.controller.receive_frame_info()
+            while not new_frame.can_drop:
+                self.frame_count += 1
+                self.controller.send_frame_info(self.t, should_drop)
+                new_frame = self.controller.receive_frame_info()
+
         except socket.error:
             terminated = True
         terminated |= new_frame.is_game_over
