@@ -1,6 +1,7 @@
-import dataclasses
+from dataclasses import dataclass, field
+from typing import List
 
-@dataclasses.dataclass
+@dataclass
 class Blob:
     x: float
     y: float
@@ -8,11 +9,11 @@ class Blob:
 
 
 BLOB_SIZE: int = 4*3
+PACKET_SIZE: int = 46
 
-@dataclasses.dataclass
+@dataclass
 class FramePacket:
     blob_count: int = 0
-    # blobs: list[Blob]
     current_blob_type: int = 0
     next_blob_type: int = 0
     held_blob_type: int = 0
@@ -21,3 +22,5 @@ class FramePacket:
     can_spawn_blob: bool = False
     is_game_over: bool = False
     game_mode_key: str = ""
+    
+    blobs: List[Blob] = field(default_factory=list)

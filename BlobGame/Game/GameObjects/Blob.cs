@@ -54,7 +54,7 @@ internal sealed class Blob : GameObject {
         Body.AngularDamping = 0.9f;
         Body.Rotation = rotation;
 
-        Texture = ResourceManager.TextureLoader.Get(data.Name);
+        Texture = ResourceManager.CurrentMode == ResourceManager.ResourceLoadingMode.Full ? ResourceManager.TextureLoader.Get(data.Name) : null;
         TextureOrigin = data.Origin;
     }
 

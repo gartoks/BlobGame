@@ -134,13 +134,24 @@ internal class SocketController : IGameController {
             IsGameOver = simulation.IsGameOver,
             GameModeKey = gameModeKey
         };
+        NetworkBlob[] networkBlobs = blobs.Select(blob => new NetworkBlob{
+            Type = blob.Type,
+            x = blob.Position.X,
+            y = blob.Position.Y,
+        }).ToArray();
+
 
         byte[] packetBytes = getBytes(packet);
+        byte[] blobBytes = getBytes(networkBlobs);
 
 
         bool failed = false;
         try {
-            Stream?.Write(BitConverter.GetBytes(packetBytes.Length).Concat(packetBytes).ToArray());
+            Stream?.Write(
+                BitConverter.GetBytes((int)(packetBytes.Length + blobBytes.Length))
+                    .Concat(packetBytes)
+                    .Concat(blobBytes)
+                    .ToArray());
         } catch (SocketException) {
             failed = true;
         } catch (IOException) {
@@ -213,6 +224,10 @@ internal class SocketController : IGameController {
         }
         return arr;
     }
+    private byte[] getBytes<T>(T[] array) where T: struct{
+        return MemoryMarshal.AsBytes(array.AsSpan()).ToArray();
+    }
+
     T fromBytes<T>(byte[] arr) where T: struct {
         T str = new T();
 
@@ -234,8 +249,6 @@ internal class SocketController : IGameController {
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode, Pack = 1)]
     private struct FramePacket{
         public int BlobCount;
-        // [MarshalAs(UnmanagedType.ByValArray)]
-        // public NetworkBlob[] Blobs;
         public int CurrentBlobType;
         public int NextBlobType;
         public int HeldBlobType;

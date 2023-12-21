@@ -1,5 +1,6 @@
 ﻿using BlobGame.Game.GameControllers;
 using BlobGame.Game.GameModes;
+using BlobGame.ResourceHandling;
 
 namespace BlobGame;
 /// <summary>
@@ -22,6 +23,8 @@ internal static class SocketApplication {
     /// </summary>
     private static int Port { get; set; }
 
+    private static Thread ResourceLoadingThread;
+
     internal static void Initialize(bool useSeparateThreads, int seed, int port, string gameModeKey) {
         Seed = seed;
         GameModeType = IGameMode.GameModeTypes[gameModeKey];
@@ -30,6 +33,10 @@ internal static class SocketApplication {
     }
 
     internal static void Start() {
+        ResourceManager.LoadHeadless();
+        ResourceLoadingThread = new Thread(LoadResources);
+        ResourceLoadingThread.Start();
+        
         if (UseSeparateThreads)
             StartWithThreads();
         else
@@ -70,7 +77,7 @@ internal static class SocketApplication {
         Console.WriteLine($"Starting socket mode on port {Port}...");
         SocketController.Load(Port);
 
-        List<(IGameMode simulation, SocketController controller, ulong i)> runningGames = new();
+        List<(IGameMode simulation, SocketController controller, ulong i, DateTime startTime)> runningGames = new();
         ulong numGames = 0;
 
         while (true){
@@ -80,12 +87,12 @@ internal static class SocketApplication {
 
                 simulation.Load();
                 controller.Load();
-                runningGames.Add((simulation, controller, numGames));
+                runningGames.Add((simulation, controller, numGames, DateTime.Now));
                 numGames++;
             }
 
             foreach (var game in runningGames){
-                (IGameMode simulation, SocketController controller, ulong i) = game;
+                (IGameMode simulation, SocketController controller, ulong i, _) = game;
 
                 simulation.Update(dT);
                 controller.Update(dT, simulation);
@@ -98,12 +105,12 @@ internal static class SocketApplication {
 
 
             for (int i = runningGames.Count-1; i>=0; i--){
-                (IGameMode simulation, SocketController controller, ulong gameIndex) = runningGames[i];
+                (IGameMode simulation, SocketController controller, ulong gameIndex, DateTime startTime) = runningGames[i];
                 if (simulation.IsGameOver || !controller.IsConnected) {
                     runningGames.RemoveAt(i);
                     // send the game over state
                     controller.Update(dT, simulation);
-                    Console.WriteLine($"Game {gameIndex} ended with score {simulation.Score}.");
+                    Console.WriteLine($"Game {gameIndex} ended with score {simulation.Score}. (Ran for {(DateTime.Now - startTime).TotalSeconds}s)");
                     controller.Close();
                 }
             }
@@ -117,6 +124,7 @@ internal static class SocketApplication {
 
         ClassicGameMode simulation = new ClassicGameMode(seed);
         simulation.Load();
+        DateTime startTime = DateTime.Now;
 
         while (!simulation.IsGameOver && controller.IsConnected) {
             simulation.Update(dT);
@@ -130,7 +138,14 @@ internal static class SocketApplication {
         // send the game over state
         controller.Update(dT, simulation);
 
-        Console.WriteLine($"Game {gameIndex} has finished with {simulation.Score} points");
+        Console.WriteLine($"Game {gameIndex} ended with score {simulation.Score}. (Ran for {(DateTime.Now - startTime).TotalSeconds}s)");
         controller.Close();
+    }
+
+    private static void LoadResources(){
+        while (true){
+            ResourceManager.Update();
+            Thread.Sleep(5000);
+        }
     }
 }

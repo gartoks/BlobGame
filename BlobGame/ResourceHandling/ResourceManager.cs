@@ -37,6 +37,14 @@ internal static class ResourceManager {
     /// </summary>
     public static Theme MainTheme { get; private set; }
 
+    public static ResourceLoadingMode CurrentMode { get; private set; } = ResourceLoadingMode.None;
+
+    public enum ResourceLoadingMode{
+        None,
+        Headless,
+        Full,
+    }
+
     /// <summary>
     /// Static constructor to initialize the resource loading queue and other required properties.
     /// </summary>
@@ -77,6 +85,18 @@ internal static class ResourceManager {
         TextLoader.Load(new Dictionary<string, string>());
         NPatchTextureLoader.Load(new NPatchTexture(Raylib.LoadTextureFromImage(image), 0, 1, 0, 1));
         TextureAtlasLoader.Load(new TextureAtlas(Raylib.LoadTextureFromImage(image), new Dictionary<string, (int, int, int, int)>()));
+        
+        CurrentMode = ResourceLoadingMode.Full;
+    }
+
+    /// <summary>
+    /// Loads default resources needed for socket mode.
+    /// </summary>
+    internal static void LoadHeadless(){
+        DefaultTheme.Load();
+        TextLoader.Load(new Dictionary<string, string>());
+        
+        CurrentMode = ResourceLoadingMode.Headless;
     }
 
     /// <summary>

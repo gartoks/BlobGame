@@ -22,7 +22,7 @@ import functools
 
 def create_environment(device, dtype, id, frame_skip=2, frame_stack=3, move_penalty_threshold=100, move_step_size = 0.001, drop_penalty_threshold=5, is_eval=False):
     def env_fn(i):
-        env = BlobEnvironment(worker_id=str(id) + " " + str(i), never_display=(i!=0), move_penalty_threshold=move_penalty_threshold, move_step_size=move_step_size, drop_penalty_threshold=drop_penalty_threshold, is_eval=is_eval)
+        env = BlobEnvironment(worker_id=str(id) + " " + str(i), display=(i!=0), move_penalty_threshold=move_penalty_threshold, move_step_size=move_step_size, drop_penalty_threshold=drop_penalty_threshold, is_eval=is_eval)
 
         env = GymWrapper(env)
         return env

@@ -28,7 +28,7 @@ class BlobEnvironment(gym.Env):
     def __init__(
         self,
         worker_id,
-        never_display,
+        display,
         drop_penalty_threshold,
         move_penalty_threshold,
         move_step_size,
@@ -106,7 +106,7 @@ class BlobEnvironment(gym.Env):
         }
 
         self.renderer = Renderer(
-            never_display=never_display, window_title=self.worker_id
+            display=display, window_title=self.worker_id
         )
 
         self.t = 0.5

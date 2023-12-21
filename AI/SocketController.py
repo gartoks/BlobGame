@@ -1,7 +1,7 @@
 import socket
 import struct
 
-from FrameInfo import FramePacket, Blob, BLOB_SIZE
+from FrameInfo import FramePacket, Blob, BLOB_SIZE, PACKET_SIZE
 
 class SocketController:
     def __init__(self, host_tuple, worker_id=0) -> None:
@@ -44,6 +44,9 @@ class SocketController:
             frame.can_spawn_blob,
             frame.is_game_over,
         ) = struct.unpack_from("iiiiii??", bytes)
+
+        blobsParts = struct.unpack_from("ffi"*frame.blob_count, buffer=bytes, offset=PACKET_SIZE)
+        frame.blobs = [Blob(blobsParts[i], blobsParts[i+1], blobsParts[i+2]) for i in range(0, len(blobsParts), 3)]
 
         return frame
 

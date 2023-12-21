@@ -7,16 +7,16 @@ OUTPUT_SIZE = (int(ARENA_WIDTH / 2), int(ARENA_HEIGHT / 2 + NEXT_BLOB_HEIGHT))
 
 
 class Renderer:
-    def __init__(self, never_display=False, window_title="Blob Game") -> None:
-        self.never_display = never_display
+    def __init__(self, display=True, window_title="Blob Game") -> None:
+        self.display = display
         self.rendering_surface = np.zeros(
             (ACTUAL_ARENA_SIZE[1], ACTUAL_ARENA_SIZE[0], 3), dtype=np.uint8
         )
         self.scaled_surface = np.zeros(
             (NN_VIEW_HEIGHT, NN_VIEW_WIDTH, 3), dtype=np.uint8
         )
-        self.output_surface = None if never_display else cv2.namedWindow(window_title, cv2.WINDOW_NORMAL)
-        if not never_display:
+        self.output_surface = None if display else cv2.namedWindow(window_title, cv2.WINDOW_NORMAL)
+        if not display:
             cv2.resizeWindow(window_title, OUTPUT_SIZE)
         
         self.window_title = window_title
@@ -37,15 +37,15 @@ class Renderer:
             cv2.circle(
                 self.rendering_surface,
                 (int(ARENA_WIDTH * current_t), int(NEXT_BLOB_HEIGHT * 1.5)),
-                int(BLOB_RADII[frame_info.current_blob]),
-                BLOB_COLORS[frame_info.current_blob],
+                int(BLOB_RADII[frame_info.current_blob_type]),
+                BLOB_COLORS[frame_info.current_blob_type],
                 thickness=cv2.FILLED,
             )
         cv2.circle(
             self.rendering_surface,
             (int(ARENA_WIDTH * current_t), int(NEXT_BLOB_HEIGHT * 0.5)),
-            int(BLOB_RADII[frame_info.next_blob]),
-            BLOB_COLORS[frame_info.next_blob],
+            int(BLOB_RADII[frame_info.next_blob_type]),
+            BLOB_COLORS[frame_info.next_blob_type],
             thickness=cv2.FILLED,
         )
 
@@ -54,7 +54,7 @@ class Renderer:
         )
 
     def display_frame(self):
-        if self.never_display:
+        if not self.display:
             return
 
         output_surface = cv2.resize(self.scaled_surface, OUTPUT_SIZE, interpolation=cv2.INTER_NEAREST_EXACT)

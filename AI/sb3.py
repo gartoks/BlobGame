@@ -33,7 +33,7 @@ if __name__ == "__main__":
         functools.partial(
             BlobEnvironment,
             "train " + str(i),
-            bool(i != 0),
+            i == 0,
             DROP_PENALTY_THRESHOLD,
             MOVE_PENALTY_THRESHOLD,
             MOVE_STEP_SIZE,
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         functools.partial(
             BlobEnvironment,
             "eval " + str(i),
-            bool(i != 0),
+            i == 0,
             DROP_PENALTY_THRESHOLD,
             MOVE_PENALTY_THRESHOLD,
             MOVE_STEP_SIZE,
