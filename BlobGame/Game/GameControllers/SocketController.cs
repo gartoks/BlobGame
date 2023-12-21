@@ -29,6 +29,8 @@ internal class SocketController : IGameController {
 
     private (float t, bool shouldDrop, bool shouldHold)? FrameInputs { get; set; }
 
+    private bool IsFirstFrame = true;
+
     /// <summary>
     /// The global listener waiting for clients to connect.
     /// </summary>
@@ -62,6 +64,7 @@ internal class SocketController : IGameController {
             Console.WriteLine($"Got connection for game {GameIndex}");
      
         Stream = Client?.GetStream();
+        Client?.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, true);
     }
 
     ~SocketController() {
@@ -105,6 +108,18 @@ internal class SocketController : IGameController {
         if (!IsConnected)
             return;
 
+
+        if (IsFirstFrame){
+            string gameModeKey = IGameMode.GameModeTypes.Where(k => k.Value == simulation.GetType()).Select(k => k.Key).Single();
+
+            // send the game info packet
+            Stream?.Write(getBytes(new GameInfoPacket{
+                GameIndex = GameIndex,
+                GameModeKey = gameModeKey
+            }));
+            IsFirstFrame = false;
+        }
+
         // send simulation state
         SendGameState(simulation);
 
@@ -120,7 +135,6 @@ internal class SocketController : IGameController {
             }
         });
 
-        string gameModeKey = IGameMode.GameModeTypes.Where(k => k.Value == simulation.GetType()).Select(k => k.Key).Single();
 
         FramePacket packet = new FramePacket
         {
@@ -129,10 +143,8 @@ internal class SocketController : IGameController {
             NextBlobType = simulation.NextBlob,
             HeldBlobType = simulation.HeldBlob,
             CurrentScore = simulation.Score,
-            GameIndex = GameIndex,
             CanSpawnBlob = simulation.CanSpawnBlob,
             IsGameOver = simulation.IsGameOver,
-            GameModeKey = gameModeKey
         };
         NetworkBlob[] networkBlobs = blobs.Select(blob => new NetworkBlob{
             Type = blob.Type,
@@ -144,13 +156,13 @@ internal class SocketController : IGameController {
         byte[] packetBytes = getBytes(packet);
         byte[] blobBytes = getBytes(networkBlobs);
 
+        byte[] compressedBytes = Compress(packetBytes.Concat(blobBytes).ToArray());
 
         bool failed = false;
         try {
             Stream?.Write(
-                BitConverter.GetBytes((int)(packetBytes.Length + blobBytes.Length))
-                    .Concat(packetBytes)
-                    .Concat(blobBytes)
+                BitConverter.GetBytes((int)(compressedBytes.Length))
+                    .Concat(compressedBytes)
                     .ToArray());
         } catch (SocketException) {
             failed = true;
@@ -193,9 +205,10 @@ internal class SocketController : IGameController {
     }
 
     private byte[] Compress(byte[] data){
-            using (var compressedStream = new MemoryStream())
-            using (var zipStream = new GZipStream(compressedStream, CompressionMode.Compress)){
-                zipStream.Write(data, 0, data.Length);
+            using (var compressedStream = new MemoryStream()){
+                using (var zipStream = new GZipStream(compressedStream, CompressionMode.Compress)){
+                    zipStream.Write(data, 0, data.Length);
+                }
                 return compressedStream.ToArray();
             }
         }
@@ -253,14 +266,20 @@ internal class SocketController : IGameController {
         public int NextBlobType;
         public int HeldBlobType;
         public int CurrentScore;
-        public int GameIndex;
         [MarshalAs(UnmanagedType.I1)]
         public bool CanSpawnBlob;
         [MarshalAs(UnmanagedType.I1)]
         public bool IsGameOver;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode, Pack = 1)]
+    private struct GameInfoPacket{
+        public int GameIndex;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 10)]
         public string GameModeKey;
+
     }
+
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct NetworkBlob{

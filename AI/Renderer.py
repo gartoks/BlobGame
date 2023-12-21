@@ -1,4 +1,4 @@
-from FrameInfo import FramePacket
+from Packets import FramePacket
 from Constants import *
 import numpy as np
 import cv2

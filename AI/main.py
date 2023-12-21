@@ -12,6 +12,7 @@ try:
     while True:
         try:
             controller = SocketController(("localhost", 1337))
+            print(f"Game index {controller.game_info.game_index}, gamemode: {controller.game_info.gamemode_key}")
 
             t = -1
             shouldDrop = False
