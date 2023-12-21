@@ -1,4 +1,4 @@
-from FrameInfo import FrameInfo
+from FrameInfo import FramePacket
 from Constants import *
 import numpy as np
 import cv2
@@ -21,7 +21,7 @@ class Renderer:
         
         self.window_title = window_title
 
-    def render_frame(self, frame_info: FrameInfo, current_t: float):
+    def render_frame(self, frame_info: FramePacket, current_t: float):
         self.rendering_surface.fill(255)
 
         for blob in frame_info.blobs:
@@ -33,7 +33,7 @@ class Renderer:
                 thickness=cv2.FILLED,
             )
 
-        if frame_info.can_drop:
+        if frame_info.can_spawn_blob:
             cv2.circle(
                 self.rendering_surface,
                 (int(ARENA_WIDTH * current_t), int(NEXT_BLOB_HEIGHT * 1.5)),

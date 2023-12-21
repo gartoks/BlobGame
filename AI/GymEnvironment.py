@@ -162,7 +162,7 @@ class BlobEnvironment(gym.Env):
             "current_blob": current_blob.astype(np.float32),
             "next_blob": next_blob.astype(np.float32),
             "t": np.array([self.t], dtype=np.float32),
-            "can_drop": np.array([float(self.last_frame.can_drop)], dtype=np.float32),
+            "can_drop": np.array([float(self.last_frame.can_spawn_blob)], dtype=np.float32),
             "drop_time_before_punishment": np.array(
                 [self.num_drops_since_last_move / self.drop_penalty_threshold],
                 dtype=np.float32,
@@ -198,7 +198,7 @@ class BlobEnvironment(gym.Env):
             self.num_moves_since_last_drop = 0
             self.num_drops_since_last_move += 1
         else:
-            if self.last_frame.can_drop:
+            if self.last_frame.can_spawn_blob:
                 self.num_moves_since_last_drop += 1
                 self.num_drops_since_last_move = 0
 
@@ -209,7 +209,7 @@ class BlobEnvironment(gym.Env):
         try:
             self.controller.send_frame_info(self.t, should_drop)
             new_frame = self.controller.receive_frame_info()
-            while not new_frame.can_drop:
+            while not new_frame.can_spawn_blob:
                 self.frame_count += 1
                 self.controller.send_frame_info(self.t, should_drop)
                 new_frame = self.controller.receive_frame_info()
@@ -228,7 +228,7 @@ class BlobEnvironment(gym.Env):
         terminated |= self.num_drops_since_last_move > 300
 
         ## Reward
-        game_reward = new_frame.score - self.last_frame.score
+        game_reward = new_frame.current_score - self.last_frame.current_score
         reward = game_reward
 
         position_badness = 0
@@ -246,7 +246,7 @@ class BlobEnvironment(gym.Env):
         if self.num_drops_since_last_move >= self.move_penalty_threshold:
             reward -= 10
 
-        if should_drop and self.last_frame.can_drop:
+        if should_drop and self.last_frame.can_spawn_blob:
             cblob_color = BLOB_COLORS[self.last_frame.current_blob][0] / 255
             if self.last_top_blob[NN_VIEW_WIDTH // 2] == cblob_color:
                 reward += 20

@@ -1,7 +1,7 @@
 import socket
 import struct
 
-from FrameInfo import FrameInfo, Blob, BLOB_SIZE
+from FrameInfo import FramePacket, Blob, BLOB_SIZE
 
 class SocketController:
     def __init__(self, host_tuple, worker_id=0) -> None:
@@ -14,8 +14,8 @@ class SocketController:
     def close_connection(self):
         self.connection.close()
 
-    def send_frame_info(self, t: float, shouldDrop: bool):
-        buffer = struct.pack("f?", t, shouldDrop)
+    def send_frame_info(self, t: float, shouldDrop: bool, shouldHold: bool):
+        buffer = struct.pack("f??", t, shouldDrop, shouldHold)
         self.connection.send(buffer)
     
     def receive_exact(self, count: int):
@@ -29,17 +29,21 @@ class SocketController:
         return data
 
     def receive_frame_info(self):
-        count, = struct.unpack("i", self.receive_exact(4))
+        size, = struct.unpack("i", self.receive_exact(4))
+        bytes = self.receive_exact(size)
+
+        frame = FramePacket()
         
-        bytes_left = BLOB_SIZE * count
-        buffer = self.receive_exact(bytes_left)
-        
-        frame = FrameInfo([], -1, -1, False, 0, False, 0)
-        for i in range(0, bytes_left, BLOB_SIZE):
-            x, y, t = struct.unpack("ffi", buffer[i:i+BLOB_SIZE])
-            frame.blobs.append(Blob(x, y, t))
-        
-        frame.current_blob, frame.next_blob, frame.score, frame.game_index, frame.can_drop, frame.is_game_over = \
-            struct.unpack("iiii??", self.receive_exact(18))
+        (
+            frame.blob_count,
+            frame.current_blob_type,
+            frame.next_blob_type,
+            frame.held_blob_type,
+            frame.current_score,
+            frame.game_index,
+            frame.can_spawn_blob,
+            frame.is_game_over,
+        ) = struct.unpack_from("iiiiii??", bytes)
+
         return frame
 

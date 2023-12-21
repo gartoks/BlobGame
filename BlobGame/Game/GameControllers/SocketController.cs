@@ -1,8 +1,10 @@
 ﻿using BlobGame.Game.GameModes;
 using BlobGame.Game.GameObjects;
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace BlobGame.Game.GameControllers;
@@ -34,7 +36,7 @@ internal class SocketController : IGameController {
 
     public static void Load(int port){
         if (Listener == null){
-            Listener = new TcpListener(IPAddress.Loopback, port);
+            Listener = new TcpListener(IPAddress.Any, port);
         
             Listener.Start();
         }
@@ -120,28 +122,25 @@ internal class SocketController : IGameController {
 
         string gameModeKey = IGameMode.GameModeTypes.Where(k => k.Value == simulation.GetType()).Select(k => k.Key).Single();
 
+        FramePacket packet = new FramePacket
+        {
+            BlobCount = blobs.Count(),
+            CurrentBlobType = simulation.CurrentBlob,
+            NextBlobType = simulation.NextBlob,
+            HeldBlobType = simulation.HeldBlob,
+            CurrentScore = simulation.Score,
+            GameIndex = GameIndex,
+            CanSpawnBlob = simulation.CanSpawnBlob,
+            IsGameOver = simulation.IsGameOver,
+            GameModeKey = gameModeKey
+        };
 
-        IEnumerable<byte> buffer = new byte[0];
-        buffer = buffer.Concat(BitConverter.GetBytes(blobs.Count));
-        foreach (Blob blob in blobs) {
-            buffer = buffer.Concat(BitConverter.GetBytes(blob.Position.X));
-            buffer = buffer.Concat(BitConverter.GetBytes(blob.Position.Y));
-            buffer = buffer.Concat(BitConverter.GetBytes(blob.Type));
-        }
-        buffer = buffer.Concat(BitConverter.GetBytes(simulation.CurrentBlob));
-        buffer = buffer.Concat(BitConverter.GetBytes(simulation.NextBlob));
-        buffer = buffer.Concat(BitConverter.GetBytes(simulation.HeldBlob));
-        buffer = buffer.Concat(BitConverter.GetBytes(simulation.Score));
-        buffer = buffer.Concat(BitConverter.GetBytes(GameIndex));
-        buffer = buffer.Concat(new byte[] { simulation.CanSpawnBlob ? (byte)0b00000001 : (byte)0b00000000 });
-        buffer = buffer.Concat(new byte[] { simulation.IsGameOver ? (byte)0b00000001 : (byte)0b00000000 });
-        byte[] gameModeKeyData = Encoding.UTF8.GetBytes(gameModeKey == null ? "" : gameModeKey);
-        buffer = buffer.Concat(BitConverter.GetBytes(gameModeKeyData.Length));
-        buffer = buffer.Concat(gameModeKeyData);
+        byte[] packetBytes = getBytes(packet);
+
 
         bool failed = false;
         try {
-            Stream?.Write(buffer.ToArray());
+            Stream?.Write(BitConverter.GetBytes(packetBytes.Length).Concat(packetBytes).ToArray());
         } catch (SocketException) {
             failed = true;
         } catch (IOException) {
@@ -178,9 +177,90 @@ internal class SocketController : IGameController {
             return;
         }
 
-        float t = BitConverter.ToSingle(buffer, 0);
-        bool shouldDrop = BitConverter.ToBoolean(buffer, sizeof(float));
-        bool shouldHold = (buffer[sizeof(float) + sizeof(bool)] & 0b1) == 0b1;
-        FrameInputs = (t, shouldDrop, shouldHold);
+        InputPacket packet = fromBytes<InputPacket>(buffer);
+        FrameInputs = (packet.t, packet.ShouldDrop, packet.ShouldHold);
     }
+
+    private byte[] Compress(byte[] data){
+            using (var compressedStream = new MemoryStream())
+            using (var zipStream = new GZipStream(compressedStream, CompressionMode.Compress)){
+                zipStream.Write(data, 0, data.Length);
+                return compressedStream.ToArray();
+            }
+        }
+
+    private byte[] Decompress(byte[] data){
+        using (var compressedStream = new MemoryStream(data))
+        using (var zipStream = new GZipStream(compressedStream, CompressionMode.Decompress))
+        using (var resultStream = new MemoryStream()){
+            zipStream.CopyTo(resultStream);
+            return resultStream.ToArray();
+        }
+    }
+
+    private byte[] getBytes<T>(T str) where T : struct {
+        int size = Marshal.SizeOf(str);
+        byte[] arr = new byte[size];
+
+        IntPtr ptr = IntPtr.Zero;
+        try{
+            ptr = Marshal.AllocHGlobal(size);
+            Marshal.StructureToPtr(str, ptr, true);
+            Marshal.Copy(ptr, arr, 0, size);
+        }
+        finally{
+            Marshal.FreeHGlobal(ptr);
+        }
+        return arr;
+    }
+    T fromBytes<T>(byte[] arr) where T: struct {
+        T str = new T();
+
+        int size = Marshal.SizeOf(str);
+        IntPtr ptr = IntPtr.Zero;
+        try{
+            ptr = Marshal.AllocHGlobal(size);
+
+            Marshal.Copy(arr, 0, ptr, size);
+
+            str = (T)Marshal.PtrToStructure(ptr, typeof(T));
+        }
+        finally{
+            Marshal.FreeHGlobal(ptr);
+        }
+        return str;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode, Pack = 1)]
+    private struct FramePacket{
+        public int BlobCount;
+        // [MarshalAs(UnmanagedType.ByValArray)]
+        // public NetworkBlob[] Blobs;
+        public int CurrentBlobType;
+        public int NextBlobType;
+        public int HeldBlobType;
+        public int CurrentScore;
+        public int GameIndex;
+        [MarshalAs(UnmanagedType.I1)]
+        public bool CanSpawnBlob;
+        [MarshalAs(UnmanagedType.I1)]
+        public bool IsGameOver;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 10)]
+        public string GameModeKey;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private struct NetworkBlob{
+        public float x, y;
+        public int Type;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private struct InputPacket{
+        public float t;
+        [MarshalAs(UnmanagedType.I1)]
+        public bool ShouldDrop, ShouldHold;
+    }
+
+    
 }
