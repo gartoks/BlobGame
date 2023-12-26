@@ -125,22 +125,22 @@ class BlobEnvironment(gym.Env):
         self.renderer.render_frame(self.last_frame, self.t)
 
         pixels = self.renderer.get_pixels().astype(np.float32) / 255.0
+        cropped_pixels = pixels[:, 2 * NN_NEXT_BLOB_HEIGHT :]
 
-        rolled_pixels = np.roll(
-            pixels, int(float(pixels.shape[-2]) * -(self.t + 0.5)), -2
+
+        rolled_cropped_pixels = np.roll(
+            cropped_pixels, int(float(cropped_pixels.shape[-2]) * -(self.t + 0.5)), -2
         )
 
-        rolled_cropped_pixels = rolled_pixels[:, 2 * NN_NEXT_BLOB_HEIGHT :]
-
-        top_blob = first_nonone(rolled_cropped_pixels, -1)
+        top_blob = first_nonone(cropped_pixels, -1)
         top_distance = (
-            1.0 - (np.argmax(rolled_cropped_pixels != 1, -1) / float(NN_VIEW_HEIGHT))
+            1.0 - (np.argmax(cropped_pixels != 1, -1) / float(NN_VIEW_HEIGHT))
         ) % 1.0
 
         current_blob = np.zeros((len(BLOB_RADII)))
-        current_blob[self.last_frame.current_blob] = 1
+        current_blob[self.last_frame.current_blob_type] = 1
         next_blob = np.zeros((len(BLOB_RADII)))
-        next_blob[self.last_frame.next_blob] = 1
+        next_blob[self.last_frame.next_blob_type] = 1
 
         # if (not self.renderer.never_display):
         #     plt.imshow(np.moveaxis([np.concatenate([
@@ -191,7 +191,7 @@ class BlobEnvironment(gym.Env):
 
     def step(self, action):
         ## Bookkeeping
-        self.t = min(1, max(0, action[0]))
+        self.t = min(1, max(0, (action[0] + 1) / 2))
         should_drop = action[1] > 0
 
         if should_drop:
@@ -207,11 +207,11 @@ class BlobEnvironment(gym.Env):
 
         ## Updating
         try:
-            self.controller.send_frame_info(self.t, should_drop)
+            self.controller.send_frame_info(self.t, should_drop, False)
             new_frame = self.controller.receive_frame_info()
             while not new_frame.can_spawn_blob:
                 self.frame_count += 1
-                self.controller.send_frame_info(self.t, should_drop)
+                self.controller.send_frame_info(self.t, should_drop, False)
                 new_frame = self.controller.receive_frame_info()
 
         except socket.error:
@@ -247,7 +247,7 @@ class BlobEnvironment(gym.Env):
             reward -= 10
 
         if should_drop and self.last_frame.can_spawn_blob:
-            cblob_color = BLOB_COLORS[self.last_frame.current_blob][0] / 255
+            cblob_color = BLOB_COLORS[self.last_frame.current_blob_type][0] / 255
             if self.last_top_blob[NN_VIEW_WIDTH // 2] == cblob_color:
                 reward += 20
             elif np.isin(cblob_color, self.last_top_blob):

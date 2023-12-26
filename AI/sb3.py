@@ -9,7 +9,7 @@ if __name__ == "__main__":
     import random
 
     MOVE_STEP_SIZE = 0.01
-    MOVE_PENALTY_THRESHOLD = (1.0 / MOVE_STEP_SIZE) * 2
+    MOVE_PENALTY_THRESHOLD = 5
     DROP_PENALTY_THRESHOLD = 5
 
     ALGORITHM = SAC
@@ -17,10 +17,10 @@ if __name__ == "__main__":
     ALG_NAME = ALGORITHM.__name__
 
     game_servers = [
-        ("localhost", 32),
-        # ("10.10.11.89", 32),
-        # ("10.10.11.143", 24),
-        # ("10.10.11.144", 24),
+        ("localhost", 4),
+        ("10.10.11.89", 64),
+        ("10.10.11.143", 32),
+        ("10.10.11.144", 32),
     ]
 
     # fallback_server = game_servers[0][0]
@@ -40,7 +40,7 @@ if __name__ == "__main__":
             is_eval=False,
             game_server = game_servers[i % len(game_servers)],
         )
-        for i in range(64)
+        for i in range(len(game_servers))
     ]
     env = VecMonitor(VecFrameStack(SubprocVecEnv(env_fns), n_stack=4))
     env_fns_eval = [
@@ -60,10 +60,10 @@ if __name__ == "__main__":
 
 
     model = ALGORITHM(
-        "MultiInputPolicy", env, verbose=1, tensorboard_log="./AI/tensorboard/", batch_size=256,
+        "MultiInputPolicy", env, verbose=1, tensorboard_log="./AI/tensorboard/", batch_size=1024,
         learning_rate=5e-4
     )
-    # model.set_parameters("./AI/dqn_success1_models/rl_model_dqn__9600000_steps.zip", exact_match=False)
+    model.set_parameters("./AI/best_models_SAC/best_model.zip", exact_match=False)
     print("Started training")
     model.learn(
         total_timesteps=10_000_000,
@@ -72,9 +72,9 @@ if __name__ == "__main__":
         callback=CallbackList(
             [
                 CheckpointCallback(
-                    100_000, f"./AI/models_{ALG_NAME}", verbose=2, name_prefix=f"rl_model_{ALG_NAME}_"
+                    1_000, f"./AI/models_{ALG_NAME}", verbose=2, name_prefix=f"rl_model_{ALG_NAME}_"
                 ),
-                EvalCallback(eval_env, eval_freq=5000, best_model_save_path=f"./AI/best_models_{ALG_NAME}/")
+                EvalCallback(eval_env, eval_freq=500, best_model_save_path=f"./AI/best_models_{ALG_NAME}/")
             ]
         ),
     )

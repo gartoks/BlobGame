@@ -15,8 +15,8 @@ class Renderer:
         self.scaled_surface = np.zeros(
             (NN_VIEW_HEIGHT, NN_VIEW_WIDTH, 3), dtype=np.uint8
         )
-        self.output_surface = None if display else cv2.namedWindow(window_title, cv2.WINDOW_NORMAL)
-        if not display:
+        self.output_surface = cv2.namedWindow(window_title, cv2.WINDOW_NORMAL) if display else None
+        if display:
             cv2.resizeWindow(window_title, OUTPUT_SIZE)
         
         self.window_title = window_title
