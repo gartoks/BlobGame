@@ -11,6 +11,8 @@
     <IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux> 
     <ApplicationIcon>Resources\icon.ico</ApplicationIcon> 
     <AssemblyName>Toasted</AssemblyName> 
+    <TrimMode>partial</TrimMode>
+    <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">

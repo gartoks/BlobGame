@@ -318,6 +318,8 @@ internal sealed partial class GameScene : Scene {
     /// </summary>
     /// <param name="newType">The type of newly created blob.</param>
     private void Game_OnBlobsCombined(IGameMode sender, Vector2 position, int newType) {
+        if (newType == -1)
+            return;
         string key = $"{Game.Blobs[newType].Name}_created";
         if (ResourceManager.SoundLoader.ResourceExists(key)) {
             if (!ResourceManager.SoundLoader.IsLoaded(key))
